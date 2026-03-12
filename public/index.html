@@ -1,38 +1,57 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-  <title>ChatterBox</title>
-  <style>
-    body { font-family: sans-serif; }
-    #messages { list-style: none; padding: 0; }
-    #messages li { padding: 5px 0; }
-  </style>
+    <meta charset="UTF-8">
+    <title>ChatterBox</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f0f0; margin: 0; padding: 0; }
+        #chat-container { width: 400px; margin: 50px auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.2); }
+        #messages { list-style-type: none; padding: 0; max-height: 300px; overflow-y: auto; margin-bottom: 10px; }
+        #messages li { padding: 5px 10px; border-bottom: 1px solid #eee; }
+        #input-container { display: flex; flex-direction: column; }
+        input[type=text] { padding: 8px; margin-bottom: 5px; border-radius: 5px; border: 1px solid #ccc; }
+        button { padding: 8px; border: none; border-radius: 5px; background: #28a745; color: #fff; cursor: pointer; }
+        button:hover { background: #218838; }
+    </style>
 </head>
 <body>
-  <h1>ChatterBox</h1>
-  <ul id="messages"></ul>
-  <input id="input" autocomplete="off" /><button onclick="sendMessage()">Отправить</button>
+    <div id="chat-container">
+        <h2>ChatterBox</h2>
+        <ul id="messages"></ul>
+        <div id="input-container">
+            <input type="text" id="nickname" placeholder="Ваш ник">
+            <input type="text" id="message" placeholder="Введите сообщение">
+            <button id="send">Отправить</button>
+        </div>
+    </div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    const messages = document.getElementById('messages');
-    const input = document.getElementById('input');
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
 
-    // Получаем сообщение и показываем его
-    socket.on('chat message', function(msg){
-      const li = document.createElement('li');
-      li.textContent = msg;
-      messages.appendChild(li);
-    });
+        const messages = document.getElementById('messages');
+        const messageInput = document.getElementById('message');
+        const nicknameInput = document.getElementById('nickname');
+        const sendButton = document.getElementById('send');
 
-    // Отправляем сообщение
-    function sendMessage(){
-      if(input.value){
-        socket.emit('chat message', input.value);
-        input.value = '';
-      }
-    }
-  </script>
+        sendButton.addEventListener('click', () => {
+            const nick = nicknameInput.value.trim() || "Гость";
+            const msg = messageInput.value.trim();
+            if (msg === "") return;
+            socket.emit('chat message', { nick, msg });
+            messageInput.value = '';
+        });
+
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === "Enter") sendButton.click();
+        });
+
+        socket.on('chat message', (data) => {
+            const item = document.createElement('li');
+            item.textContent = ${data.nick}: ${data.msg};
+            messages.appendChild(item);
+            messages.scrollTop = messages.scrollHeight;
+        });
+    </script>
 </body>
 </html>
