@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ChatterBox</title>
+  <style>
+    body { font-family: sans-serif; }
+    #messages { list-style: none; padding: 0; }
+    #messages li { padding: 5px 0; }
+  </style>
+</head>
+<body>
+  <h1>ChatterBox</h1>
+  <ul id="messages"></ul>
+  <input id="input" autocomplete="off" /><button onclick="sendMessage()">Отправить</button>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const messages = document.getElementById('messages');
+    const input = document.getElementById('input');
+
+    // Получаем сообщение и показываем его
+    socket.on('chat message', function(msg){
+      const li = document.createElement('li');
+      li.textContent = msg;
+      messages.appendChild(li);
+    });
+
+    // Отправляем сообщение
+    function sendMessage(){
+      if(input.value){
+        socket.emit('chat message', input.value);
+        input.value = '';
+      }
+    }
+  </script>
+</body>
+</html>
