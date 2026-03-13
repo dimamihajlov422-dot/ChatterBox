@@ -6,57 +6,55 @@ const bodyParser = require("body-parser");
 
 const PORT = process.env.PORT || 3000;
 
-app.use(express.static("public"));
-app.use(bodyParser.json());
+// Простое хранилище пользователей и сообщений
+const users = {}; // { nick: password }
+let onlineUsers = []; // массив ников
+let messages = {}; // { "user1|user2": [{from, msg}] }
 
-// Хранилища
-const users = {};         // { nick: password }
-const onlineUsers = {};   // { socket.id: nick }
-const privateRooms = {};  // { "nick1_nick2": [{nick,msg}, ...] }
-const generalChat = [];
+app.use(bodyParser.json());
+app.use(express.static("public"));
 
 // Регистрация
 app.post("/register", (req, res) => {
-    const { nick, password } = req.body;
-    if (!nick || !password) return res.status(400).send({ error: "Заполните поля" });
-    if (users[nick]) return res.status(400).send({ error: "Ник занят" });
-    users[nick] = password;
-    return res.send({ success: true });
+  const { nick, password } = req.body;
+  if (!nick || !password) return res.json({ error: "Заполните поля" });
+  if (users[nick]) return res.json({ error: "Такой ник уже существует" });
+  users[nick] = password;
+  res.json({ success: true });
 });
 
 // Вход
 app.post("/login", (req, res) => {
-    const { nick, password } = req.body;
-    if (!nick || !password) return res.status(400).send({ error: "Заполните поля" });
-    if (users[nick] !== password) return res.status(400).send({ error: "Неверный ник или пароль" });
-    return res.send({ success: true });
+  const { nick, password } = req.body;
+  if (!nick || !password) return res.json({ error: "Заполните поля" });
+  if (!users[nick] || users[nick] !== password)
+    return res.json({ error: "Неверный ник или пароль" });
+  res.json({ success: true });
 });
 
 // Socket.io
-io.on("connection", socket => {
+io.on("connection", (socket) => {
+  let nick = "";
 
-    socket.on("set nick", nick => {
-        onlineUsers[socket.id] = nick;
-        io.emit("update users", Object.values(onlineUsers));
-        socket.emit("general chat", generalChat);
-    });
+  socket.on("set nick", (n) => {
+    nick = n;
+    if (!onlineUsers.includes(nick)) onlineUsers.push(nick);
+    io.emit("update users", onlineUsers);
+  });
 
-    socket.on("private message", data => {
-        const roomId = [data.fromNick, data.toNick].sort().join("_");
-        if (!privateRooms[roomId]) privateRooms[roomId] = [];
-        privateRooms[roomId].push({ nick: data.fromNick, msg: data.msg });
+  socket.on("private message", (data) => {
+    const key =
+      [data.fromNick, data.toNick].sort().join("|"); // одинаковый ключ для двоих
+    if (!messages[key]) messages[key] = [];
+    messages[key].push({ from: data.fromNick, msg: data.msg });
+    io.to(socket.id).emit("private message", data);
+    socket.broadcast.emit("private message", data);
+  });
 
-        const toSocketId = Object.keys(onlineUsers).find(id => onlineUsers[id] === data.toNick);
-
-        socket.emit("private message", { fromNick: data.fromNick, msg: data.msg, toNick: data.toNick });
-        if (toSocketId) io.to(toSocketId).emit("private message", { fromNick: data.fromNick, msg: data.msg, toNick: data.toNick });
-    });
-
-    socket.on("disconnect", () => {
-        delete onlineUsers[socket.id];
-        io.emit("update users", Object.values(onlineUsers));
-    });
-
+  socket.on("disconnect", () => {
+    onlineUsers = onlineUsers.filter((u) => u !== nick);
+    io.emit("update users", onlineUsers);
+  });
 });
 
-http.listen(PORT, () => console.log("Сервер запущен на порту " + PORT));
+http.listen(PORT, () => console.log(Сервер запущен на порту ${PORT}));
