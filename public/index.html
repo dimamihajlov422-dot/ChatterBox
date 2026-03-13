@@ -4,199 +4,93 @@
 <meta charset="UTF-8">
 <title>ChatterBox</title>
 <style>
-body{
-  font-family: Arial, sans-serif;
-  background:#f0f0f0;
-  margin:0;
-  display:flex;
-  flex-direction:column;
-  height:100vh;
-}
-
-#room-select{
-  margin:5px;
-  padding:8px;
-  font-size:16px;
-  border-radius:6px;
-  border:none;
-}
-
-#messages{
-  flex:1;
-  overflow-y:auto;
-  padding:10px;
-  background:white;
-  word-wrap: break-word;
-}
-
-.message{
-  padding:6px 8px;
-  margin:4px 0;
-  background:#e3e3e3;
-  border-radius:8px;
-  display:flex;
-  justify-content: space-between;
-  align-items:center;
-  flex-wrap:wrap;
-}
-
-.message span{
-  flex:1;
-  word-wrap: break-word;
-}
-
-.message button{
-  background:red;
-  color:white;
-  border:none;
-  border-radius:4px;
-  padding:2px 6px;
-  margin-left:8px;
-  font-size:12px;
-  cursor:pointer;
-}
-
-#form-container{
-  display:flex;
-  flex-direction: column;
-  padding:5px;
-  background:#ddd;
-  box-sizing:border-box;
-}
-
-#form{
-  display:flex;
-  flex-direction:row;
-}
-
-#nick{
-  padding:10px;
-  font-size:16px;
-  margin-bottom:5px;
-  border-radius:6px;
-  border:none;
-}
-
-#input{
-  flex:1;
-  padding:10px;
-  font-size:16px;
-  border:none;
-  border-radius:6px 0 0 6px;
-  resize:none;
-}
-
-#send{
-  padding:10px 16px;
-  border:none;
-  background:#4CAF50;
-  color:white;
-  font-size:16px;
-  border-radius:0 6px 6px 0;
-  cursor:pointer;
-}
-
-@media (max-width:600px){
-  #nick, #room-select{
-    width:100%;
-    font-size:18px;
-    padding:12px;
-  }
-  #input{
-    font-size:18px;
-    padding:12px;
-  }
-  #send{
-    font-size:18px;
-    padding:12px 18px;
-  }
-}
+body{margin:0;font-family:Arial,sans-serif;display:flex;height:100vh;background:#f0f0f0}
+#contacts{width:150px;background:#ddd;overflow-y:auto;padding:5px}
+#contacts div{padding:6px;cursor:pointer;border-radius:4px;margin-bottom:3px;background:#eee}
+#contacts div:hover{background:#ccc}
+#chat-area{flex:1;display:flex;flex-direction:column}
+#messages{flex:1;overflow-y:auto;padding:10px;background:white;word-wrap:break-word}
+.message{padding:6px 8px;margin:4px 0;background:#e3e3e3;border-radius:8px;display:flex;justify-content:space-between;flex-wrap:wrap}
+.nick{font-weight:bold;margin-right:6px}
+#input-area{display:flex;padding:5px;background:#ddd}
+#message-input{flex:1;padding:6px;border-radius:6px;border:none;font-size:16px}
+#send-btn{padding:6px 12px;border:none;border-radius:6px;background:#4CAF50;color:white;margin-left:5px;cursor:pointer;font-size:16px}
+#current-chat{padding:5px;background:#bbb;font-weight:bold}
 </style>
 </head>
 <body>
 
-<select id="room-select">
-  <option>Общий</option>
-  <option>Тест</option>
-  <option>Игры</option>
-</select>
+<div id="contacts"></div>
 
-<div id="messages"></div>
-
-<div id="form-container">
-  <input id="nick" placeholder="Ваш ник"/>
-  <form id="form">
-    <textarea id="input" autocomplete="off" placeholder="Сообщение..." rows="1"></textarea>
-    <button type="submit" id="send">Отправить</button>
-  </form>
+<div id="chat-area">
+    <div id="current-chat">Общий чат</div>
+    <div id="messages"></div>
+    <div id="input-area">
+        <input id="message-input" placeholder="Введите сообщение..." />
+        <button id="send-btn">Отправить</button>
+    </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
+let nick = prompt("Введите ник") || "Гость";
+let currentChat = "Общий чат"; // по умолчанию общий
 
-const form = document.getElementById("form");
-const input = document.getElementById("input");
-const nickInput = document.getElementById("nick");
-const messages = document.getElementById("messages");
-const roomSelect = document.getElementById("room-select");
+socket.emit("set nick", nick);
 
-let currentRoom = roomSelect.value;
+const messagesDiv = document.getElementById("messages");
+const contactsDiv = document.getElementById("contacts");
+const currentChatDiv = document.getElementById("current-chat");
+const input = document.getElementById("message-input");
 
-// подключаемся к комнате при старте
-socket.emit("join room", currentRoom);
+function addMessage(msg, sender) {
+    const div = document.createElement("div");
+    div.className = "message";
+    div.innerHTML = <span class="nick">${sender}:</span> <span>${msg}</span>;
+    messagesDiv.appendChild(div);
+    div.scrollIntoView();
+}
 
-// переключение комнат
-roomSelect.addEventListener("change", () => {
-  currentRoom = roomSelect.value;
-  messages.innerHTML = "";
-  socket.emit("join room", currentRoom);
+// Обновление списка контактов
+socket.on("update users", users => {
+    contactsDiv.innerHTML = "";
+    users.filter(u=>u!==nick).forEach(user=>{
+        const div = document.createElement("div");
+        div.textContent = user;
+        div.addEventListener("click", ()=>{
+            currentChat = user;
+            currentChatDiv.textContent = "Чат с: " + user;
+            messagesDiv.innerHTML = "";
+        });
+        contactsDiv.appendChild(div);
+    });
 });
 
-// авто-размер поля
-input.addEventListener('input', () => {
-  input.style.height = 'auto';
-  input.style.height = input.scrollHeight + 'px';
+// Общий чат (только чтение)
+socket.on("general chat", msgs => {
+    messagesDiv.innerHTML = "";
+    msgs.forEach(m=>addMessage(m.msg, m.nick));
 });
 
-// отправка сообщений
-form.addEventListener("submit", function(e){
-  e.preventDefault();
-  if(input.value && nickInput.value){
-    const data = {nick: nickInput.value, msg: input.value, room: currentRoom};
-    socket.emit("chat message", data);
+// Отправка приватного сообщения
+document.getElementById("send-btn").addEventListener("click", ()=>{
+    const msg = input.value.trim();
+    if(msg==="") return;
+    if(currentChat==="Общий чат") return alert("Пока пишем только приватно");
+    socket.emit("private message",{fromNick:nick,toNick:currentChat,msg});
     input.value="";
-    input.style.height = 'auto';
-  }
 });
 
-// получение сообщений
-socket.on("chat message", function(data){
-  const item = document.createElement("div");
-  item.className="message";
+input.addEventListener("keypress",e=>{
+    if(e.key==="Enter") document.getElementById("send-btn").click();
+});
 
-  const span = document.createElement("span");
-  span.textContent = data.nick + ": " + data.msg;
-
-  const delBtn = document.createElement("button");
-  delBtn.textContent="X";
-  delBtn.onclick = function(){ 
-    messages.removeChild(item); 
-  };
-
-  // удаление по долгому нажатию на мобильных
-  let pressTimer;
-  item.addEventListener('touchstart', function(e){
-    pressTimer = setTimeout(()=> messages.removeChild(item), 600);
-  });
-  item.addEventListener('touchend', function(e){
-    clearTimeout(pressTimer);
-  });
-
-  item.appendChild(span);
-  item.appendChild(delBtn);
-  messages.appendChild(item);
-  messages.scrollTop = messages.scrollHeight;
+// Получение приватного сообщения
+socket.on("private message", data=>{
+    if((data.fromNick===currentChat && data.toNick===nick) || (data.fromNick===nick && data.toNick===currentChat)){
+        addMessage(data.msg, data.fromNick);
+    }
 });
 </script>
 

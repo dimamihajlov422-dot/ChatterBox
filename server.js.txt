@@ -7,39 +7,46 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.static("public"));
 
-// Массив комнат с сообщениями
-let rooms = {
-    "Общий": [],
-    "Тест": [],
-    "Игры": []
-};
+// Онлайн-пользователи: { socket.id: nick }
+const onlineUsers = {};
 
-io.on("connection", (socket) => {
-    console.log("Пользователь подключился");
+// Приватные комнаты: { roomId: [{nick,msg}, ...] }
+const privateRooms = {};
 
-    // пользователь выбирает комнату
-    socket.on("join room", (room) => {
-        socket.join(room);
-        console.log(Пользователь подключился к комнате: ${room});
+// Общий чат (только читать)
+const generalChat = [];
 
-        // отправляем старые сообщения этой комнаты
-        rooms[room].forEach(msg => {
-            socket.emit("chat message", {room, ...msg});
-        });
+io.on("connection", socket => {
+    // Получаем ник
+    socket.on("set nick", nick => {
+        onlineUsers[socket.id] = nick;
+
+        // Обновляем список контактов у всех
+        io.emit("update users", Object.values(onlineUsers));
+
+        // Отправляем историю общего чата
+        socket.emit("general chat", generalChat);
     });
 
-    socket.on("chat message", (data) => {
-        if(rooms[data.room]){
-            rooms[data.room].push({nick: data.nick, msg: data.msg});
-            io.to(data.room).emit("chat message", data);
-        }
+    // Приватные сообщения
+    socket.on("private message", data => {
+        // data: { toNick, msg, fromNick }
+        const roomId = [data.fromNick, data.toNick].sort().join("_");
+        if (!privateRooms[roomId]) privateRooms[roomId] = [];
+        privateRooms[roomId].push({ nick: data.fromNick, msg: data.msg });
+
+        // Найти socket.id получателя
+        const toSocketId = Object.keys(onlineUsers).find(id => onlineUsers[id] === data.toNick);
+
+        // Отправить обоим
+        socket.emit("private message", { fromNick: data.fromNick, msg: data.msg, toNick: data.toNick });
+        if (toSocketId) io.to(toSocketId).emit("private message", { fromNick: data.fromNick, msg: data.msg, toNick: data.toNick });
     });
 
     socket.on("disconnect", () => {
-        console.log("Пользователь отключился");
+        delete onlineUsers[socket.id];
+        io.emit("update users", Object.values(onlineUsers));
     });
 });
 
-http.listen(PORT, () => {
-    console.log("Сервер запущен на порту " + PORT);
-});
+http.listen(PORT, () => console.log("Сервер запущен на порту " + PORT));
