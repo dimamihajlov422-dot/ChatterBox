@@ -7,6 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.static("public"));
 
+// Сообщения по комнатам
 const rooms = { "Общий": [], "Тест": [], "Игры": [] };
 
 io.on("connection", socket => {
@@ -28,9 +29,16 @@ io.on("connection", socket => {
         }
     });
 
+    socket.on("delete message", data => {
+        if (rooms[data.room]) {
+            rooms[data.room] = rooms[data.room].filter((m,i)=>i!==data.index);
+            io.to(data.room).emit("delete message", data.index);
+        }
+    });
+
     socket.on("disconnect", () => {
         console.log("Пользователь отключился");
     });
 });
 
-http.listen(PORT, () => console.log("Сервер запущен на порту " + PORT));
+http.listen(PORT, () => console.log("Сервер запущен на порту " + PORT));og("Сервер запущен на порту " + PORT));
