@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.static("public"));
 
-// Массив комнат с сообщениями
+// Хранилище сообщений по комнатам
 let rooms = {
     "Общий": [],
     "Тест": [],
@@ -17,17 +17,20 @@ let rooms = {
 io.on("connection", (socket) => {
     console.log("Пользователь подключился");
 
-    // пользователь выбирает комнату
+    // Подключение к комнате
     socket.on("join room", (room) => {
         socket.join(room);
         console.log(Пользователь подключился к комнате: ${room});
 
-        // отправляем старые сообщения этой комнаты
-        rooms[room].forEach(msg => {
-            socket.emit("chat message", {room, ...msg});
-        });
+        // Отправка истории сообщений в эту комнату
+        if(rooms[room]){
+            rooms[room].forEach(msg => {
+                socket.emit("chat message", {room, ...msg});
+            });
+        }
     });
 
+    // Получение нового сообщения
     socket.on("chat message", (data) => {
         if(rooms[data.room]){
             rooms[data.room].push({nick: data.nick, msg: data.msg});
@@ -38,6 +41,10 @@ io.on("connection", (socket) => {
     socket.on("disconnect", () => {
         console.log("Пользователь отключился");
     });
+});
+
+http.listen(PORT, () => {
+    console.log("Сервер запущен на порту " + PORT);
 });
 
 http.listen(PORT, () => {
