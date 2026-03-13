@@ -9,13 +9,13 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static("public"));
 app.use(bodyParser.json());
 
-// Мини-хранилище пользователей и паролей
-const users = {}; // { nick: password }
-const onlineUsers = {}; // { socket.id: nick }
-const privateRooms = {}; // { roomId: [{nick,msg}, ...] }
+// Хранилища
+const users = {};         // { nick: password }
+const onlineUsers = {};   // { socket.id: nick }
+const privateRooms = {};  // { "nick1_nick2": [{nick,msg}, ...] }
 const generalChat = [];
 
-// API регистрации
+// Регистрация
 app.post("/register", (req, res) => {
     const { nick, password } = req.body;
     if (!nick || !password) return res.status(400).send({ error: "Заполните поля" });
@@ -24,7 +24,7 @@ app.post("/register", (req, res) => {
     return res.send({ success: true });
 });
 
-// API входа
+// Вход
 app.post("/login", (req, res) => {
     const { nick, password } = req.body;
     if (!nick || !password) return res.status(400).send({ error: "Заполните поля" });
@@ -32,7 +32,9 @@ app.post("/login", (req, res) => {
     return res.send({ success: true });
 });
 
+// Socket.io
 io.on("connection", socket => {
+
     socket.on("set nick", nick => {
         onlineUsers[socket.id] = nick;
         io.emit("update users", Object.values(onlineUsers));
@@ -54,6 +56,7 @@ io.on("connection", socket => {
         delete onlineUsers[socket.id];
         io.emit("update users", Object.values(onlineUsers));
     });
+
 });
 
 http.listen(PORT, () => console.log("Сервер запущен на порту " + PORT));
