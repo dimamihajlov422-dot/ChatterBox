@@ -3,51 +3,74 @@
 <head>
 <meta charset="UTF-8">
 <title>ChatterBox</title>
-
 <style>
 body{
-font-family: Arial;
-background:#f0f0f0;
-margin:0;
+  font-family: Arial;
+  background:#f0f0f0;
+  margin:0;
 }
 
 #messages{
-height:80vh;
-overflow-y:scroll;
-padding:10px;
-background:white;
+  height:80vh;
+  overflow-y:scroll;
+  padding:10px;
+  background:white;
+  word-wrap: break-word; /* перенос длинного текста */
 }
 
 .message{
-padding:6px;
-margin:4px 0;
-background:#e3e3e3;
-border-radius:6px;
+  padding:6px;
+  margin:4px 0;
+  background:#e3e3e3;
+  border-radius:6px;
+  display:flex;
+  justify-content: space-between; /* ник + текст слева, кнопка справа */
+  align-items:center;
+}
+
+.message span{
+  flex:1;
+  word-wrap: break-word;
+}
+
+.message button{
+  background:red;
+  color:white;
+  border:none;
+  border-radius:4px;
+  padding:2px 6px;
+  margin-left:8px;
+  font-size:12px;
+  cursor:pointer;
 }
 
 #form{
-display:flex;
-position:fixed;
-bottom:0;
-width:100%;
+  display:flex;
+  position:fixed;
+  bottom:0;
+  width:100%;
+  box-sizing:border-box;
 }
 
 #input{
-flex:1;
-padding:10px;
-border:none;
-font-size:16px;
+  flex:1;
+  padding:10px;
+  font-size:16px;
+  border:none;
+  border-top-left-radius:6px;
+  border-bottom-left-radius:6px;
 }
 
-button{
-padding:10px;
-border:none;
-background:#4CAF50;
-color:white;
-font-size:16px;
+button#send{
+  padding:10px 16px;
+  border:none;
+  background:#4CAF50;
+  color:white;
+  font-size:16px;
+  border-top-right-radius:6px;
+  border-bottom-right-radius:6px;
 }
 </style>
-
 </head>
 
 <body>
@@ -55,44 +78,48 @@ font-size:16px;
 <div id="messages"></div>
 
 <form id="form">
+<input id="nick" placeholder="Ваш ник" style="width:120px; padding:10px;"/>
 <input id="input" autocomplete="off" placeholder="Сообщение..." />
-<button>Отправить</button>
+<button type="submit" id="send">Отправить</button>
 </form>
 
 <script src="/socket.io/socket.io.js"></script>
-
 <script>
-
 const socket = io();
 
 const form = document.getElementById("form");
 const input = document.getElementById("input");
+const nickInput = document.getElementById("nick");
 const messages = document.getElementById("messages");
 
 form.addEventListener("submit", function(e){
-e.preventDefault();
-
-if(input.value){
-
-socket.emit("chat message", input.value);
-
-input.value="";
-}
-
+  e.preventDefault();
+  if(input.value && nickInput.value){
+    const data = {nick: nickInput.value, msg: input.value};
+    socket.emit("chat message", data);
+    input.value="";
+  }
 });
 
-socket.on("chat message", function(msg){
+socket.on("chat message", function(data){
+  const item = document.createElement("div");
+  item.className="message";
 
-const item = document.createElement("div");
-item.className="message";
-item.textContent=msg;
+  const span = document.createElement("span");
+  span.textContent = data.nick + ": " + data.msg;
 
-messages.appendChild(item);
+  const delBtn = document.createElement("button");
+  delBtn.textContent="X";
+  delBtn.onclick = function(){ 
+    messages.removeChild(item); 
+  };
 
-messages.scrollTop = messages.scrollHeight;
+  item.appendChild(span);
+  item.appendChild(delBtn);
 
+  messages.appendChild(item);
+  messages.scrollTop = messages.scrollHeight;
 });
-
 </script>
 
 </body>
