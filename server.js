@@ -11,13 +11,17 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static('public'));
 
 // Когда подключается новый пользователь
+et messages = [ ] ;
 io.on('connection', (socket) => {
     console.log('Новый пользователь подключился');
-
+messages.forEach((msg) => {
+    socket.emit('chat message', msg);
+});
     // Получаем объект с ником и сообщением
     socket.on('chat message', (data) => {
-        io.emit('chat message', data); // Отправляем всем
-    });
+    messages.push(data); // сохраняем сообщение
+    io.emit('chat message', data); // отправляем всем
+});
 
     socket.on('disconnect', () => {
         console.log('Пользователь отключился');
