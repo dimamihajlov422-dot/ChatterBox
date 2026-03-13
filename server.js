@@ -1,8 +1,11 @@
 const express = require("express");
-const app = express();
-const http = require("http").createServer(app);
-const io = require("socket.io")(http);
+const http = require("http");
+const socketIo = require("socket.io");
 const bodyParser = require("body-parser");
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
 
 const PORT = process.env.PORT || 3000;
 
@@ -43,10 +46,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("private message", (data) => {
-    const key =
-      [data.fromNick, data.toNick].sort().join("|"); // одинаковый ключ для двоих
+    const key = [data.fromNick, data.toNick].sort().join("|"); // одинаковый ключ для двоих
     if (!messages[key]) messages[key] = [];
     messages[key].push({ from: data.fromNick, msg: data.msg });
+    // Отправляем только нужным пользователям
     io.to(socket.id).emit("private message", data);
     socket.broadcast.emit("private message", data);
   });
@@ -57,4 +60,4 @@ io.on("connection", (socket) => {
   });
 });
 
-http.listen(PORT, () => console.log(Сервер запущен на порту ${PORT}));
+server.listen(PORT, () => console.log(Сервер запущен на порту ${PORT}));
