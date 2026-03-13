@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static("public"));
 
 // Хранилище сообщений по комнатам
-let rooms = {
+const rooms = {
     "Общий": [],
     "Тест": [],
     "Игры": []
@@ -22,18 +22,18 @@ io.on("connection", (socket) => {
         socket.join(room);
         console.log(Пользователь подключился к комнате: ${room});
 
-        // Отправка истории сообщений в эту комнату
-        if(rooms[room]){
+        // Отправляем историю сообщений этой комнаты
+        if (rooms[room]) {
             rooms[room].forEach(msg => {
-                socket.emit("chat message", {room, ...msg});
+                socket.emit("chat message", { room, ...msg });
             });
         }
     });
 
     // Получение нового сообщения
     socket.on("chat message", (data) => {
-        if(rooms[data.room]){
-            rooms[data.room].push({nick: data.nick, msg: data.msg});
+        if (rooms[data.room]) {
+            rooms[data.room].push({ nick: data.nick, msg: data.msg });
             io.to(data.room).emit("chat message", data);
         }
     });
@@ -44,9 +44,5 @@ io.on("connection", (socket) => {
 });
 
 http.listen(PORT, () => {
-    console.log("Сервер запущен на порту " + PORT);
-});
-
-http.listen(PORT, () => {
-    console.log("Сервер запущен на порту " + PORT);
+    console.log(Сервер запущен на порту ${PORT});
 });
