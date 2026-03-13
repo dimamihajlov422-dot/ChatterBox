@@ -41,4 +41,6 @@ io.on("connection", socket => {
     });
 });
 
-http.listen(PORT, () => console.log("Сервер запущен на порту " + PORT));og("Сервер запущен на порту " + PORT));
+http.listen(PORT, () => {
+    console.log("Сервер запущен на порту " + PORT);
+});
