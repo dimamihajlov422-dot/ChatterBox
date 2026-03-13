@@ -5,10 +5,13 @@
 <title>ChatterBox</title>
 <style>
 body{margin:0;font-family:Arial,sans-serif;display:flex;height:100vh;background:#f0f0f0}
+#login-panel,#register-panel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,0.3)}
+input{display:block;margin:10px 0;padding:8px;width:200px;border-radius:6px;border:1px solid #aaa}
+button{padding:6px 12px;border:none;border-radius:6px;background:#4CAF50;color:white;cursor:pointer;font-size:14px}
 #contacts{width:150px;background:#ddd;overflow-y:auto;padding:5px}
 #contacts div{padding:6px;cursor:pointer;border-radius:4px;margin-bottom:3px;background:#eee}
 #contacts div:hover{background:#ccc}
-#chat-area{flex:1;display:flex;flex-direction:column}
+#chat-area{flex:1;display:flex;flex-direction:column;margin-left:150px}
 #messages{flex:1;overflow-y:auto;padding:10px;background:white;word-wrap:break-word}
 .message{padding:6px 8px;margin:4px 0;background:#e3e3e3;border-radius:8px;display:flex;justify-content:space-between;flex-wrap:wrap}
 .nick{font-weight:bold;margin-right:6px}
@@ -20,8 +23,25 @@ body{margin:0;font-family:Arial,sans-serif;display:flex;height:100vh;background:
 </head>
 <body>
 
-<div id="contacts"></div>
+<!-- Панели регистрации/входа -->
+<div id="register-panel">
+<h3>Регистрация</h3>
+<input id="reg-nick" placeholder="Ник">
+<input id="reg-pass" type="password" placeholder="Пароль">
+<button id="reg-btn">Зарегистрироваться</button>
+<p>Уже есть аккаунт? <span id="to-login" style="color:blue;cursor:pointer">Войти</span></p>
+</div>
 
+<div id="login-panel" style="display:none">
+<h3>Вход</h3>
+<input id="login-nick" placeholder="Ник">
+<input id="login-pass" type="password" placeholder="Пароль">
+<button id="login-btn">Войти</button>
+<p>Нет аккаунта? <span id="to-register" style="color:blue;cursor:pointer">Зарегистрироваться</span></p>
+</div>
+
+<!-- Основной чат -->
+<div id="contacts"></div>
 <div id="chat-area">
     <div id="current-chat">Общий чат</div>
     <div id="messages"></div>
@@ -34,48 +54,85 @@ body{margin:0;font-family:Arial,sans-serif;display:flex;height:100vh;background:
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
-let nick = prompt("Введите ник") || "Гость";
-let currentChat = "Общий чат"; // по умолчанию общий
+let nick = "";
+let currentChat = "Общий чат";
 
-socket.emit("set nick", nick);
-
+const loginPanel = document.getElementById("login-panel");
+const registerPanel = document.getElementById("register-panel");
 const messagesDiv = document.getElementById("messages");
 const contactsDiv = document.getElementById("contacts");
 const currentChatDiv = document.getElementById("current-chat");
 const input = document.getElementById("message-input");
 
-function addMessage(msg, sender) {
+// Переход между панелями
+document.getElementById("to-login").addEventListener("click",()=>{
+    registerPanel.style.display="none";
+    loginPanel.style.display="block";
+});
+document.getElementById("to-register").addEventListener("click",()=>{
+    loginPanel.style.display="none";
+    registerPanel.style.display="block";
+});
+
+// Регистрация
+document.getElementById("reg-btn").addEventListener("click",async ()=>{
+    const nickVal = document.getElementById("reg-nick").value.trim();
+    const passVal = document.getElementById("reg-pass").value.trim();
+    if(!nickVal||!passVal) return alert("Заполните поля");
+    const res = await fetch("/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({nick:nickVal,password:passVal})});
+    const data = await res.json();
+    if(data.error) return alert(data.error);
+    alert("Регистрация успешна");
+    registerPanel.style.display="none";
+    loginPanel.style.display="block";
+});
+// Вход
+document.getElementById("login-btn").addEventListener("click",async ()=>{
+    const nickVal = document.getElementById("login-nick").value.trim();
+    const passVal = document.getElementById("login-pass").value.trim();
+    if(!nickVal||!passVal) return alert("Заполните поля");
+    const res = await fetch("/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({nick:nickVal,password:passVal})});
+    const data = await res.json();
+    if(data.error) return alert(data.error);
+    nick = nickVal;
+    loginPanel.style.display="none";
+    registerPanel.style.display="none";
+    socket.emit("set nick", nick);
+});
+
+// Сообщения
+function addMessage(msg, sender){
     const div = document.createElement("div");
-    div.className = "message";
-    div.innerHTML = <span class="nick">${sender}:</span> <span>${msg}</span>;
+    div.className="message";
+    div.innerHTML=<span class="nick">${sender}:</span> <span>${msg}</span>;
     messagesDiv.appendChild(div);
     div.scrollIntoView();
 }
 
-// Обновление списка контактов
-socket.on("update users", users => {
-    contactsDiv.innerHTML = "";
+// Контакты
+socket.on("update users", users=>{
+    contactsDiv.innerHTML="";
     users.filter(u=>u!==nick).forEach(user=>{
-        const div = document.createElement("div");
-        div.textContent = user;
-        div.addEventListener("click", ()=>{
-            currentChat = user;
-            currentChatDiv.textContent = "Чат с: " + user;
-            messagesDiv.innerHTML = "";
+        const div=document.createElement("div");
+        div.textContent=user;
+        div.addEventListener("click",()=>{
+            currentChat=user;
+            currentChatDiv.textContent="Чат с: "+user;
+            messagesDiv.innerHTML="";
         });
         contactsDiv.appendChild(div);
     });
 });
 
 // Общий чат (только чтение)
-socket.on("general chat", msgs => {
-    messagesDiv.innerHTML = "";
-    msgs.forEach(m=>addMessage(m.msg, m.nick));
+socket.on("general chat", msgs=>{
+    messagesDiv.innerHTML="";
+    msgs.forEach(m=>addMessage(m.msg,m.nick));
 });
 
 // Отправка приватного сообщения
-document.getElementById("send-btn").addEventListener("click", ()=>{
-    const msg = input.value.trim();
+document.getElementById("send-btn").addEventListener("click",()=>{
+    const msg=input.value.trim();
     if(msg==="") return;
     if(currentChat==="Общий чат") return alert("Пока пишем только приватно");
     socket.emit("private message",{fromNick:nick,toNick:currentChat,msg});
@@ -88,8 +145,8 @@ input.addEventListener("keypress",e=>{
 
 // Получение приватного сообщения
 socket.on("private message", data=>{
-    if((data.fromNick===currentChat && data.toNick===nick) || (data.fromNick===nick && data.toNick===currentChat)){
-        addMessage(data.msg, data.fromNick);
+    if((data.fromNick===currentChat && data.toNick===nick)||(data.fromNick===nick && data.toNick===currentChat)){
+        addMessage(data.msg,data.fromNick);
     }
 });
 </script>
