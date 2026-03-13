@@ -8,10 +8,17 @@ body{
   font-family: Arial, sans-serif;
   background:#f0f0f0;
   margin:0;
-  padding:0;
   display:flex;
   flex-direction:column;
   height:100vh;
+}
+
+#room-select{
+  margin:5px;
+  padding:8px;
+  font-size:16px;
+  border-radius:6px;
+  border:none;
 }
 
 #messages{
@@ -90,8 +97,10 @@ body{
 }
 
 @media (max-width:600px){
-  #nick{
+  #nick, #room-select{
     width:100%;
+    font-size:18px;
+    padding:12px;
   }
   #input{
     font-size:18px;
@@ -105,6 +114,12 @@ body{
 </style>
 </head>
 <body>
+
+<select id="room-select">
+  <option>Общий</option>
+  <option>Тест</option>
+  <option>Игры</option>
+</select>
 
 <div id="messages"></div>
 
@@ -124,18 +139,31 @@ const form = document.getElementById("form");
 const input = document.getElementById("input");
 const nickInput = document.getElementById("nick");
 const messages = document.getElementById("messages");
+const roomSelect = document.getElementById("room-select");
 
-// автоматическое увеличение textarea
+let currentRoom = roomSelect.value;
+
+// подключаемся к комнате при старте
+socket.emit("join room", currentRoom);
+
+// переключение комнат
+roomSelect.addEventListener("change", () => {
+  currentRoom = roomSelect.value;
+  messages.innerHTML = "";
+  socket.emit("join room", currentRoom);
+});
+
+// авто-размер поля
 input.addEventListener('input', () => {
   input.style.height = 'auto';
   input.style.height = input.scrollHeight + 'px';
 });
 
-// отправка сообщения
+// отправка сообщений
 form.addEventListener("submit", function(e){
   e.preventDefault();
   if(input.value && nickInput.value){
-    const data = {nick: nickInput.value, msg: input.value};
+    const data = {nick: nickInput.value, msg: input.value, room: currentRoom};
     socket.emit("chat message", data);
     input.value="";
     input.style.height = 'auto';
@@ -150,7 +178,6 @@ socket.on("chat message", function(data){
   const span = document.createElement("span");
   span.textContent = data.nick + ": " + data.msg;
 
-  // кнопка удаления для ПК
   const delBtn = document.createElement("button");
   delBtn.textContent="X";
   delBtn.onclick = function(){ 
@@ -169,7 +196,6 @@ socket.on("chat message", function(data){
   item.appendChild(span);
   item.appendChild(delBtn);
   messages.appendChild(item);
-
   messages.scrollTop = messages.scrollHeight;
 });
 </script>
