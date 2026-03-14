@@ -44,7 +44,7 @@ const socket = io();
 let nick = "";
 let friend = "";
 
-// Подставляем из localStorage
+// подставляем из localStorage
 window.onload = () => {
   const savedNick = localStorage.getItem("nick");
   const savedFriend = localStorage.getItem("friend");
@@ -53,7 +53,7 @@ window.onload = () => {
   if(savedNick && savedFriend) start();
 }
 
-// Старт чата
+// старт чата
 function start(){
   nick = document.getElementById("nick").value.trim();
   friend = document.getElementById("friend").value.trim();
@@ -66,7 +66,7 @@ function start(){
   document.getElementById("chat").innerHTML = "";
 }
 
-// Отправка текста
+// отправка текста
 function send(){
   const msg = document.getElementById("msg").value.trim();
   if(!msg) return;
@@ -74,12 +74,12 @@ function send(){
   document.getElementById("msg").value = "";
 }
 
-// Enter
+// enter
 document.getElementById("msg").addEventListener("keydown", (e)=>{
   if(e.key === "Enter") send();
 });
 
-// Отправка картинки
+// отправка картинки
 document.getElementById("fileInput").addEventListener("change", e=>{
   const file = e.target.files[0];
   if(!file) return;
@@ -88,14 +88,14 @@ document.getElementById("fileInput").addEventListener("change", e=>{
   reader.readAsDataURL(file);
 });
 
-// История сообщений
+// история сообщений
 socket.on("chat history", (messages)=>{
   const chat = document.getElementById("chat");
   messages.forEach(m=> addMessage(m));
   chat.scrollTop = chat.scrollHeight;
 });
 
-// Новое сообщение
+// новое сообщение
 socket.on("new message", (m)=>{
   if((m.from === nick && m.to === friend)||(m.from === friend && m.to === nick)){
     addMessage(m);
@@ -104,7 +104,7 @@ socket.on("new message", (m)=>{
   }
 });
 
-// Новая картинка
+// картинка
 socket.on("image", (m)=>{
   if((m.from === nick && m.to === friend)||(m.from === friend && m.to === nick)){
     const div = document.createElement("div");
@@ -116,7 +116,7 @@ socket.on("image", (m)=>{
   }
 });
 
-// Добавление сообщения
+// добавление сообщения
 function addMessage(m){
   const chat = document.getElementById("chat");
   const div = document.createElement("div");
@@ -127,13 +127,8 @@ function addMessage(m){
   // выделение
   div.addEventListener("click", ()=> div.classList.toggle("selected"));
 
-  // reply на dblclick
-  div.addEventListener("dblclick"
-О°МЯС°ЭЊg‘С»ІД€к——
-m.to
-
-
-, ()=> {
+  // reply
+  div.addEventListener("dblclick", ()=> {
     document.getElementById("msg").value = "@"+m.from+" ";
   });
 
@@ -146,7 +141,7 @@ m.to
   chat.appendChild(div);
 }
 
-// Удаление сообщения
+// удаление сообщения
 socket.on("message deleted", (data)=>{
   const chat = document.getElementById("chat");
   const msgs = chat.querySelectorAll(".message");
@@ -155,7 +150,7 @@ socket.on("message deleted", (data)=>{
   });
 });
 
-// Контакты
+// контакты
 socket.on("update contacts", (contacts)=>{
   const contDiv = document.getElementById("contacts");
   contDiv.innerHTML = "";
@@ -180,13 +175,11 @@ socket.on("update contacts", (contacts)=>{
       start();
     });
 
-    // онлайн
-    if (contacts.onlineUsers?.includes(c)) d.classList.add("online");
     contDiv.appendChild(d);
   });
 });
 
-// Обновление онлайн
+// онлайн
 socket.on("update online", (online)=>{
   const contDiv = document.getElementById("contacts");
   Array.from(contDiv.children).forEach(d=>{
