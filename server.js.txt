@@ -9,9 +9,9 @@ const server = http.createServer(app);
 const io = socketIo(server);
 const PORT = process.env.PORT || 3000;
 
-/* ---------- SUPABASE ---------- */
-const supabaseUrl = "https://ghpdifuinyyhynqksrnw.supabase.co"; // например https://xyzabc.supabase.co
-const supabaseKey = "sb_publishable_kSV1uMXLzCr2A6hQXoV70g_vti-szE_";
+/* ---------- ВСТАВЬ СВОЙ URL И КЛЮЧ ---------- */
+const supabaseUrl = "ТВОЙ_SUPABASE_URL";       // пример: https://xyzabc.supabase.co
+const supabaseKey = "ТВОЙ_SUPABASE_ANON_KEY";  // пример: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 /* ---------- НАСТРОЙКИ ---------- */
@@ -34,9 +34,9 @@ app.post("/register", (req, res) => {
         .from("users")
         .insert([{ nick, password }])
         .then(() => res.json({ success: true }))
-        .catch(err => res.json({ error: "Ошибка при сохранении пользователя" }));
+        .catch(() => res.json({ error: "Ошибка при сохранении пользователя" }));
     })
-    .catch(err => res.json({ error: "Ошибка базы данных" }));
+    .catch(() => res.json({ error: "Ошибка базы данных" }));
 });
 
 /* ---------- ВХОД ---------- */
@@ -54,7 +54,7 @@ app.post("/login", (req, res) => {
         return res.json({ error: "Неверный ник или пароль" });
       res.json({ success: true });
     })
-    .catch(err => res.json({ error: "Ошибка базы данных" }));
+    .catch(() => res.json({ error: "Ошибка базы данных" }));
 });
 
 /* ---------- СПИСОК КОНТАКТОВ ---------- */
@@ -66,7 +66,7 @@ app.get("/users", (req, res) => {
       const users = response.data || [];
       res.json(users.map(u => u.nick));
     })
-    .catch(err => res.json([]));
+    .catch(() => res.json([]));
 });
 
 /* ---------- ЗАГРУЗКА СООБЩЕНИЙ ---------- */
@@ -75,10 +75,8 @@ app.get("/messages", (req, res) => {
     .from("messages")
     .select("*")
     .order("id", { ascending: true })
-    .then(response => {
-      res.json(response.data || []);
-    })
-    .catch(err => res.json([]));
+    .then(response => res.json(response.data || []))
+    .catch(() => res.json([]));
 });
 
 /* ---------- SOCKET.IO ---------- */
@@ -95,12 +93,8 @@ io.on("connection", (socket) => {
     supabase
       .from("messages")
       .insert([{ from: fromNick, to: toNick, text: msg }])
-      .then(() => {
-        io.emit("private message", data);
-      })
-      .catch(err => {
-        console.error("Ошибка при сохранении сообщения:", err);
-      });
+      .then(() => io.emit("private message", data))
+      .catch(err => console.error("Ошибка при сохранении сообщения:", err));
   });
 
   socket.on("disconnect", () => {});
