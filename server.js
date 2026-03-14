@@ -9,16 +9,12 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
-
 const DB_FILE = path.join(__dirname, "db.json");
-let db = { chats: {} };
 
-// Читаем базу
-if (fs.existsSync(DB_FILE)) {
-  db = JSON.parse(fs.readFileSync(DB_FILE));
-}
+// Загрузка базы
+let db = { chats: {}, contacts: {}, onlineUsers: [] };
+if (fs.existsSync(DB_FILE)) db = JSON.parse(fs.readFileSync(DB_FILE));
 
-// Сохраняем базу
 function saveDB() {
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 }
@@ -34,25 +30,36 @@ io.on("connection", (socket) => {
   socket.on("join", (data) => {
     nick = data.nick;
     friend = data.friend;
+
+    if (!db.contacts[nick]) db.contacts[nick] = [];
+    if (!db.contacts[nick].includes(friend)) db.contacts[nick].push(friend);
+
     const key = [nick, friend].sort().join("|");
     if (!db.chats[key]) db.chats[key] = [];
-    // отправляем историю
-    socket.emit("chat history", db.chats[key]);
 
-    // обновляем контакты
-    const contacts = Object.keys(db.chats)
-      .map(k => k.split("|").filter(u => u !== nick)[0])
-      .filter(Boolean);
-    socket.emit("update contacts", contacts);
+    // добавляем в онлайн
+    if (!db.onlineUsers.includes(nick)) db.onlineUsers.push(nick);
+
+    socket.emit("chat history", db.chats[key]);
+    io.emit("update contacts", db.contacts);
+    io.emit("update online", db.onlineUsers);
+    saveDB();
   });
 
   socket.on("message", (msg) => {
     const key = [nick, friend].sort().join("|");
     const message = { id: Date.now(), from: nick, text: msg };
-    if (!db.chats[key]) db.chats[key] = [];
     db.chats[key].push(message);
     saveDB();
     io.emit("new message", { ...message, to: friend });
+  });
+
+  socket.on("image", (img) => {
+    const key = [nick, friend].sort().join("|");
+    const message = { id: Date.now(), from: nick, image: img.data };
+    db.chats[key].push(message);
+    saveDB();
+    io.emit("image", { ...message, to: friend });
   });
 
   socket.on("delete message", (msgId) => {
@@ -60,6 +67,19 @@ io.on("connection", (socket) => {
     db.chats[key] = db.chats[key].filter(m => m.id !== msgId);
     saveDB();
     io.emit("message deleted", { id: msgId, chatKey: key });
+  });
+
+  socket.on("remove contact", (contact) => {
+    if (db.contacts[nick]) {
+      db.contacts[nick] = db.contacts[nick].filter(c => c !== contact);
+      saveDB();
+      io.emit("update contacts", db.contacts);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    db.onlineUsers = db.onlineUsers.filter(u => u !== nick);
+    io.emit("update online", db.onlineUsers);
   });
 });
 

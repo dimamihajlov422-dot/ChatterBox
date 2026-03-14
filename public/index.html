@@ -8,13 +8,14 @@
 body { font-family: Arial; margin:20px; display:flex; flex-direction:column; max-width:800px; }
 #container { display:flex; height:400px; }
 #contacts { width:150px; border-right:1px solid #ccc; overflow-y:auto; }
-#contacts div { padding:5px; cursor:pointer; border-bottom:1px solid #eee; }
+#contacts div { padding:5px; cursor:pointer; border-bottom:1px solid #eee; display:flex; justify-content:space-between; }
 #contacts div:hover { background:#f0f0f0; }
 #chatArea { flex:1; display:flex; flex-direction:column; }
 #chat { flex:1; border-bottom:1px solid #ccc; overflow-y:auto; padding:5px; }
 .message { padding:2px 5px; margin:2px 0; }
 .message.selected { background:#eef; }
-#input { display:flex; }
+.online { color:green; font-weight:bold; }
+#input { display:flex; margin-top:5px; }
 #input input { flex:1; padding:5px; }
 #input button { padding:5px; }
 </style>
@@ -25,6 +26,7 @@ body { font-family: Arial; margin:20px; display:flex; flex-direction:column; max
   Ник: <input id="nick" type="text">
   Друг: <input id="friend" type="text">
   <button onclick="start()">Открыть чат</button>
+  <input type="file" id="fileInput">
 </div>
 <div id="container">
   <div id="contacts"></div>
@@ -64,7 +66,7 @@ function start(){
   document.getElementById("chat").innerHTML = "";
 }
 
-// Отправка сообщения
+// Отправка текста
 function send(){
   const msg = document.getElementById("msg").value.trim();
   if(!msg) return;
@@ -72,48 +74,79 @@ function send(){
   document.getElementById("msg").value = "";
 }
 
-// Enter отправка
+// Enter
 document.getElementById("msg").addEventListener("keydown", (e)=>{
   if(e.key === "Enter") send();
 });
 
-// Получаем историю
+// Отправка картинки
+document.getElementById("fileInput").addEventListener("change", e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=> socket.emit("image", { from: nick, to: friend, data: reader.result });
+  reader.readAsDataURL(file);
+});
+
+// История сообщений
 socket.on("chat history", (messages)=>{
   const chat = document.getElementById("chat");
   messages.forEach(m=> addMessage(m));
   chat.scrollTop = chat.scrollHeight;
 });
 
-// Добавляем новое сообщение
+// Новое сообщение
 socket.on("new message", (m)=>{
-  if((m.from === nick && m.to === friend) || (m.from === friend && m.to === nick)){
+  if((m.from === nick && m.to === friend)||(m.from === friend && m.to === nick)){
     addMessage(m);
     const chat = document.getElementById("chat");
     chat.scrollTop = chat.scrollHeight;
   }
 });
 
-// Добавляем сообщение в окно
+// Новая картинка
+socket.on("image", (m)=>{
+  if((m.from === nick && m.to === friend)||(m.from === friend && m.to === nick)){
+    const div = document.createElement("div");
+    div.className = "message";
+    div.innerHTML = m.from + ": 
+<img src='"+m.image+"' style='max-width:200px'/>";
+    div.dataset.id = m.id;
+    document.getElementById("chat").appendChild(div);
+  }
+});
+
+// Добавление сообщения
 function addMessage(m){
   const chat = document.getElementById("chat");
   const div = document.createElement("div");
   div.className = "message";
-  div.textContent = m.from + ": " + m.text;
+  div.textContent = m.from + ": " + (m.text||"");
   div.dataset.id = m.id;
-  
+
   // выделение
   div.addEventListener("click", ()=> div.classList.toggle("selected"));
-  
-  // удаление
+
+  // reply на dblclick
+  div.addEventListener("dblclick"
+О°МЯС°ЭЊg‘С»ІД€к——
+m.to
+
+
+, ()=> {
+    document.getElementById("msg").value = "@"+m.from+" ";
+  });
+
+  // удаление правым кликом
   div.addEventListener("contextmenu", (e)=>{
     e.preventDefault();
     socket.emit("delete message", m.id);
   });
-  
+
   chat.appendChild(div);
 }
 
-// Удаление сообщения из DOM
+// Удаление сообщения
 socket.on("message deleted", (data)=>{
   const chat = document.getElementById("chat");
   const msgs = chat.querySelectorAll(".message");
@@ -122,18 +155,44 @@ socket.on("message deleted", (data)=>{
   });
 });
 
-// Список контактов
+// Контакты
 socket.on("update contacts", (contacts)=>{
   const contDiv = document.getElementById("contacts");
   contDiv.innerHTML = "";
-  contacts.forEach(c=>{
+  const userContacts = contacts[nick] || [];
+  userContacts.forEach(c=>{
     const d = document.createElement("div");
     d.textContent = c;
+    
+    // удалить контакт
+    const btn = document.createElement("button");
+    btn.textContent="❌";
+    btn.addEventListener("click", e=>{
+      e.stopPropagation();
+      contDiv.removeChild(d);
+      socket.emit("remove contact", c);
+    });
+    d.appendChild(btn);
+
+    // клик по контакту
     d.addEventListener("click", ()=>{
       document.getElementById("friend").value = c;
       start();
     });
+
+    // онлайн
+    if (contacts.onlineUsers?.includes(c)) d.classList.add("online");
     contDiv.appendChild(d);
+  });
+});
+
+// Обновление онлайн
+socket.on("update online", (online)=>{
+  const contDiv = document.getElementById("contacts");
+  Array.from(contDiv.children).forEach(d=>{
+    const name = d.firstChild.textContent;
+    if(online.includes(name)) d.classList.add("online");
+    else d.classList.remove("online");
   });
 });
 </script>
