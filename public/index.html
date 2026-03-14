@@ -63,16 +63,52 @@ function start(){
 }
 
 function send(){
-  // Пока не трогаем отправку сообщений
+  const msg=document.getElementById("msg").value.trim();
+  if(!msg) return;
+  socket.emit("message", msg);
+  document.getElementById("msg").value="";
 }
+
+document.getElementById("msg").addEventListener("keydown", e=>{
+  if(e.key==="Enter") send();
+});
 
 socket.on("chat history", messages=>{
   const chat=document.getElementById("chat");
-  messages.forEach(m=>{
-    const div=document.createElement("div");
-    div.className="message";
-    div.textContent=m.from+": "+(m.msg||"");
-    chat.appendChild(div);
+  messages.forEach(m=>addMessage(m));
+  chat.scrollTop=chat.scrollHeight;
+});
+
+socket.on("new message", m=>{
+  if((m.from===nick && m.to===friend)||(m.from===friend && m.to===nick)){
+    addMessage(m);
+    const chat=document.getElementById("chat");
+    chat.scrollTop=chat.scrollHeight;
+  }
+});
+
+function addMessage(m){
+  const chat=document.getElementById("chat");
+  const div=document.createElement("div");
+  div.className="message";
+  div.textContent=m.from+": "+(m.msg||"");
+  div.dataset.id=m.id;
+
+  div.addEventListener("click", ()=>div.classList.toggle("selected"));
+  div.addEventListener("dblclick", ()=>document.getElementById("msg").value="@"+m.from+" ");
+  div.addEventListener("contextmenu", e=>{
+    e.preventDefault();
+    socket.emit("delete message", m.id);
+  });
+
+  chat.appendChild(div);
+}
+
+socket.on("message deleted", data=>{
+  const chat=document.getElementById("chat");
+  const msgs=chat.querySelectorAll(".message");
+  msgs.forEach(m=>{
+    if(m.dataset.id==data.id) chat.removeChild(m);
   });
 });
 
@@ -88,7 +124,6 @@ socket.on("update contacts", data=>{
     btn.addEventListener("click", e=>{
       e.stopPropagation();
       contDiv.removeChild(d);
-      // удаление контакта
       socket.emit("remove contact", c);
     });
     d.appendChild(btn);

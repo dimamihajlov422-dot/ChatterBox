@@ -56,8 +56,26 @@ io.on("connection", (socket) => {
     io.emit("update online", onlineUsers);
   });
 
-  // Сообщения пока не трогаем
-  // socket.on("message", msg => {...}) 
+  // Отправка сообщений
+  socket.on("message", msg => {
+    const key = [nick, friend].sort().join("|");
+    const message = { id: Date.now(), from: nick, msg };
+    messages[key].push(message);
+    io.emit("new message", { ...message, to: friend, chatKey: key });
+  });
+
+  // Удаление сообщений
+  socket.on("delete message", id=>{
+    const key = [nick, friend].sort().join("|");
+    messages[key] = messages[key].filter(m=>m.id!==id);
+    io.emit("message deleted", {id, chatKey:key});
+  });
+
+  // Удаление контактов
+  socket.on("remove contact", c=>{
+    if(contacts[nick]) contacts[nick] = contacts[nick].filter(f=>f!==c);
+    io.emit("update contacts", contacts);
+  });
 
   socket.on("disconnect", () => {
     onlineUsers = onlineUsers.filter((u) => u !== nick);
@@ -65,4 +83,4 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(PORT, () => console.log(`Сервер запущен на порту ${PORT}`));
+server.listen(PORT, () => console.log(`Сервер запущен на порту ${PORT}`));ту ${PORT}`));
