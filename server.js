@@ -10,8 +10,8 @@ const io = socketIo(server);
 const PORT = process.env.PORT || 3000;
 
 /* ---------- SUPABASE ---------- */
-const supabaseUrl = "https://ghpdifuinyyhynqksrnw.supabase.co"; // например https://xyzabc.supabase.co
-const supabaseKey = "sb_publishable_kSV1uMXLzCr2A6hQXoV70g_vti-szE_";
+const supabaseUrl = "ТВОЙ_PROJECT_URL"; // например https://xyzabc.supabase.co
+const supabaseKey = "ТВОЙ_ANON_KEY";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 /* ---------- НАСТРОЙКИ ---------- */
@@ -19,55 +19,66 @@ app.use(bodyParser.json());
 app.use(express.static("public"));
 
 /* ---------- РЕГИСТРАЦИЯ ---------- */
-app.post("/register", async (req, res) => {
+app.post("/register", (req, res) => {
   const { nick, password } = req.body;
   if (!nick || !password) return res.json({ error: "Заполните поля" });
 
-  const existingResp = await supabase
-    .from("users")
-    .select("*")
-    .eq("nick", nick);
-
-  const existing = existingResp.data;
-
-  if (existing.length > 0) return res.json({ error: "Ник занят" });
-
-  await supabase.from("users").insert([{ nick, password }]);
-  res.json({ success: true });
-});
-
-/* ---------- ВХОД ---------- */
-app.post("/login", async (req, res) => {
-  const { nick, password } = req.body;
-
-  const loginResp = await supabase
+  supabase
     .from("users")
     .select("*")
     .eq("nick", nick)
-    .eq("password", password);
+    .then(response => {
+      if (response.data.length > 0) return res.json({ error: "Ник занят" });
 
-  const user = loginResp.data;
+      supabase
+        .from("users")
+        .insert([{ nick, password }])
+        .then(() => res.json({ success: true }))
+        .catch(err => res.json({ error: "Ошибка при сохранении пользователя" }));
+    })
+    .catch(err => res.json({ error: "Ошибка базы данных" }));
+});
 
-  if (!user || user.length === 0) return res.json({ error: "Неверный ник или пароль" });
+/* ---------- ВХОД ---------- */
+app.post("/login", (req, res) => {
+  const { nick, password } = req.body;
+  if (!nick || !password) return res.json({ error: "Заполните поля" });
 
-  res.json({ success: true });
+  supabase
+    .from("users")
+    .select("*")
+    .eq("nick", nick)
+    .eq("password", password)
+    .then(response => {
+      if (!response.data || response.data.length === 0)
+        return res.json({ error: "Неверный ник или пароль" });
+      res.json({ success: true });
+    })
+    .catch(err => res.json({ error: "Ошибка базы данных" }));
 });
 
 /* ---------- СПИСОК КОНТАКТОВ ---------- */
-app.get("/users", async (req, res) => {
-  const usersResp = await supabase.from("users").select("nick");
-  const users = usersResp.data;
-  res.json(users.map(u => u.nick));
+app.get("/users", (req, res) => {
+  supabase
+    .from("users")
+    .select("nick")
+    .then(response => {
+      const users = response.data || [];
+      res.json(users.map(u => u.nick));
+    })
+    .catch(err => res.json([]));
 });
 
 /* ---------- ЗАГРУЗКА СООБЩЕНИЙ ---------- */
-app.get("/messages", async (req, res) => {
-  const messagesResp = await supabase
+app.get("/messages", (req, res) => {
+  supabase
     .from("messages")
     .select("*")
-    .order("id", { ascending: true });
-  const messages = messagesResp.data;
-  res.json(messages);
+    .order("id", { ascending: true })
+    .then(response => {
+      res.json(response.data || []);
+    })
+    .catch(err => res.json([]));
 });
 
 /* ---------- SOCKET.IO ---------- */
@@ -78,14 +89,18 @@ io.on("connection", (socket) => {
     nick = n;
   });
 
-  socket.on("private message", async (data) => {
+  socket.on("private message", (data) => {
     const { fromNick, toNick, msg } = data;
 
-    await supabase.from("messages").insert([
-      { from: fromNick, to: toNick, text: msg }
-    ]);
-
-    io.emit("private message", data);
+    supabase
+      .from("messages")
+      .insert([{ from: fromNick, to: toNick, text: msg }])
+      .then(() => {
+        io.emit("private message", data);
+      })
+      .catch(err => {
+        console.error("Ошибка при сохранении сообщения:", err);
+      });
   });
 
   socket.on("disconnect", () => {});
