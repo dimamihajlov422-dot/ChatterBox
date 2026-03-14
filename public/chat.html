@@ -1,82 +1,94 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Приватный чат с памятью</title>
+<title>Messenger</title>
+
 <style>
-  body { font-family: Arial; margin: 20px; }
-  #messages { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 10px; margin-bottom: 10px; }
-  #input { width: 70%; }
-  #send { width: 25%; }
+
+body{
+font-family:Arial;
+margin:20px;
+}
+
+#chat{
+border:1px solid #ccc;
+height:300px;
+overflow-y:auto;
+padding:10px;
+margin-bottom:10px;
+}
+
 </style>
 </head>
+
 <body>
 
-<h2>Приватный чат с памятью</h2>
+<h2>Messenger</h2>
 
-<label>Ник (необязательно): <input id="nick" placeholder="Anon"/></label>
+Ник
 
+<input id="nick">
 
-<button id="newChat">Создать новый чат</button>
-<input id="chatId" placeholder="Введите ID чата"/>
-<button id="joinChat">Присоединиться</button>
+Ник друга
 
-<div id="chatSection" style="display:none; margin-top:20px;">
-  <div id="messages"></div>
-  <input id="input" placeholder="Сообщение"/>
-  <button id="send">Отправить</button>
-</div>
+<input id="friend">
+
+<button onclick="start()">Открыть чат</button>
+
+<div id="chat"></div>
+
+<input id="msg">
+<button onclick="send()">Отправить</button>
 
 <script src="/socket.io/socket.io.js"></script>
+
 <script>
-const socket = io();
-let currentChat = null;
 
-const messagesDiv = document.getElementById("messages");
-const input = document.getElementById("input");
-const sendBtn = document.getElementById("send");
-const chatSection = document.getElementById("chatSection");
-const nickInput = document.getElementById("nick");
-const chatIdInput = document.getElementById("chatId");
+const socket = io()
 
-document.getElementById("newChat").onclick = async () => {
-  const res = await fetch("/new-chat");
-  const data = await res.json();
-  chatIdInput.value = data.chatId;
-  alert("Новый чат создан! ID: " + data.chatId);
-};
+let nick
+let friend
 
-document.getElementById("joinChat").onclick = () => {
-  const chatId = chatIdInput.value.trim();
-  if (!chatId) return alert("Введите ID чата!");
-  currentChat = chatId;
-  const nick = nickInput.value.trim() || undefined;
-  socket.emit("join chat", { chatId, nick });
-  chatSection.style.display = "block";
-};
+function start(){
 
-sendBtn.onclick = () => {
-  const msg = input.value.trim();
-  if (!msg) return;
-  socket.emit("private message", msg);
-  input.value = "";
-};
+nick=document.getElementById("nick").value
+friend=document.getElementById("friend").value
 
-socket.on("chat history", (msgs) => {
-  messagesDiv.innerHTML = "";
-  msgs.forEach(m => addMessage(m.from, m.msg));
-});
+socket.emit("join",{nick,friend})
 
-socket.on("private message", (m) => {
-  addMessage(m.from, m.msg);
-});
-
-function addMessage(from, msg) {
-  const div = document.createElement("div");
-  div.textContent = `${from}: ${msg}`;
-  messagesDiv.appendChild(div);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
+
+function send(){
+
+const text=document.getElementById("msg").value
+
+socket.emit("message",{nick,friend,text})
+
+document.getElementById("msg").value=""
+
+}
+
+socket.on("history",msgs=>{
+
+document.getElementById("chat").innerHTML=""
+
+msgs.forEach(add)
+
+})
+
+socket.on("message",add)
+
+function add(m){
+
+const d=document.createElement("div")
+
+d.innerText=m.from+": "+m.text
+
+document.getElementById("chat").appendChild(d)
+
+}
+
 </script>
 
 </body>

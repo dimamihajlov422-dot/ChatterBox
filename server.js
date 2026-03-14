@@ -1,64 +1,80 @@
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const bodyParser = require("body-parser");
-const { nanoid } = require("nanoid");
-const { Low, JSONFile } = require("lowdb");
-const path = require("path");
+const express = require("express")
+const http = require("http")
+const { Server } = require("socket.io")
+const { Low } = require("lowdb")
+const { JSONFile } = require("lowdb/node")
+const path = require("path")
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+const app = express()
+const server = http.createServer(app)
+const io = new Server(server)
 
-app.use(bodyParser.json());
-app.use(express.static("public"));
+app.use(express.static("public"))
+app.use(express.json())
 
-// --- LowDB настройка ---
-const file = path.join(__dirname, "db.json");
-const adapter = new JSONFile(file);
-const db = new Low(adapter);
-
-async function initDB() {
-  await db.read();
-  db.data = db.data || { chats: {} }; // { chatId: [{from, msg}] }
-  await db.write();
+// генератор ID
+function id(len = 6) {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+  let r = ""
+  for (let i = 0; i < len; i++) {
+    r += chars[Math.floor(Math.random() * chars.length)]
+  }
+  return r
 }
-initDB();
 
-// Создание нового чата
-app.get("/new-chat", async (req, res) => {
-  const chatId = nanoid(6);
-  db.data.chats[chatId] = [];
-  await db.write();
-  res.json({ chatId });
-});
+// база
+const file = path.join(__dirname, "db.json")
+const adapter = new JSONFile(file)
+const db = new Low(adapter, { chats: {} })
 
-io.on("connection", (socket) => {
-  let currentChat = null;
-  let nick = null;
+async function init() {
+  await db.read()
+  db.data ||= { chats: {} }
+  await db.write()
+}
+init()
 
-  socket.on("join chat", async (data) => {
-    currentChat = data.chatId;
-    nick = data.nick || `Anon_${nanoid(3)}`;
-    socket.join(currentChat);
+io.on("connection", socket => {
 
-    await db.read();
-    const msgs = db.data.chats[currentChat] || [];
-    socket.emit("chat history", msgs);
-  });
+  socket.on("join", async ({nick, friend}) => {
 
-  socket.on("private message", async (msg) => {
-    if (!currentChat) return;
-    const message = { from: nick, msg };
+    const chatId = [nick, friend].sort().join("|")
 
-    await db.read();
-    if (!db.data.chats[currentChat]) db.data.chats[currentChat] = [];
-    db.data.chats[currentChat].push(message);
-    await db.write();
+    socket.join(chatId)
 
-    io.to(currentChat).emit("private message", message);
-  });
-});
+    await db.read()
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    if(!db.data.chats[chatId])
+      db.data.chats[chatId] = []
+
+    socket.emit("history", db.data.chats[chatId])
+  })
+
+  socket.on("message", async ({nick, friend, text}) => {
+
+    const chatId = [nick, friend].sort().join("|")
+
+    const msg = {
+      from: nick,
+      text,
+      time: Date.now()
+    }
+
+    await db.read()
+
+    if(!db.data.chats[chatId])
+      db.data.chats[chatId] = []
+
+    db.data.chats[chatId].push(msg)
+
+    await db.write()
+
+    io.to(chatId).emit("message", msg)
+
+  })
+
+})
+
+server.listen(3000, () =>
+  console.log("server started")
+)
