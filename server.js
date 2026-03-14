@@ -10,8 +10,8 @@ const io = socketIo(server);
 const PORT = process.env.PORT || 3000;
 
 /* ---------- ВСТАВЬ СВОЙ URL И КЛЮЧ ---------- */
-const supabaseUrl = "ТВОЙ_SUPABASE_URL";       // пример: https://xyzabc.supabase.co
-const supabaseKey = "ТВОЙ_SUPABASE_ANON_KEY";  // пример: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+const supabaseUrl = "https://ghpdifuinyyhynqksrnw.supabase.co";       // пример: https://xyzabc.supabase.co
+const supabaseKey = "sb_publishable_kSV1uMXLzCr2A6hQXoV70g_vti-szE_";  // пример: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 /* ---------- НАСТРОЙКИ ---------- */
