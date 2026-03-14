@@ -1,4 +1,4 @@
-const express = require("express");
+=const express = require("express");
 const http = require("http");
 const socketIo = require("socket.io");
 const bodyParser = require("body-parser");
@@ -10,7 +10,7 @@ const io = socketIo(server);
 const PORT = process.env.PORT || 3000;
 
 /* ---------- SUPABASE ---------- */
-const supabaseUrl = "https://ghpdifuinyyhynqksrnw.supabase.co";
+const supabaseUrl = "https://ghpdifuinyyhynqksrnw.supabase.co"; // например https://xyzabc.supabase.co
 const supabaseKey = "sb_publishable_kSV1uMXLzCr2A6hQXoV70g_vti-szE_";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -21,7 +21,6 @@ app.use(express.static("public"));
 /* ---------- РЕГИСТРАЦИЯ ---------- */
 app.post("/register", async (req, res) => {
   const { nick, password } = req.body;
-
   if (!nick || !password) return res.json({ error: "Заполните поля" });
 
   const { data: existing } = await supabase
@@ -58,23 +57,40 @@ app.get("/users", async (req, res) => {
 
 /* ---------- ЗАГРУЗКА СООБЩЕНИЙ ---------- */
 app.get("/messages", async (req, res) => {
-  const { data: messages } = await supabase.from("messages").select("*");
+  const { data: messages } = await supabase
+    .from("messages")
+    .select("*")
+    .order("id", { ascending: true });
   res.json(messages);
 });
 
 /* ---------- SOCKET.IO ---------- */
 io.on("connection", (socket) => {
+  let nick = "";
 
-  socket.on("chat message", async (msg) => {
-    // Сохраняем в базу
-    await supabase.from("messages").insert([{ text: msg }]);
-    // Отправляем всем
-    io.emit("chat message", msg);
+  socket.on("set nick", (n) => {
+    nick = n;
+    // можно добавить список онлайн
   });
 
+  socket.on("private message", async (data) => {
+    const { fromNick, toNick, msg } = data;
+
+    // сохраняем в базе
+    await supabase.from("messages").insert([
+      { from: fromNick, to: toNick, text: msg }
+    ]);
+
+    // отсылаем
+    io.emit("private message", data);
+  });
+
+  socket.on("disconnect", () => {
+    // можно убрать из онлайн списка
+  });
 });
 
 /* ---------- ЗАПУСК СЕРВЕРА ---------- */
 server.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+  console.log(`Server running on port ${PORT}`);
 });
