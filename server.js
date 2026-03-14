@@ -1,93 +1,90 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const fs = require("fs");
-const path = require("path");
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const PORT = process.env.PORT || 3000;
-const DB_FILE = path.join(__dirname, "db.json");
+const PORT = 3000;
 
-// Загрузка базы
-let db = { chats: {}, contacts: {}, onlineUsers: [] };
-if (fs.existsSync(DB_FILE)) db = JSON.parse(fs.readFileSync(DB_FILE));
-
-function saveDB() {
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
-}
+// Простое хранилище пользователей и сообщений в памяти
+const users = {}; // { nick: password }
+let onlineUsers = []; // массив ников
+let messages = {}; // { "user1|user2": [{from, text?, image?}] }
+let contacts = {}; // { nick: [friends...] }
 
 app.use(express.json());
 app.use(express.static("public"));
 
-io.on("connection", (socket) => {
-  socket.nick = "";
-  socket.friend = "";
+// регистрация (для совместимости)
+app.post("/register", (req,res)=>{
+  const { nick, password } = req.body;
+  if(!nick || !password) return res.json({ error: "Заполните поля" });
+  if(users[nick]) return res.json({ error: "Такой ник уже существует" });
+  users[nick] = password;
+  if(!contacts[nick]) contacts[nick] = [];
+  res.json({ success: true });
+});
 
-  // подключение к чату
-  socket.on("join", (data) => {
-    socket.nick = data.nick;
-    socket.friend = data.friend;
+// вход
+app.post("/login", (req,res)=>{
+  const { nick, password } = req.body;
+  if(!nick || !password) return res.json({ error: "Заполните поля" });
+  if(!users[nick] || users[nick] !== password)
+    return res.json({ error: "Неверный ник или пароль" });
+  res.json({ success:true });
+});
 
-    if (!db.contacts[socket.nick]) db.contacts[socket.nick] = [];
-    if (!db.contacts[socket.nick].includes(socket.friend))
-      db.contacts[socket.nick].push(socket.friend);
+// Socket.io
+io.on("connection", socket => {
+  let nick = "";
+  let friend = "";
 
-    if (!db.onlineUsers.includes(socket.nick)) db.onlineUsers.push(socket.nick);
+  socket.on("join", data => {
+    nick = data.nick;
+    friend = data.friend;
 
-    const key = [socket.nick, socket.friend].sort().join("|");
-    if (!db.chats[key]) db.chats[key] = [];
+    if(!onlineUsers.includes(nick)) onlineUsers.push(nick);
+    if(!contacts[nick]) contacts[nick] = [];
+    if(friend && !contacts[nick].includes(friend)) contacts[nick].push(friend);
 
-    // отправляем историю и контакты
-    socket.emit("chat history", db.chats[key]);
-    io.emit("update contacts", db.contacts);
-    io.emit("update online", db.onlineUsers);
+    const key = [nick, friend].sort().join("|");
+    if(!messages[key]) messages[key] = [];
 
-    saveDB();
+    socket.emit("chat history", messages[key]);
+    io.emit("update contacts", contacts);
+    io.emit("update online", onlineUsers);
   });
 
-  // отправка текстового сообщения
-  socket.on("message", (msg) => {
-    const key = [socket.nick, socket.friend].sort().join("|");
-    const message = { id: Date.now(), from: socket.nick, text: msg };
-    db.chats[key].push(message);
-    saveDB();
-    io.emit("new message", { ...message, to: socket.friend, chatKey: key });
+  socket.on("message", msg => {
+    const key = [nick, friend].sort().join("|");
+    const message = { id: Date.now(), from: nick, text: msg };
+    messages[key].push(message);
+    io.emit("new message", { ...message, to: friend, chatKey: key });
   });
 
-  // отправка картинки
-  socket.on("image", (img) => {
-    const key = [socket.nick, socket.friend].sort().join("|");
-    const message = { id: Date.now(), from: socket.nick, image: img.data };
-    db.chats[key].push(message);
-    saveDB();
-    io.emit("image", { ...message, to: socket.friend, chatKey: key });
+  socket.on("image", data => {
+    const key = [nick, friend].sort().join("|");
+    const message = { id: Date.now(), from: nick, image: data };
+    messages[key].push(message);
+    io.emit("image", { ...message, to: friend, chatKey: key });
   });
 
-  // удаление сообщения
-  socket.on("delete message", (msgId) => {
-    const key = [socket.nick, socket.friend].sort().join("|");
-    db.chats[key] = db.chats[key].filter(m => m.id !== msgId);
-    saveDB();
-    io.emit("message deleted", { id: msgId, chatKey: key });
+  socket.on("delete message", id=>{
+    const key = [nick, friend].sort().join("|");
+    messages[key] = messages[key].filter(m=>m.id!==id);
+    io.emit("message deleted", {id, chatKey:key});
   });
 
-  // удаление контакта
-  socket.on("remove contact", (contact) => {
-    if (db.contacts[socket.nick]) {
-      db.contacts[socket.nick] = db.contacts[socket.nick].filter(c => c !== contact);
-      saveDB();
-      io.emit("update contacts", db.contacts);
-    }
+  socket.on("remove contact", c=>{
+    if(contacts[nick]) contacts[nick] = contacts[nick].filter(f=>f!==c);
+    io.emit("update contacts", contacts);
   });
 
-  // отключение
-  socket.on("disconnect", () => {
-    db.onlineUsers = db.onlineUsers.filter(u => u !== socket.nick);
-    io.emit("update online", db.onlineUsers);
+  socket.on("disconnect", ()=>{
+    onlineUsers = onlineUsers.filter(u=>u!==nick);
+    io.emit("update online", onlineUsers);
   });
 });
 
-server.listen(PORT, () => console.log(`Сервер запущен на порту ${PORT}`));
+server.listen(PORT, ()=>console.log(`Сервер запущен на порту ${PORT}`));
