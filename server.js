@@ -1,80 +1,55 @@
-const express = require("express")
-const http = require("http")
-const { Server } = require("socket.io")
-const { Low } = require("lowdb")
-const { JSONFile } = require("lowdb/node")
-const path = require("path")
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const fs = require("fs");
+const path = require("path");
 
-const app = express()
-const server = http.createServer(app)
-const io = new Server(server)
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-app.use(express.static("public"))
-app.use(express.json())
+const PORT = process.env.PORT || 3000;
 
-// генератор ID
-function id(len = 6) {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
-  let r = ""
-  for (let i = 0; i < len; i++) {
-    r += chars[Math.floor(Math.random() * chars.length)]
-  }
-  return r
+// Простейшее хранение сообщений
+const DB_FILE = path.join(__dirname, "db.json");
+let db = { chats: {} };
+
+// Читаем файл при старте
+if (fs.existsSync(DB_FILE)) {
+    db = JSON.parse(fs.readFileSync(DB_FILE));
 }
 
-// база
-const file = path.join(__dirname, "db.json")
-const adapter = new JSONFile(file)
-const db = new Low(adapter, { chats: {} })
-
-async function init() {
-  await db.read()
-  db.data ||= { chats: {} }
-  await db.write()
+// Сохраняем в файл
+function saveDB() {
+    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 }
-init()
 
-io.on("connection", socket => {
+app.use(express.json());
+app.use(express.static("public"));
 
-  socket.on("join", async ({nick, friend}) => {
+// Socket.io
+io.on("connection", (socket) => {
+    let nick = "";
+    let friend = "";
 
-    const chatId = [nick, friend].sort().join("|")
+    socket.on("join", (data) => {
+        nick = data.nick;
+        friend = data.friend;
+        const key = [nick, friend].sort().join("|");
+        if (!db.chats[key]) db.chats[key] = [];
+        // Отправляем историю чата
+        socket.emit("chat history", db.chats[key]);
+    });
 
-    socket.join(chatId)
+    socket.on("message", (msg) => {
+        const key = [nick, friend].sort().join("|");
+        const message = { from: nick, text: msg, time: Date.now() };
+        if (!db.chats[key]) db.chats[key] = [];
+        db.chats[key].push(message);
+        saveDB();
+        // Отправляем сообщение всем участникам
+        io.emit("new message", { ...message, to: friend });
+    });
+});
 
-    await db.read()
-
-    if(!db.data.chats[chatId])
-      db.data.chats[chatId] = []
-
-    socket.emit("history", db.data.chats[chatId])
-  })
-
-  socket.on("message", async ({nick, friend, text}) => {
-
-    const chatId = [nick, friend].sort().join("|")
-
-    const msg = {
-      from: nick,
-      text,
-      time: Date.now()
-    }
-
-    await db.read()
-
-    if(!db.data.chats[chatId])
-      db.data.chats[chatId] = []
-
-    db.data.chats[chatId].push(msg)
-
-    await db.write()
-
-    io.to(chatId).emit("message", msg)
-
-  })
-
-})
-
-server.listen(3000, () =>
-  console.log("server started")
-)
+server.listen(PORT, () => console.log(`Сервер запущен на порту ${PORT}`));
