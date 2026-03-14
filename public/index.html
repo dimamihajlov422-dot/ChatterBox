@@ -5,8 +5,15 @@
 <title>Мессенджер</title>
 <script src="/socket.io/socket.io.js"></script>
 <style>
-body { font-family: Arial; display:flex; flex-direction: column; max-width: 600px; margin:auto; }
-#chat { border:1px solid #ccc; height:300px; overflow-y:auto; padding:5px; margin-bottom:5px; }
+body { font-family: Arial; margin:20px; display:flex; flex-direction:column; max-width:800px; }
+#container { display:flex; height:400px; }
+#contacts { width:150px; border-right:1px solid #ccc; overflow-y:auto; }
+#contacts div { padding:5px; cursor:pointer; border-bottom:1px solid #eee; }
+#contacts div:hover { background:#f0f0f0; }
+#chatArea { flex:1; display:flex; flex-direction:column; }
+#chat { flex:1; border-bottom:1px solid #ccc; overflow-y:auto; padding:5px; }
+.message { padding:2px 5px; margin:2px 0; }
+.message.selected { background:#eef; }
 #input { display:flex; }
 #input input { flex:1; padding:5px; }
 #input button { padding:5px; }
@@ -15,14 +22,19 @@ body { font-family: Arial; display:flex; flex-direction: column; max-width: 600p
 <body>
 <h2>Простой Мессенджер</h2>
 <div>
-    Ник: <input id="nick" type="text">
-    Друг: <input id="friend" type="text">
-    <button onclick="start()">Открыть чат</button>
+  Ник: <input id="nick" type="text">
+  Друг: <input id="friend" type="text">
+  <button onclick="start()">Открыть чат</button>
 </div>
-<div id="chat"></div>
-<div id="input">
-    <input id="msg" type="text" placeholder="Напиши сообщение...">
-    <button onclick="send()">Отправить</button>
+<div id="container">
+  <div id="contacts"></div>
+  <div id="chatArea">
+    <div id="chat"></div>
+    <div id="input">
+      <input id="msg" type="text" placeholder="Напиши сообщение...">
+      <button onclick="send()">Отправить</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -30,54 +42,100 @@ const socket = io();
 let nick = "";
 let friend = "";
 
+// Подставляем из localStorage
+window.onload = () => {
+  const savedNick = localStorage.getItem("nick");
+  const savedFriend = localStorage.getItem("friend");
+  if(savedNick) document.getElementById("nick").value = savedNick;
+  if(savedFriend) document.getElementById("friend").value = savedFriend;
+  if(savedNick && savedFriend) start();
+}
+
+// Старт чата
 function start(){
-    nick = document.getElementById("nick").value.trim();
-    friend = document.getElementById("friend").value.trim();
-    if(!nick || !friend){ alert("Введите ник и друга"); return; }
+  nick = document.getElementById("nick").value.trim();
+  friend = document.getElementById("friend").value.trim();
+  if(!nick || !friend){ alert("Введите ник и друга"); return; }
 
-    // Сохраняем
-    localStorage.setItem("nick", nick);
-    localStorage.setItem("friend", friend);
+  localStorage.setItem("nick", nick);
+  localStorage.setItem("friend", friend);
 
-    socket.emit("join",{nick, friend});
-    document.getElementById("chat").innerHTML = "";
+  socket.emit("join",{nick, friend});
+  document.getElementById("chat").innerHTML = "";
 }
 
-// Подставляем значения из localStorage
-window.onload = function(){
-    const savedNick = localStorage.getItem("nick");
-    const savedFriend = localStorage.getItem("friend");
-    if(savedNick) document.getElementById("nick").value = savedNick;
-    if(savedFriend) document.getElementById("friend").value = savedFriend;
-    if(savedNick && savedFriend) start();
-}
-
-socket.on("chat history", (messages)=>{
-    const chat = document.getElementById("chat");
-    messages.forEach(m=>{
-        const div = document.createElement("div");
-        div.textContent = m.from + ": " + m.text;
-        chat.appendChild(div);
-    });
-    chat.scrollTop = chat.scrollHeight;
-});
-
-socket.on("new message", (m)=>{
-    if((m.from === nick && m.to === friend) || (m.from === friend && m.to === nick)){
-        const chat = document.getElementById("chat");
-        const div = document.createElement("div");
-        div.textContent = m.from + ": " + m.text;
-        chat.appendChild(div);
-        chat.scrollTop = chat.scrollHeight;
-    }
-});
-
+// Отправка сообщения
 function send(){
-    const msg = document.getElementById("msg").value.trim();
-    if(!msg) return;
-    socket.emit("message", msg);
-    document.getElementById("msg").value = "";
+  const msg = document.getElementById("msg").value.trim();
+  if(!msg) return;
+  socket.emit("message", msg);
+  document.getElementById("msg").value = "";
 }
+
+// Enter отправка
+document.getElementById("msg").addEventListener("keydown", (e)=>{
+  if(e.key === "Enter") send();
+});
+
+// Получаем историю
+socket.on("chat history", (messages)=>{
+  const chat = document.getElementById("chat");
+  messages.forEach(m=> addMessage(m));
+  chat.scrollTop = chat.scrollHeight;
+});
+
+// Добавляем новое сообщение
+socket.on("new message", (m)=>{
+  if((m.from === nick && m.to === friend) || (m.from === friend && m.to === nick)){
+    addMessage(m);
+    const chat = document.getElementById("chat");
+    chat.scrollTop = chat.scrollHeight;
+  }
+});
+
+// Добавляем сообщение в окно
+function addMessage(m){
+  const chat = document.getElementById("chat");
+  const div = document.createElement("div");
+  div.className = "message";
+  div.textContent = m.from + ": " + m.text;
+  div.dataset.id = m.id;
+  
+  // выделение
+  div.addEventListener("click", ()=> div.classList.toggle("selected"));
+  
+  // удаление
+  div.addEventListener("contextmenu", (e)=>{
+    e.preventDefault();
+    socket.emit("delete message", m.id);
+  });
+  
+  chat.appendChild(div);
+}
+
+// Удаление сообщения из DOM
+socket.on("message deleted", (data)=>{
+  const chat = document.getElementById("chat");
+  const msgs = chat.querySelectorAll(".message");
+  msgs.forEach(m=>{
+    if(m.dataset.id == data.id) chat.removeChild(m);
+  });
+});
+
+// Список контактов
+socket.on("update contacts", (contacts)=>{
+  const contDiv = document.getElementById("contacts");
+  contDiv.innerHTML = "";
+  contacts.forEach(c=>{
+    const d = document.createElement("div");
+    d.textContent = c;
+    d.addEventListener("click", ()=>{
+      document.getElementById("friend").value = c;
+      start();
+    });
+    contDiv.appendChild(d);
+  });
+});
 </script>
 </body>
 </html>
