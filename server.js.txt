@@ -83,4 +83,4 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(PORT, () => console.log(`Сервер запущен на порту ${PORT}`));ту ${PORT}`));
+server.listen(PORT, () => console.log("Сервер запущен на порту " + PORT));
