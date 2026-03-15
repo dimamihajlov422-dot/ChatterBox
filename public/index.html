@@ -1,239 +1,187 @@
 <!DOCTYPE html>
 <html>
 <head>
-
 <meta charset="UTF-8">
-
 <style>
-
-body{
-margin:0;
-font-family:Arial;
-display:flex;
-height:100vh;
+body {
+    margin: 0;
+    font-family: Arial;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
 }
 
-#contacts{
-width:250px;
-border-right:1px solid #ccc;
-overflow-y:auto;
+#contacts {
+    width: 250px;
+    border-right: 1px solid #ccc;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
 }
 
-.contact{
-padding:10px;
-border-bottom:1px solid #eee;
-cursor:pointer;
+.contact {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
 }
 
-.online{
-color:green;
-font-size:12px;
+.contact.active {
+    background: #f0f0f0;
 }
 
-#chat{
-flex:1;
-display:flex;
-flex-direction:column;
+.online {
+    color: green;
+    font-size: 12px;
 }
 
-#messages{
-flex:1;
-overflow-y:auto;
-overflow-x:hidden;
-padding:10px;
+#chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
-.message{
-max-width:60%;
-padding:8px;
-margin:5px 0;
-border-radius:10px;
-background:#eee;
-word-wrap:break-word;
-cursor:pointer;
+#messages {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px;
+    word-wrap: break-word;
 }
 
-.me{
-background:#bde0fe;
-margin-left:auto;
+.message {
+    max-width: 60%;
+    padding: 8px;
+    margin: 5px 0;
+    border-radius: 10px;
+    background: #eee;
+    cursor: pointer;
+    word-wrap: break-word;
+    white-space: pre-wrap;
 }
 
-.reply{
-font-size:12px;
-border-left:3px solid gray;
-padding-left:5px;
-margin-bottom:3px;
-opacity:0.7;
+.me {
+    background: #bde0fe;
+    margin-left: auto;
 }
 
-.time{
-font-size:10px;
-opacity:0.6;
+.reply {
+    font-size: 12px;
+    border-left: 3px solid gray;
+    padding-left: 5px;
+    margin-bottom: 3px;
+    opacity: 0.7;
 }
 
-#input{
-display:flex;
-border-top:1px solid #ccc;
+.time {
+    font-size: 10px;
+    opacity: 0.6;
 }
 
-#text{
-flex:1;
-padding:10px;
-border:none;
+#input {
+    display: flex;
+    border-top: 1px solid #ccc;
 }
 
-#send{
-width:80px;
+#text {
+    flex: 1;
+    padding: 10px;
+    border: none;
 }
 
+#send {
+    width: 80px;
+}
 </style>
-
 </head>
-
 <body>
 
 <div id="contacts"></div>
 
 <div id="chat">
-
-<div id="messages"></div>
-
-<div id="input">
-
-<input id="text" placeholder="Сообщение">
-<button id="send" onclick="send()">Send</button>
-
-</div>
-
+    <div id="messages"></div>
+    <div id="input">
+        <input id="text" placeholder="Сообщение">
+        <button id="send" onclick="send()">Send</button>
+    </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
-
 <script>
+const socket = io()
+let myNick = prompt("Введите ник")
+let currentChat = null
+let replyTo = null
 
-const socket=io()
+socket.emit("login", myNick)
 
-let myNick=prompt("Введите ник")
-
-let currentChat=null
-
-let replyTo=null
-
-socket.emit("login",myNick)
-
-function loadUsers(){
-
-fetch("/users")
-.then(r=>r.json())
-.then(users=>{
-
-const list=document.getElementById("contacts")
-
-list.innerHTML=""
-
-for(let nick in users){
-
-if(nick===myNick) continue
-
-let div=document.createElement("div")
-
-div.className="contact"
-
-let status=users[nick].online?"<div class='online'>в сети</div>":""
-
-div.innerHTML=nick+status
-
-div.onclick=()=>{
-currentChat=nick
-loadMessages()
+function loadUsers() {
+    fetch("/users").then(r => r.json()).then(users => {
+        const list = document.getElementById("contacts")
+        list.innerHTML = ""
+        for (let nick in users) {
+            if (nick === myNick) continue
+            let div = document.createElement("div")
+            div.className = "contact"
+            if(nick === currentChat) div.classList.add("active")
+            let status = users[nick].online ? "<div class='online'>в сети</div>" : ""
+            div.innerHTML = nick + status
+            div.onclick = () => {
+                currentChat = nick
+                loadMessages()
+                loadUsers() // чтобы подсветка обновилась
+            }
+            list.appendChild(div)
+        }
+    })
 }
 
-list.appendChild(div)
-
+function loadMessages() {
+    if (!currentChat) return
+    fetch("/messages/" + myNick + "/" + currentChat)
+        .then(r => r.json())
+        .then(msgs => {
+            const box = document.getElementById("messages")
+            box.innerHTML = ""
+            msgs.forEach(m => {
+                let div = document.createElement("div")
+                div.className = "message"
+                if (m.from === myNick) div.classList.add("me")
+                let replyHTML = m.reply ? "<div class='reply'>" + m.reply + "</div>" : ""
+                div.innerHTML = replyHTML + "<b>" + m.from + "</b>
+" + m.text + "<div class='time'>" + m.time + "</div>"
+                div.onclick = () => {
+                    replyTo = m.from + ": " + m.text
+                }
+                box.appendChild(div)
+            })
+            box.scrollTop = box.scrollHeight
+        })
 }
 
+function send() {
+    const text = document.getElementById("text").value
+    if (!text || !currentChat) return
+    socket.emit("message", { from: myNick, to: currentChat, text: text, reply: replyTo })
+    document.getElementById("text").value = ""
+    replyTo = null
+}
+
+socket.on("users", loadUsers)
+socket.on("message", data => {
+    if (data.from === currentChat || data.to === currentChat) {
+        loadMessages()
+    }
 })
 
-}
-
-function loadMessages(){
-
-fetch("/messages/"+myNick+"/"+currentChat)
-.then(r=>r.json())
-.then(msgs=>{
-
-const box=document.getElementById("messages")
-
-box.innerHTML=""
-
-msgs.forEach(m=>{
-
-let div=document.createElement("div")
-
-div.className="message"
-
-if(m.from===myNick) div.classList.add("me")
-
-let replyHTML=""
-
-if(m.reply){
-replyHTML="<div class='reply'>"+m.reply+"</div>"
-}
-
-div.innerHTML=
-replyHTML+
-"<b>"+m.from+"</b>
-"+
-m.text+
-"<div class='time'>"+m.time+"</div>"
-
-div.onclick=()=>{
-replyTo=m.from+": "+m.text
-}
-
-box.appendChild(div)
-
-})
-
-box.scrollTop=box.scrollHeight
-
-})
-
-}
-
-function send(){
-
-const text=document.getElementById("text").value
-
-if(!text||!currentChat) return
-
-socket.emit("message",{
-from:myNick,
-to:currentChat,
-text:text,
-reply:replyTo
-})
-
-document.getElementById("text").value=""
-
-replyTo=null
-
-}
-
-socket.on("users",loadUsers)
-
-socket.on("message",data=>{
-
-if(data.from===currentChat||data.to===currentChat){
-
-loadMessages()
-
-}
-
+// Enter для отправки
+document.getElementById("text").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+        send()
+        e.preventDefault()
+    }
 })
 
 loadUsers()
-
 </script>
 
 </body>
