@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Простой чат с памятью</title>
+<title>Личный мессенджер</title>
 <style>
 body { margin:0; display:flex; font-family:Arial; height:100vh; }
 #contacts { width:200px; border-right:1px solid #ccc; overflow-y:auto; padding:5px; box-sizing:border-box; }
@@ -49,36 +49,37 @@ let contacts = [];
 document.getElementById("header").textContent = `Вы: ${nick}`;
 socket.emit("set nick", nick);
 
-// Добавление контакта вручную
+// Добавление контакта
 function addContact(cNick){
   if(!cNick || contacts.includes(cNick) || cNick===nick) return;
   contacts.push(cNick);
 
-  const cDiv = document.createElement("div");
+  const cDiv=document.createElement("div");
   cDiv.className="contact";
   cDiv.textContent=cNick;
-  cDiv.onclick = ()=>{
+  cDiv.onclick=()=>{
     currentContact=cNick;
     updateHeader();
     socket.emit("get history", cNick);
   };
 
-  const delBtn = document.createElement("button");
-  delBtn.textContent="×"; delBtn.className="delete";
+  const delBtn=document.createElement("button");
+  delBtn.textContent="×";
+  delBtn.className="delete";
   delBtn.onclick=(e)=>{
     e.stopPropagation();
-    contacts = contacts.filter(x=>x!==cNick);
+    contacts=contacts.filter(x=>x!==cNick);
     const key=[nick,cNick].sort().join("|");
     delete messagesDB[key];
     cDiv.remove();
     if(currentContact===cNick) currentContact="";
     updateHeader();
     loadMessages();
+    socket.emit("delete contact", cNick);
   };
   cDiv.appendChild(delBtn);
   document.getElementById("contacts").appendChild(cDiv);
 
-  // Автоподключение к первому контакту
   if(!currentContact){ currentContact=cNick; updateHeader(); socket.emit("get history", cNick); }
 }
 
@@ -102,8 +103,7 @@ function updateHeader(){
 function sendMessage(){
   const msgInput=document.getElementById("msg");
   if(!currentContact || !msgInput.value.trim()) return;
-
-  const msgData={fromNick:nick, toNick:currentContact, msg:msgInput.value};
+  const msgData={fromNick:nick,toNick:currentContact,msg:msgInput.value};
   socket.emit("private message", msgData);
 
   const key=[nick,currentContact].sort().join("|");
@@ -114,11 +114,9 @@ function sendMessage(){
 }
 
 document.getElementById("send").onclick=sendMessage;
-document.getElementById("msg").addEventListener("keydown", e=>{
-  if(e.key==="Enter") sendMessage();
-});
+document.getElementById("msg").addEventListener("keydown", e=>{ if(e.key==="Enter") sendMessage(); });
 
-// Получение истории сообщений
+// Получение истории
 socket.on("history", msgs=>{
   const key=[nick,currentContact].sort().join("|");
   messagesDB[key]=msgs;
@@ -130,8 +128,7 @@ socket.on("private message", data=>{
   const key=[data.fromNick,data.toNick].sort().join("|");
   if(!messagesDB[key]) messagesDB[key]=[];
   messagesDB[key].push(data);
-  if(currentContact===data.fromNick || currentContact===data.toNick)
-    loadMessages();
+  if(currentContact===data.fromNick || currentContact===data.toNick) loadMessages();
 });
 
 // Удаление сообщения
@@ -143,7 +140,7 @@ socket.on("delete message", data=>{
   }
 });
 
-// Загрузка сообщений в чат
+// Загрузка сообщений
 function loadMessages(){
   const mDiv=document.getElementById("messages");
   mDiv.innerHTML="";
@@ -154,17 +151,16 @@ function loadMessages(){
     const d=document.createElement("div");
     d.className="message";
     d.textContent=`${m.from}: ${m.msg}`;
-    // ПКМ удаление
     d.oncontextmenu=(e)=>{
       e.preventDefault();
-      socket.emit("delete message", {fromNick:m.from,toNick:currentContact,msg:m.msg});
+      socket.emit("delete message",{fromNick:m.from,toNick:currentContact,msg:m.msg});
     };
     mDiv.appendChild(d);
   });
   mDiv.scrollTop=mDiv.scrollHeight;
-}
+});
 
-// Синхронизация пользователей
+// Обновление пользователей
 socket.on("update users", users=>{
   users.forEach(u=>{
     if(u.nick!==nick && !contacts.includes(u.nick)) addContact(u.nick);
