@@ -2,18 +2,19 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Чат ОК-стиль</title>
+<title>Простой чат</title>
 <style>
-body { font-family: Arial, sans-serif; display:flex; height:100vh; margin:0; }
+body { display:flex; font-family:Arial; margin:0; height:100vh; }
 #contacts { width:200px; border-right:1px solid #ccc; overflow-y:auto; }
 #chat { flex:1; display:flex; flex-direction:column; }
-#messages { flex:1; overflow-y:auto; padding:10px; }
+#messages { flex:1; padding:10px; overflow-y:auto; }
 #input { display:flex; }
 #input input { flex:1; padding:5px; }
 #input button { padding:5px; }
-.contact { padding:5px; cursor:pointer; border-bottom:1px solid #eee; display:flex; align-items:center; }
+.contact { padding:5px; cursor:pointer; border-bottom:1px solid #eee; display:flex; justify-content:space-between; }
 .contact.online::before { content:"●"; color:green; margin-right:5px; }
-.contact img { width:24px; height:24px; border-radius:50%; margin-right:5px; }
+.message { margin-bottom:5px; cursor:default; }
+button.delete { background:red;color:white;border:none;padding:0 5px; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -29,56 +30,69 @@ body { font-family: Arial, sans-serif; display:flex; height:100vh; margin:0; }
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
-
-let currentNick = prompt("Ваш ник");
-let currentAvatar = ""; // Можно добавить URL аватарки
+let nick = prompt("Введите свой ник:");
 let currentContact = "";
 
-socket.emit("set nick", currentNick);
-
-socket.on("update users", users => {
+function updateContacts(users){
   const cDiv = document.getElementById("contacts");
   cDiv.innerHTML = "";
   users.forEach(u => {
-    if(u.nick !== currentNick){
+    if(u.nick !== nick){
       const div = document.createElement("div");
       div.className = "contact" + (u.online?" online":"");
-      div.innerHTML = `<img src="${u.avatar||'https://via.placeholder.com/24'}"/>${u.nick}`;
-      div.onclick = () => { currentContact = u.nick; loadMessages(u.nick); };
+      div.textContent = u.nick;
+      div.onclick = ()=>{ currentContact = u.nick; loadMessages(); };
+      const delBtn = document.createElement("button");
+      delBtn.textContent="×"; delBtn.className="delete";
+      delBtn.onclick = (e)=>{ e.stopPropagation(); socket.emit("delete contact", u.nick); div.remove(); };
+      div.appendChild(delBtn);
       cDiv.appendChild(div);
     }
   });
-});
+}
 
-function loadMessages(contact){
-  fetch("/data").then(r=>r.json()).then(db=>{
-    const key = [currentNick, contact].sort().join("|");
-    const msgs = db.messages[key] || [];
-    const mDiv = document.getElementById("messages");
-    mDiv.innerHTML = "";
-    msgs.forEach(m=>{
-      const d = document.createElement("div");
-      d.textContent = `${m.from}: ${m.msg}`;
-      mDiv.appendChild(d);
-    });
-    mDiv.scrollTop = mDiv.scrollHeight;
+socket.emit("set nick", nick);
+socket.on("update users", updateContacts);
+
+let messagesDB = {}; // временно держим сообщения
+
+function loadMessages(){
+  const mDiv = document.getElementById("messages");
+  mDiv.innerHTML = "";
+  const key = [nick, currentContact].sort().join("|");
+  const msgs = messagesDB[key] || [];
+  msgs.forEach(m=>{
+    const d = document.createElement("div");
+    d.className="message";
+    d.textContent = `${m.from}: ${m.msg}`;
+    d.oncontextmenu = (e)=>{ e.preventDefault(); socket.emit("delete message",{fromNick:m.from,toNick:currentContact,msg:m.msg}); };
+    mDiv.appendChild(d);
   });
+  mDiv.scrollTop = mDiv.scrollHeight;
 }
 
 document.getElementById("send").onclick = ()=>{
   const msgInput = document.getElementById("msg");
   if(currentContact && msgInput.value.trim()){
-    const msg = msgInput.value;
-    socket.emit("private message",{fromNick:currentNick,toNick:currentContact,msg});
-    msgInput.value = "";
-    loadMessages(currentContact);
+    const msgData = { fromNick: nick, toNick: currentContact, msg: msgInput.value };
+    socket.emit("private message", msgData);
+    const key = [nick, currentContact].sort().join("|");
+    if(!messagesDB[key]) messagesDB[key]=[];
+    messagesDB[key].push(msgData);
+    loadMessages();
+    msgInput.value="";
   }
 };
 
 socket.on("private message", data=>{
-  if(data.fromNick === currentContact || data.toNick === currentContact){
-    loadMessages(currentContact);
+  const key = [data.fromNick, data.toNick].sort().join("|");
+  if(!messagesDB[key]) messagesDB[key]=[];
+  if(data.deleted){
+    messagesDB[key] = messagesDB[key].filter(m=>!(m.from===data.fromNick && m.msg===data.msg));
+  } else {
+    messagesDB[key].push(data);
   }
+  if(currentContact===data.fromNick || currentContact===data.toNick) loadMessages();
 });
 </script>
 </body>
