@@ -1,145 +1,323 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
+
 <head>
+
 <meta charset="UTF-8">
-<title>Мессенджер</title>
-<script src="/socket.io/socket.io.js"></script>
+<title>ChatterBox</title>
+
 <style>
-body{font-family:Arial;margin:20px;display:flex;flex-direction:column;max-width:800px;}
-#container{display:flex;height:400px;}
-#contacts{width:150px;border-right:1px solid #ccc;overflow-y:auto;}
-#contacts div{padding:5px;cursor:pointer;border-bottom:1px solid #eee;display:flex;justify-content:space-between;}
-#contacts div:hover{background:#f0f0f0;}
-#chatArea{flex:1;display:flex;flex-direction:column;}
-#chat{flex:1;border-bottom:1px solid #ccc;overflow-y:auto;padding:5px;}
-.message{padding:2px 5px;margin:2px 0;}
-.message.selected{background:#eef;}
-.online{color:green;font-weight:bold;}
-#input{display:flex;margin-top:5px;}
-#input input{flex:1;padding:5px;}
-#input button{padding:5px;}
-</style>
-</head>
-<body>
-<h2>Простой Мессенджер</h2>
-<div>
-  Ник: <input id="nick" type="text">
-  Друг: <input id="friend" type="text">
-  <button onclick="start()">Открыть чат</button>
-</div>
-<div id="container">
-  <div id="contacts"></div>
-  <div id="chatArea">
-    <div id="chat"></div>
-    <div id="input">
-      <input id="msg" type="text" placeholder="Напиши сообщение...">
-      <button onclick="send()">Отправить</button>
-    </div>
-  </div>
-</div>
 
-<script>
-const socket = io();
-let nick="", friend="";
-
-window.onload=()=>{
-  const savedNick=localStorage.getItem("nick");
-  const savedFriend=localStorage.getItem("friend");
-  if(savedNick) document.getElementById("nick").value=savedNick;
-  if(savedFriend) document.getElementById("friend").value=savedFriend;
-  if(savedNick && savedFriend) start();
+body{
+margin:0;
+font-family:Arial;
+display:flex;
+height:100vh;
 }
 
-function start(){
-  nick=document.getElementById("nick").value.trim();
-  friend=document.getElementById("friend").value.trim();
-  if(!nick || !friend){ alert("Введите ник и друга"); return; }
+#left{
+width:260px;
+border-right:1px solid #ccc;
+display:flex;
+flex-direction:column;
+}
 
-  localStorage.setItem("nick", nick);
-  localStorage.setItem("friend", friend);
+#search{
+padding:10px;
+border:none;
+border-bottom:1px solid #ccc;
+}
 
-  socket.emit("join",{nick, friend});
-  document.getElementById("chat").innerHTML="";
+#users{
+flex:1;
+overflow-y:auto;
+}
+
+.user{
+padding:10px;
+border-bottom:1px solid #eee;
+cursor:pointer;
+}
+
+.user:hover{
+background:#f2f2f2;
+}
+
+.online{
+color:green;
+font-size:12px;
+}
+
+#chat{
+flex:1;
+display:flex;
+flex-direction:column;
+}
+
+#messages{
+flex:1;
+overflow-y:auto;
+overflow-x:hidden;
+padding:10px;
+background:#fafafa;
+}
+
+.message{
+max-width:60%;
+padding:8px;
+margin:5px 0;
+border-radius:10px;
+background:#e6e6e6;
+word-wrap:break-word;
+}
+
+.me{
+background:#bde0fe;
+margin-left:auto;
+}
+
+.time{
+font-size:10px;
+opacity:0.6;
+}
+
+#input{
+display:flex;
+border-top:1px solid #ccc;
+}
+
+#text{
+flex:1;
+padding:10px;
+border:none;
+}
+
+#send{
+width:80px;
+}
+
+#auth{
+position:fixed;
+top:0;
+left:0;
+right:0;
+bottom:0;
+background:white;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:10px;
+}
+
+#auth input{
+padding:10px;
+width:200px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="auth">
+
+<h2>ChatterBox</h2>
+
+<input id="nick" placeholder="Ник">
+<input id="password" placeholder="Пароль">
+<input id="name" placeholder="Имя">
+<input id="lastname" placeholder="Фамилия">
+
+<button onclick="register()">Регистрация</button>
+<button onclick="login()">Вход</button>
+
+</div>
+
+<div id="left">
+
+<input id="search" placeholder="Поиск">
+
+<div id="users"></div>
+
+</div>
+
+<div id="chat">
+
+<div id="messages"></div>
+
+<div id="input">
+
+<input id="text" placeholder="Сообщение">
+<button id="send" onclick="send()">Send</button>
+
+</div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+
+const socket = io()
+
+let myNick = null
+let currentChat = null
+
+function register(){
+
+fetch("/register",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+nick:document.getElementById("nick").value,
+password:document.getElementById("password").value,
+name:document.getElementById("name").value,
+lastname:document.getElementById("lastname").value,
+avatar:""
+})
+})
+.then(r=>r.json())
+.then(d=>{
+
+if(d.error) alert(d.error)
+else alert("Аккаунт создан")
+
+})
+
+}
+
+function login(){
+
+fetch("/login",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+nick:document.getElementById("nick").value,
+password:document.getElementById("password").value
+})
+})
+.then(r=>r.json())
+.then(d=>{
+
+if(d.error){
+alert(d.error)
+return
+}
+
+myNick=d.user.nick || document.getElementById("nick").value
+
+document.getElementById("auth").style.display="none"
+
+socket.emit("login",myNick)
+
+loadUsers()
+
+})
+
+}
+
+function loadUsers(){
+
+fetch("/users")
+.then(r=>r.json())
+.then(users=>{
+
+const list=document.getElementById("users")
+list.innerHTML=""
+
+for(let nick in users){
+
+if(nick===myNick) continue
+
+let div=document.createElement("div")
+div.className="user"
+
+let status=users[nick].online?"<div class='online'>в сети</div>":""
+
+div.innerHTML=
+users[nick].name+" "+users[nick].lastname+
+"
+@"+nick+
+status
+
+div.onclick=()=>{
+currentChat=nick
+loadMessages()
+}
+
+list.appendChild(div)
+
+}
+
+})
+
+}
+
+function loadMessages(){
+
+fetch("/messages/"+myNick+"/"+currentChat)
+.then(r=>r.json())
+.then(msgs=>{
+
+const box=document.getElementById("messages")
+box.innerHTML=""
+
+msgs.forEach(m=>{
+
+let div=document.createElement("div")
+
+div.className="message"
+
+if(m.from===myNick) div.classList.add("me")
+
+div.innerHTML=
+"<b>"+m.from+"</b>
+"+
+m.text+
+"<div class='time'>"+m.time+"</div>"
+
+box.appendChild(div)
+
+})
+
+box.scrollTop=box.scrollHeight
+
+})
+
 }
 
 function send(){
-  const msg=document.getElementById("msg").value.trim();
-  if(!msg) return;
-  socket.emit("message", msg);
-  document.getElementById("msg").value="";
+
+const text=document.getElementById("text").value
+
+if(!text||!currentChat) return
+
+socket.emit("message",{
+from:myNick,
+to:currentChat,
+text:text
+})
+
+document.getElementById("text").value=""
+
 }
 
-document.getElementById("msg").addEventListener("keydown", e=>{
-  if(e.key==="Enter") send();
-});
+socket.on("message",data=>{
 
-socket.on("chat history", messages=>{
-  const chat=document.getElementById("chat");
-  messages.forEach(m=>addMessage(m));
-  chat.scrollTop=chat.scrollHeight;
-});
+if(data.from===currentChat||data.to===currentChat){
 
-socket.on("new message", m=>{
-  if((m.from===nick && m.to===friend)||(m.from===friend && m.to===nick)){
-    addMessage(m);
-    const chat=document.getElementById("chat");
-    chat.scrollTop=chat.scrollHeight;
-  }
-});
+loadMessages()
 
-function addMessage(m){
-  const chat=document.getElementById("chat");
-  const div=document.createElement("div");
-  div.className="message";
-  div.textContent=m.from+": "+(m.msg||"");
-  div.dataset.id=m.id;
-
-  div.addEventListener("click", ()=>div.classList.toggle("selected"));
-  div.addEventListener("dblclick", ()=>document.getElementById("msg").value="@"+m.from+" ");
-  div.addEventListener("contextmenu", e=>{
-    e.preventDefault();
-    socket.emit("delete message", m.id);
-  });
-
-  chat.appendChild(div);
 }
 
-socket.on("message deleted", data=>{
-  const chat=document.getElementById("chat");
-  const msgs=chat.querySelectorAll(".message");
-  msgs.forEach(m=>{
-    if(m.dataset.id==data.id) chat.removeChild(m);
-  });
-});
+})
 
-socket.on("update contacts", data=>{
-  const contDiv=document.getElementById("contacts");
-  contDiv.innerHTML="";
-  const userContacts=data[nick]||[];
-  userContacts.forEach(c=>{
-    const d=document.createElement("div");
-    d.textContent=c;
-    const btn=document.createElement("button");
-    btn.textContent="❌";
-    btn.addEventListener("click", e=>{
-      e.stopPropagation();
-      contDiv.removeChild(d);
-      socket.emit("remove contact", c);
-    });
-    d.appendChild(btn);
-    d.addEventListener("click", ()=>{document.getElementById("friend").value=c; start();});
-    contDiv.appendChild(d);
-  });
-});
+socket.on("users",loadUsers)
 
-socket.on("update online", online=>{
-  const contDiv=document.getElementById("contacts");
-  Array.from(contDiv.children).forEach(d=>{
-    const name=d.firstChild.textContent;
-    if(online.includes(name)) d.classList.add("online");
-    else d.classList.remove("online");
-  });
-});
 </script>
+
 </body>
+
 </html>
