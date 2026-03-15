@@ -2,169 +2,61 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Старый мессенджер</title>
+<title>Общий чат</title>
 <style>
-body { margin:0; display:flex; font-family:Arial; height:100vh; }
-#contacts { width:200px; border-right:1px solid #ccc; overflow-y:auto; padding:5px; box-sizing:border-box; }
-#chat { flex:1; display:flex; flex-direction:column; }
-#header { padding:10px; border-bottom:1px solid #ccc; font-weight:bold; }
-#messages { flex:1; padding:10px; overflow-y:auto; word-break:break-word; }
-#input { display:flex; }
-#input input { flex:1; padding:5px; }
-#input button { padding:5px; }
-.contact { padding:5px; cursor:pointer; border-bottom:1px solid #eee; color:green; }
-.message { margin-bottom:5px; cursor:default; }
-button.delete { background:red;color:white;border:none;padding:0 5px; cursor:pointer; }
-#add-contact { display:flex; margin-bottom:5px; }
-#add-contact input { flex:1; padding:3px; }
-#add-contact button { padding:3px; }
+body { margin:0; font-family:Arial; display:flex; flex-direction:column; height:100vh; }
+#messages { flex:1; padding:10px; overflow-y:auto; background:#f0f0f0; }
+.message { margin-bottom:5px; padding:5px 10px; border-radius:5px; background:#cce5ff; display:inline-block; }
+#input { display:flex; border-top:1px solid #ccc; }
+#input input { flex:1; padding:5px; border:none; }
+#input button { padding:5px; border:none; background:#007bff; color:white; cursor:pointer; }
 </style>
 </head>
 <body>
-<div id="contacts">
-  <div id="add-contact">
-    <input id="new-contact" placeholder="Ник друга"/>
-    <button id="add-btn">Добавить</button>
-  </div>
-</div>
-<div id="chat">
-  <div id="header"></div>
-  <div id="messages"></div>
-  <div id="input">
-    <input id="msg" placeholder="Введите сообщение"/>
-    <button id="send">Отправить</button>
-  </div>
+<div id="messages"></div>
+<div id="input">
+  <input id="msg" placeholder="Введите сообщение"/>
+  <button id="send">Отправить</button>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
+
 let nick = prompt("Введите свой ник:");
-let currentContact = "";
-let messagesDB = {};
-let contacts = [];
 
-// Инициализация
-document.getElementById("header").textContent = `Вы: ${nick}`;
-socket.emit("set nick", nick);
+const messagesDiv = document.getElementById("messages");
+const input = document.getElementById("msg");
+const sendBtn = document.getElementById("send");
 
-// Добавление контакта
-function addContact(cNick){
-  if(!cNick || contacts.includes(cNick) || cNick===nick) return;
-  contacts.push(cNick);
+// Загрузка истории при старте
+socket.emit("get history");
+socket.on("history", msgs => {
+  msgs.forEach(m => addMessage(m.nick, m.msg));
+});
 
-  const cDiv=document.createElement("div");
-  cDiv.className="contact";
-  cDiv.textContent=cNick;
-  cDiv.onclick=()=>{
-    currentContact=cNick;
-    updateHeader();
-    socket.emit("get history", cNick);
-  };
-
-  const delBtn=document.createElement("button");
-  delBtn.textContent="×";
-  delBtn.className="delete";
-  delBtn.onclick=(e)=>{
-    e.stopPropagation();
-    contacts=contacts.filter(x=>x!==cNick);
-    const key=[nick,cNick].sort().join("|");
-    delete messagesDB[key];
-    cDiv.remove();
-    if(currentContact===cNick) currentContact="";
-    updateHeader();
-    loadMessages();
-    socket.emit("delete contact", cNick);
-  };
-  cDiv.appendChild(delBtn);
-  document.getElementById("contacts").appendChild(cDiv);
-
-  if(!currentContact){ currentContact=cNick; updateHeader(); socket.emit("get history", cNick); }
+// Добавление нового сообщения в чат
+function addMessage(user, text){
+  const div = document.createElement("div");
+  div.className = "message";
+  div.textContent = `${user}: ${text}`;
+  messagesDiv.appendChild(div);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-// Кнопка "Добавить"
-document.getElementById("add-btn").onclick=()=>{
-  const cNick=document.getElementById("new-contact").value.trim();
-  addContact(cNick);
-  document.getElementById("new-contact").value="";
-  socket.emit("add contact", cNick);
-};
-
-// Заголовок
-function updateHeader(){
-  if(currentContact)
-    document.getElementById("header").textContent=`Вы: ${nick} | Друг: ${currentContact}`;
-  else
-    document.getElementById("header").textContent=`Вы: ${nick}`;
-}
-
-// Отправка сообщений
+// Отправка сообщения
 function sendMessage(){
-  const msgInput=document.getElementById("msg");
-  if(!currentContact || !msgInput.value.trim()) return;
-  const msgData={fromNick:nick,toNick:currentContact,msg:msgInput.value};
-  socket.emit("private message", msgData);
-
-  const key=[nick,currentContact].sort().join("|");
-  if(!messagesDB[key]) messagesDB[key]=[];
-  messagesDB[key].push(msgData);
-  loadMessages();
-  msgInput.value="";
+  if(!input.value.trim()) return;
+  const msgData = { nick, msg: input.value.trim() };
+  socket.emit("new message", msgData);
+  input.value = "";
 }
 
-document.getElementById("send").onclick=sendMessage;
-document.getElementById("msg").addEventListener("keydown", e=>{ if(e.key==="Enter") sendMessage(); });
+// Получение сообщений от всех
+socket.on("new message", data => addMessage(data.nick, data.msg));
 
-// Получение истории
-socket.on("history", msgs=>{
-  const key=[nick,currentContact].sort().join("|");
-  messagesDB[key]=msgs;
-  loadMessages();
-});
-
-// Получение нового сообщения
-socket.on("private message", data=>{
-  const key=[data.fromNick,data.toNick].sort().join("|");
-  if(!messagesDB[key]) messagesDB[key]=[];
-  messagesDB[key].push(data);
-  if(currentContact===data.fromNick || currentContact===data.toNick) loadMessages();
-});
-
-// Удаление сообщения
-socket.on("delete message", data=>{
-  const key=[data.fromNick,data.toNick].sort().join("|");
-  if(messagesDB[key]){
-    messagesDB[key]=messagesDB[key].filter(m=>!(m.from===data.fromNick && m.msg===data.msg));
-    loadMessages();
-  }
-});
-
-// Загрузка сообщений
-function loadMessages(){
-  const mDiv=document.getElementById("messages");
-  mDiv.innerHTML="";
-  if(!currentContact) return;
-  const key=[nick,currentContact].sort().join("|");
-  const msgs=messagesDB[key]||[];
-  msgs.forEach(m=>{
-    const d=document.createElement("div");
-    d.className="message";
-    d.textContent=`${m.from}: ${m.msg}`;
-    d.oncontextmenu=(e)=>{
-      e.preventDefault();
-      socket.emit("delete message",{fromNick:m.from,toNick:currentContact,msg:m.msg});
-    };
-    mDiv.appendChild(d);
-  });
-  mDiv.scrollTop=mDiv.scrollHeight;
-}
-
-// Обновление пользователей и контактов
-socket.on("update users", users=>{
-  users.forEach(u=>{
-    if(u.nick!==nick && !contacts.includes(u.nick)) addContact(u.nick);
-  });
-});
+sendBtn.onclick = sendMessage;
+input.addEventListener("keydown", e => { if(e.key==="Enter") sendMessage(); });
 </script>
 </body>
 </html>
