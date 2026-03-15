@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <title>Общий чат</title>
 <style>
-body { margin:0; font-family:Arial; display:flex; flex-direction:column; height:100vh; }
-#messages { flex:1; padding:10px; overflow-y:auto; background:#f0f0f0; }
-.message { margin-bottom:5px; padding:5px 10px; border-radius:5px; background:#cce5ff; display:inline-block; }
-#input { display:flex; border-top:1px solid #ccc; }
-#input input { flex:1; padding:5px; border:none; }
+body { margin:0; font-family:Arial; display:flex; flex-direction:column; height:100vh; background:#1e1e1e; color:#fff; }
+#messages { flex:1; padding:10px; overflow-y:auto; background:#2e2e2e; }
+.message { margin-bottom:5px; padding:5px 10px; border-radius:5px; background:#4e90ff; display:inline-block; max-width:70%; word-break:break-word; }
+#input { display:flex; border-top:1px solid #444; }
+#input input { flex:1; padding:5px; border:none; background:#3e3e3e; color:#fff; }
 #input button { padding:5px; border:none; background:#007bff; color:white; cursor:pointer; }
 </style>
 </head>
@@ -21,7 +21,7 @@ body { margin:0; font-family:Arial; display:flex; flex-direction:column; height:
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const socket = io();
+const socket = io(window.location.origin); // важная правка для Render
 const messagesDiv = document.getElementById("messages");
 const input = document.getElementById("msg");
 const sendBtn = document.getElementById("send");
@@ -36,12 +36,13 @@ function addMessage(user, text) {
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-// Получаем историю при подключении
+// Получаем историю
 socket.on("history", msgs => msgs.forEach(m => addMessage(m.nick, m.msg)));
 
-// Получаем новые сообщения
+// Новые сообщения
 socket.on("new message", data => addMessage(data.nick, data.msg));
 
+// Отправка
 function sendMessage() {
   const msg = input.value.trim();
   if(!msg) return;
