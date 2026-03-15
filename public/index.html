@@ -1,187 +1,115 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
+<title>Мессенджер</title>
 <style>
-body {
-    margin: 0;
-    font-family: Arial;
-    display: flex;
-    height: 100vh;
-    overflow: hidden;
-}
-
-#contacts {
-    width: 250px;
-    border-right: 1px solid #ccc;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-}
-
-.contact {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-}
-
-.contact.active {
-    background: #f0f0f0;
-}
-
-.online {
-    color: green;
-    font-size: 12px;
-}
-
-#chat {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-#messages {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 10px;
-    word-wrap: break-word;
-}
-
-.message {
-    max-width: 60%;
-    padding: 8px;
-    margin: 5px 0;
-    border-radius: 10px;
-    background: #eee;
-    cursor: pointer;
-    word-wrap: break-word;
-    white-space: pre-wrap;
-}
-
-.me {
-    background: #bde0fe;
-    margin-left: auto;
-}
-
-.reply {
-    font-size: 12px;
-    border-left: 3px solid gray;
-    padding-left: 5px;
-    margin-bottom: 3px;
-    opacity: 0.7;
-}
-
-.time {
-    font-size: 10px;
-    opacity: 0.6;
-}
-
-#input {
-    display: flex;
-    border-top: 1px solid #ccc;
-}
-
-#text {
-    flex: 1;
-    padding: 10px;
-    border: none;
-}
-
-#send {
-    width: 80px;
-}
+body { font-family:sans-serif; margin:0; display:flex; height:100vh; }
+#users { width:200px; border-right:1px solid #ccc; overflow-y:auto; padding:5px; }
+#chat { flex:1; display:flex; flex-direction:column; }
+#messages { flex:1; overflow-y:auto; padding:5px; }
+#inputArea { display:flex; border-top:1px solid #ccc; }
+#inputArea input { flex:1; padding:5px; }
+#inputArea button { padding:5px; }
+.message { margin:5px 0; padding:5px; border-radius:5px; max-width:70%; word-wrap:break-word; position:relative; }
+.message .time { font-size:0.7em; color:#666; margin-left:5px; }
+.message.self { background:#cef; align-self:flex-end; }
+.message.other { background:#eee; align-self:flex-start; }
+.message .reply { font-size:0.8em; color:#444; border-left:2px solid #888; margin-bottom:2px; padding-left:5px; }
+.message .delete { position:absolute; top:2px; right:2px; cursor:pointer; color:red; font-weight:bold; }
+.user { cursor:pointer; margin:5px 0; display:flex; align-items:center; }
+.user img { width:25px; height:25px; border-radius:50%; margin-right:5px; }
 </style>
 </head>
 <body>
 
-<div id="contacts"></div>
+<div id="users"></div>
 
 <div id="chat">
-    <div id="messages"></div>
-    <div id="input">
-        <input id="text" placeholder="Сообщение">
-        <button id="send" onclick="send()">Send</button>
-    </div>
+  <div id="messages"></div>
+  <div id="inputArea">
+    <input id="msgInput" placeholder="Напишите сообщение..." />
+    <button id="sendBtn">→</button>
+  </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const socket = io()
-let myNick = prompt("Введите ник")
-let currentChat = null
-let replyTo = null
+const socket = io();
+let currentUser = null;
+let selectedUserId = null;
+let replyTo = null;
 
-socket.emit("login", myNick)
+// Ввод имени
+let name = prompt("Введите ваше имя:");
+socket.emit("set name", name);
 
-function loadUsers() {
-    fetch("/users").then(r => r.json()).then(users => {
-        const list = document.getElementById("contacts")
-        list.innerHTML = ""
-        for (let nick in users) {
-            if (nick === myNick) continue
-            let div = document.createElement("div")
-            div.className = "contact"
-            if(nick === currentChat) div.classList.add("active")
-            let status = users[nick].online ? "<div class='online'>в сети</div>" : ""
-            div.innerHTML = nick + status
-            div.onclick = () => {
-                currentChat = nick
-                loadMessages()
-                loadUsers() // чтобы подсветка обновилась
-            }
-            list.appendChild(div)
-        }
-    })
-}
+// Получаем свой ID
+socket.on("user set", (user) => currentUser = user);
 
-function loadMessages() {
-    if (!currentChat) return
-    fetch("/messages/" + myNick + "/" + currentChat)
-        .then(r => r.json())
-        .then(msgs => {
-            const box = document.getElementById("messages")
-            box.innerHTML = ""
-            msgs.forEach(m => {
-                let div = document.createElement("div")
-                div.className = "message"
-                if (m.from === myNick) div.classList.add("me")
-                let replyHTML = m.reply ? "<div class='reply'>" + m.reply + "</div>" : ""
-                div.innerHTML = replyHTML + "<b>" + m.from + "</b>
-" + m.text + "<div class='time'>" + m.time + "</div>"
-                div.onclick = () => {
-                    replyTo = m.from + ": " + m.text
-                }
-                box.appendChild(div)
-            })
-            box.scrollTop = box.scrollHeight
-        })
-}
-
-function send() {
-    const text = document.getElementById("text").value
-    if (!text || !currentChat) return
-    socket.emit("message", { from: myNick, to: currentChat, text: text, reply: replyTo })
-    document.getElementById("text").value = ""
-    replyTo = null
-}
-
-socket.on("users", loadUsers)
-socket.on("message", data => {
-    if (data.from === currentChat || data.to === currentChat) {
-        loadMessages()
+// Обновление списка пользователей
+socket.on("update users", (users) => {
+  const usersDiv = document.getElementById("users");
+  usersDiv.innerHTML = "";
+  users.forEach(u => {
+    if(u.id !== currentUser.id){
+      const div = document.createElement("div");
+      div.className = "user";
+      div.innerHTML = `<img src="${u.avatar || 'https://via.placeholder.com/25'}"><span>${u.name}</span>`;
+      div.onclick = () => selectedUserId = u.id;
+      usersDiv.appendChild(div);
     }
-})
+  });
+});
 
-// Enter для отправки
-document.getElementById("text").addEventListener("keydown", function(e) {
-    if (e.key === "Enter") {
-        send()
-        e.preventDefault()
+// Загрузка предыдущих сообщений
+socket.on("load messages", (msgs) => {
+  msgs.forEach(displayMessage);
+});
+
+// Отправка сообщений
+document.getElementById("sendBtn").onclick = () => {
+  const input = document.getElementById("msgInput");
+  if(selectedUserId && input.value.trim() !== ""){
+    const data = { fromId: currentUser.id, toId: selectedUserId, msg: input.value };
+    if(replyTo) data.reply = replyTo;
+    socket.emit(replyTo ? "reply message" : "private message", data);
+    input.value = "";
+    replyTo = null;
+  }
+};
+
+// Отображение сообщений
+socket.on("private message", displayMessage);
+
+// Удаление сообщения
+socket.on("delete message", (msgId) => {
+  const elem = document.getElementById("msg"+msgId);
+  if(elem) elem.remove();
+});
+
+// Функция отображения
+function displayMessage(data){
+  const div = document.createElement("div");
+  div.id = "msg"+data.id;
+  div.className = "message "+(data.fromId === currentUser.id ? "self":"other");
+  let replyHtml = data.reply ? `<div class="reply">${data.reply.fromName}: ${data.reply.msg}</div>` : "";
+  div.innerHTML = replyHtml + `<span>${data.msg}</span> <span class="time">${data.time}</span> <span class="delete">×</span>`;
+  document.getElementById("messages").appendChild(div);
+  document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+
+  // Удаление
+  div.querySelector(".delete").onclick = () => {
+    if(confirm("Удалить сообщение?")) socket.emit("delete message", data.id);
+  };
+
+  // Ответ на сообщение
+  div.onclick = (e) => {
+    if(e.target !== div.querySelector(".delete")){
+      replyTo = { msg: data.msg, fromName: data.fromId === currentUser.id ? currentUser.name : "Друг" };
     }
-})
-
-loadUsers()
+  };
+}
 </script>
 
 </body>
