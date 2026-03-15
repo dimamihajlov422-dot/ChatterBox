@@ -45,79 +45,89 @@ let currentContact = "";
 let messagesDB = {};
 let contacts = [];
 
+// Инициализация
 document.getElementById("header").textContent = `Вы: ${nick}`;
 socket.emit("set nick", nick);
 
-// Добавление контакта вручную
-document.getElementById("add-btn").onclick = ()=>{
-  const cInput = document.getElementById("new-contact");
-  const cNick = cInput.value.trim();
-  if(cNick && !contacts.includes(cNick) && cNick !== nick){
-    contacts.push(cNick);
-    currentContact = cNick;
-    updateContacts();
-    cInput.value="";
+// Функция обновления заголовка
+function updateHeader(){
+  if(currentContact)
     document.getElementById("header").textContent = `Вы: ${nick} | Друг: ${currentContact}`;
-  }
-};
-
-// Обновление списка контактов
-function updateContacts(){
-  const cDiv = document.getElementById("contacts");
-  // оставляем только add-contact
-  cDiv.innerHTML = "";
-  const addDiv = document.createElement("div");
-  addDiv.id = "add-contact";
-  addDiv.innerHTML = '<input id="new-contact" placeholder="Ник друга"/><button id="add-btn">Добавить</button>';
-  cDiv.appendChild(addDiv);
-  document.getElementById("add-btn").onclick = document.querySelector("#add-contact button").onclick;
-
-  contacts.forEach(c=>{
-    const div = document.createElement("div");
-    div.className="contact";
-    div.textContent=c;
-    div.onclick = ()=>{
-      currentContact = c;
-      document.getElementById("header").textContent = `Вы: ${nick} | Друг: ${currentContact}`;
-      loadMessages();
-    };
-    const delBtn = document.createElement("button");
-    delBtn.textContent="×"; delBtn.className="delete";
-    delBtn.onclick = (e)=>{
-      e.stopPropagation();
-      contacts = contacts.filter(x=>x!==c);
-      const key = [nick,c].sort().join("|");
-      delete messagesDB[key];
-      updateContacts();
-      loadMessages();
-    };
-    div.appendChild(delBtn);
-    cDiv.appendChild(div);
-  });
+  else
+    document.getElementById("header").textContent = `Вы: ${nick}`;
 }
 
-// Отправка сообщений
-document.getElementById("send").onclick = ()=>{
-  const msgInput = document.getElementById("msg");
-  if(currentContact && msgInput.value.trim()){
-    const msgData = { fromNick: nick, toNick: currentContact, msg: msgInput.value };
-    socket.emit("private message", msgData);
-    const key = [nick, currentContact].sort().join("|");
-    if(!messagesDB[key]) messagesDB[key]=[];
-    messagesDB[key].push(msgData);
+// Добавление контакта вручную
+function addContact(cNick){
+  if(!cNick || contacts.includes(cNick) || cNick===nick) return;
+  contacts.push(cNick);
+
+  const cDiv = document.createElement("div");
+  cDiv.className="contact";
+  cDiv.textContent=cNick;
+  cDiv.onclick = ()=>{
+    currentContact = cNick; 
+    updateHeader(); 
     loadMessages();
-    msgInput.value="";
-  }
+  };
+
+  const delBtn = document.createElement("button");
+  delBtn.textContent="×"; delBtn.className="delete";
+  delBtn.onclick = (e)=>{
+    e.stopPropagation();
+    contacts = contacts.filter(x=>x!==cNick);
+    const key = [nick,cNick].sort().join("|");
+    delete messagesDB[key];
+    cDiv.remove();
+    if(currentContact===cNick) currentContact="";
+    updateHeader();
+    loadMessages();
+  };
+  cDiv.appendChild(delBtn);
+
+  document.getElementById("contacts").appendChild(cDiv);
+
+  if(!currentContact){ currentContact=cNick; updateHeader(); loadMessages(); }
+}
+
+// Кнопка "Добавить"
+document.getElementById("add-btn").onclick = ()=>{
+  const cNick = document.getElementById("new-contact").value.trim();
+  addContact(cNick);
+  document.getElementById("new-contact").value="";
 };
+
+// Отправка сообщений
+function sendMessage(){
+  const msgInput = document.getElementById("msg");
+  if(!currentContact || !msgInput.value.trim()) return;
+
+  const msgData = { fromNick: nick, toNick: currentContact, msg: msgInput.value };
+  socket.emit("private message", msgData);
+
+  const key = [nick, currentContact].sort().join("|");
+  if(!messagesDB[key]) messagesDB[key]=[];
+  messagesDB[key].push(msgData);
+  loadMessages();
+  msgInput.value="";
+}
+
+document.getElementById("send").onclick = sendMessage;
+
+// Enter для отправки
+document.getElementById("msg").addEventListener("keydown", e=>{
+  if(e.key==="Enter") sendMessage();
+});
 
 // Получение сообщений
 socket.on("private message", data=>{
   const key = [data.fromNick, data.toNick].sort().join("|");
   if(!messagesDB[key]) messagesDB[key]=[];
   messagesDB[key].push(data);
-  if(currentContact===data.fromNick || currentContact===data.toNick) loadMessages();
+  if(currentContact===data.fromNick || currentContact===data.toNick)loadMessages();
 });
 
+// Загрузка сообщений
 function loadMessages(){
   const mDiv = document.getElementById("messages");
   mDiv.innerHTML="";
@@ -128,7 +138,9 @@ function loadMessages(){
     const d = document.createElement("div");
     d.className="message";
     d.textContent = `${m.from}: ${m.msg}`;
-    d.oncontextmenu = (e)=>{ e.preventDefault(); 
+    // ПКМ удаление
+    d.oncontextmenu = (e)=>{
+      e.preventDefault();
       messagesDB[key] = messagesDB[key].filter(x=>!(x.from===m.from && x.msg===m.msg));
       loadMessages();
     };
@@ -137,12 +149,11 @@ function loadMessages(){
   mDiv.scrollTop = mDiv.scrollHeight;
 }
 
-// Инициализация (если есть контакты из базы)
+// Автоматическая синхронизация пользователей (можно потом расширить онлайн/оффлайн)
 socket.on("update users", users=>{
   users.forEach(u=>{
-    if(u.nick!==nick && !contacts.includes(u.nick)) contacts.push(u.nick);
+    if(u!==nick && !contacts.includes(u)) addContact(u);
   });
-  updateContacts();
 });
 </script>
 </body>
