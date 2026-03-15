@@ -36,7 +36,10 @@ function addMessage(user, text) {
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
+// Получаем историю при подключении
 socket.on("history", msgs => msgs.forEach(m => addMessage(m.nick, m.msg)));
+
+// Получаем новые сообщения
 socket.on("new message", data => addMessage(data.nick, data.msg));
 
 function sendMessage() {
