@@ -1,116 +1,127 @@
-<!DOCTYPE html>
+<!<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Мессенджер</title>
+<title>Чат ОК-стиль</title>
 <style>
-body { font-family:sans-serif; margin:0; display:flex; height:100vh; }
-#users { width:200px; border-right:1px solid #ccc; overflow-y:auto; padding:5px; }
-#chat { flex:1; display:flex; flex-direction:column; }
-#messages { flex:1; overflow-y:auto; padding:5px; }
-#inputArea { display:flex; border-top:1px solid #ccc; }
-#inputArea input { flex:1; padding:5px; }
-#inputArea button { padding:5px; }
-.message { margin:5px 0; padding:5px; border-radius:5px; max-width:70%; word-wrap:break-word; position:relative; }
-.message .time { font-size:0.7em; color:#666; margin-left:5px; }
-.message.self { background:#cef; align-self:flex-end; }
-.message.other { background:#eee; align-self:flex-start; }
-.message .reply { font-size:0.8em; color:#444; border-left:2px solid #888; margin-bottom:2px; padding-left:5px; }
-.message .delete { position:absolute; top:2px; right:2px; cursor:pointer; color:red; font-weight:bold; }
-.user { cursor:pointer; margin:5px 0; display:flex; align-items:center; }
-.user img { width:25px; height:25px; border-radius:50%; margin-right:5px; }
+body { font-family: Arial; display:flex; height:100vh; margin:0; }
+#contacts { width:220px; border-right:1px solid #ccc; overflow-y:auto; flex-shrink:0; }
+#chat { flex:1; display:flex; flex-direction:column; min-width:0; }
+#messages { flex:1; overflow-y:auto; padding:10px; word-wrap: break-word; }
+#input { display:flex; }
+#input input { flex:1; padding:5px; }
+#input button { padding:5px; }
+.contact { padding:5px; cursor:pointer; border-bottom:1px solid #eee; display:flex; align-items:center; justify-content:space-between; }
+.contact.online::before { content:"●"; color:green; margin-right:5px; }
+.contact img { width:30px; height:30px; border-radius:50%; margin-right:5px; }
+.message { margin-bottom:5px; max-width: 80%; position: relative; }
+.message img { max-width:150px; display:block; margin-top:2px; }
+.reply { font-size:12px; color:#555; }
+.profile { font-size:12px; color:#555; margin-top:2px; }
+button.delete { background:red;color:white;border:none;padding:2px 5px;cursor:pointer; }
+.message:hover { background:#f0f0f0; }
+.message::before { content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:transparent; }
+max-width:600px{
+  #contacts { width:120px; font-size:12px; }
+  #messages { font-size:14px; }
+  .message { max-width: 95%; }
+}
 </style>
 </head>
 <body>
-
-<div id="users"></div>
-
+<div id="contacts"></div>
 <div id="chat">
   <div id="messages"></div>
-  <div id="inputArea">
-    <input id="msgInput" placeholder="Напишите сообщение..." />
-    <button id="sendBtn">→</button>
+  <div id="input">
+    <input id="msg" placeholder="Введите сообщение"/>
+    <input id="imgurl" placeholder="URL картинки (опционально)"/>
+    <button id="send">Отправить</button>
   </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
-let currentUser = null;
-let selectedUserId = null;
+let currentNick = prompt("Ваш ник");
+let currentContact = "";
 let replyTo = null;
 
-// Ввод имени
-let name = prompt("Введите ваше имя:");
-socket.emit("set name", name);
-
-// Получаем свой ID
-socket.on("user set", (user) => currentUser = user);
-
-// Обновление списка пользователей
-socket.on("update users", (users) => {
-  const usersDiv = document.getElementById("users");
-  usersDiv.innerHTML = "";
+function updateContacts(users){
+  const cDiv = document.getElementById("contacts");
+  cDiv.innerHTML = "";
   users.forEach(u => {
-    if(u.id !== currentUser.id){
+    if(u.nick!==currentNick){
       const div = document.createElement("div");
-      div.className = "user";
-      div.innerHTML = `<img src="${u.avatar || 'https://via.placeholder.com/25'}"><span>${u.name}</span>`;
-      div.onclick = () => selectedUserId = u.id;
-      usersDiv.appendChild(div);
+      div.className = "contact" + (u.online?" online":"");
+      div.innerHTML = `<div style="display:flex;align-items:center"><img src="${u.avatar||'https://via.placeholder.com/30'}"/>${u.nick}</div>`;
+      div.onclick = ()=>{ currentContact = u.nick; loadMessages(u.nick); replyTo=null; showProfile(u.nick); };
+      const delBtn = document.createElement("button");
+      delBtn.textContent="×";
+      delBtn.className="delete";
+      delBtn.onclick = (e)=>{ e.stopPropagation(); socket.emit("delete contact", u.nick); div.remove(); };
+      div.appendChild(delBtn);
+      cDiv.appendChild(div);
     }
   });
-});
+}
 
-// Загрузка предыдущих сообщений
-socket.on("load messages", (msgs) => {
-  msgs.forEach(displayMessage);
-});
+function showProfile(nick){
+  fetch("/data").then(r=>r.json()).then(db=>{
+    const profile = db.users[nick];
+    alert(`Ник: ${nick}\nФамилия: ${profile.lastname}\nОнлайн: ${profile.online? "Да":"Нет"}`);
+  });
+}
 
-// Отправка сообщений
-document.getElementById("sendBtn").onclick = () => {
-  const input = document.getElementById("msgInput");
-  if(selectedUserId && input.value.trim() !== ""){
-    const data = { fromId: currentUser.id, toId: selectedUserId, msg: input.value };
-    if(replyTo) data.reply = replyTo;
-    socket.emit(replyTo ? "reply message" : "private message", data);
-    input.value = "";
-    replyTo = null;
+socket.emit("set nick", currentNick);
+socket.on("update users", updateContacts);
+
+function loadMessages(contact){
+  fetch("/data").then(r=>r.json()).then(db=>{
+    const key = [currentNick, contact].sort().join("|");
+    const msgs = db.messages[key] || [];
+    const mDiv = document.getElementById("messages");
+    mDiv.innerHTML = "";
+    msgs.forEach((m,i)=>{
+      const d = document.createElement("div");
+      d.className="message";
+      let replyText = m.replyTo ? `<div class="reply">↪ ${m.replyTo}</div>` : "";
+      let imgTag = m.img ? `<img src="${m.img}"/>` : "";
+      d.innerHTML = `${replyText}<b>${m.from}:</b> ${m.msg}${imgTag}`;
+      // свайп влево
+      let startX=0;
+      d.addEventListener("touchstart", e=>{ startX=e.touches[0].clientX; });
+      d.addEventListener("touchend", e=>{
+        let dx = e.changedTouches[0].clientX - startX;
+        if(dx < -50) replyTo = m.from + ": " + m.msg;
+      });
+      d.onclick = ()=>{ replyTo = m.from + ": " + m.msg; };
+      mDiv.appendChild(d);
+    });
+    mDiv.scrollTop = mDiv.scrollHeight;
+  });
+}
+
+document.getElementById("send").onclick = ()=>{
+  const msgInput = document.getElementById("msg");
+  const imgInput = document.getElementById("imgurl");
+  if(currentContact && msgInput.value.trim()){
+    socket.emit("private message",{
+      fromNick: currentNick,
+      toNick: currentContact,
+      msg: msgInput.value,
+      img: imgInput.value||null,
+      replyTo: replyTo
+    });
+    msgInput.value=""; imgInput.value=""; replyTo=null;
+    loadMessages(currentContact);
   }
 };
 
-// Отображение сообщений
-socket.on("private message", displayMessage);
-
-// Удаление сообщения
-socket.on("delete message", (msgId) => {
-  const elem = document.getElementById("msg"+msgId);
-  if(elem) elem.remove();
+socket.on("private message", data=>{
+  if(data.fromNick===currentContact || data.toNick===currentContact){
+    loadMessages(currentContact);
+  }
 });
-
-// Функция отображения
-function displayMessage(data){
-  const div = document.createElement("div");
-  div.id = "msg"+data.id;
-  div.className = "message "+(data.fromId === currentUser.id ? "self":"other");
-  let replyHtml = data.reply ? `<div class="reply">${data.reply.fromName}: ${data.reply.msg}</div>` : "";
-  div.innerHTML = replyHtml + `<span>${data.msg}</span> <span class="time">${data.time}</span> <span class="delete">×</span>`;
-  document.getElementById("messages").appendChild(div);
-  document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
-
-  // Удаление
-  div.querySelector(".delete").onclick = () => {
-    if(confirm("Удалить сообщение?")) socket.emit("delete message", data.id);
-  };
-
-  // Ответ на сообщение
-  div.onclick = (e) => {
-    if(e.target !== div.querySelector(".delete")){
-      replyTo = { msg: data.msg, fromName: data.fromId === currentUser.id ? currentUser.name : "Друг" };
-    }
-  };
-}
 </script>
-
 </body>
 </html>
