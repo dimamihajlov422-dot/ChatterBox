@@ -2,179 +2,156 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatterBox</title>
+<title>ChatterBox DM</title>
 
 <style>
 body{
-    font-family:Arial,sans-serif;
+    font-family:Arial;
     background:#111;
     color:white;
     margin:0;
-    padding:20px;
+    display:flex;
+    height:100vh;
 }
 
-body.light{
-    background:white;
-    color:black;
+/* USERS */
+#users{
+    width:200px;
+    border-right:1px solid #333;
+    padding:10px;
+}
+
+.user{
+    padding:8px;
+    cursor:pointer;
+    border-radius:6px;
+}
+
+.user:hover{
+    background:#222;
+}
+
+/* CHAT */
+#main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
 }
 
 #chat{
-    height:400px;
-    overflow-y:auto;
-    border:1px solid #333;
-    border-radius:10px;
+    flex:1;
+    overflow:auto;
     padding:10px;
-    margin-bottom:15px;
-}
-
-body.light #chat{
-    border:1px solid #ccc;
 }
 
 .msg{
-    margin:6px 0;
-    padding:6px;
+    margin:5px 0;
+}
+
+#input{
+    display:flex;
+    padding:10px;
+    gap:10px;
 }
 
 input{
+    flex:1;
     padding:10px;
-    border-radius:8px;
-    border:none;
-    outline:none;
 }
 
 button{
-    padding:10px 14px;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
+    padding:10px;
 }
 
-.chat-controls{
-    display:flex;
-    gap:10px;
-    margin-top:10px;
+.private{
+    color:#00ffcc;
 }
 </style>
 </head>
 
 <body>
 
-<h2>💬 ChatterBox</h2>
+<div id="users">
+<h3>👥 Онлайн</h3>
+<div id="list"></div>
+</div>
 
-<button onclick="toggleTheme()">🌙/☀️</button>
-
-<br><br>
-
-<input id="nick" placeholder="Ник">
-<button onclick="setNick()">Войти</button>
-
-<br><br>
+<div id="main">
 
 <div id="chat"></div>
 
-<div class="chat-controls">
-    <input id="msg" placeholder="Сообщение">
-    <button onclick="sendMsg()">Отправить</button>
+<div id="input">
+<input id="msg" placeholder="Сообщение">
+<button onclick="send()">Send</button>
+</div>
+
 </div>
 
 <script>
 
 let ws;
+let nick;
+let currentDM = null;
 
 function connect(){
-    ws = new WebSocket(
-        (location.protocol === "https:" ? "wss://" : "ws://") + location.host
-    );
+    ws = new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
 
     ws.onopen = () => {
-        console.log("WS CONNECTED");
+        nick = prompt("Ник:");
+        ws.send(JSON.stringify({type:"nick",nick}));
     };
 
-    ws.onerror = (e) => console.log("WS ERROR", e);
+    ws.onmessage = (e)=>{
+        const data = JSON.parse(e.data);
 
-    ws.onclose = () => console.log("WS CLOSED");
+        const chat = document.getElementById("chat");
 
-    ws.onmessage = (e) => {
-        const div = document.createElement("div");
-        div.className = "msg";
-        div.textContent = e.data;
+        if(data.type==="public"){
+            addMsg(data.text);
+        }
 
-        document.getElementById("chat").appendChild(div);
-        document.getElementById("chat").scrollTop =
-            document.getElementById("chat").scrollHeight;
+        if(data.type==="private"){
+            addMsg("💬 "+data.text, true);
+        }
+
+        if(data.type==="notify"){
+            notify(data.text);
+        }
     };
 }
 
-connect();
-
-const savedNick = localStorage.getItem("nick");
-if(savedNick){
-    document.getElementById("nick").value = savedNick;
+function addMsg(text, isPrivate=false){
+    const div=document.createElement("div");
+    div.className="msg";
+    if(isPrivate) div.classList.add("private");
+    div.textContent=text;
+    document.getElementById("chat").appendChild(div);
+    chat.scrollTop=chat.scrollHeight;
 }
 
-if(localStorage.getItem("theme")==="light"){
-    document.body.classList.add("light");
-}
-
-function setNick(){
-
-    const nick = document.getElementById("nick").value.trim();
-    if(!nick) return;
-
-    if(!ws || ws.readyState !== 1){
-        alert("Нет соединения");
-        return;
-    }
-
-    localStorage.setItem("nick", nick);
-
-    ws.send(JSON.stringify({
-        type:"nick",
-        nick
-    }));
-}
-
-function sendMsg(){
-
-    const text = document.getElementById("msg").value.trim();
-    if(!text) return;
-
-    if(!ws || ws.readyState !== 1){
-        alert("Нет соединения");
-        return;
-    }
+function send(){
+    const text=document.getElementById("msg").value;
 
     ws.send(JSON.stringify({
         type:"chat",
-        text
+        text,
+        to: currentDM
     }));
 
     document.getElementById("msg").value="";
 }
 
-document.getElementById("msg")
-.addEventListener("keydown",(e)=>{
-    if(e.key==="Enter"){
-        sendMsg();
+function notify(t){
+    if(Notification.permission==="granted"){
+        new Notification(t);
     }
-});
-
-function toggleTheme(){
-    document.body.classList.toggle("light");
-
-    localStorage.setItem(
-        "theme",
-        document.body.classList.contains("light")
-            ? "light"
-            : "dark"
-    );
 }
+
+Notification.requestPermission();
+
+connect();
 
 </script>
 
-</body>
-</html>
 </body>
 </html>
