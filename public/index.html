@@ -2,154 +2,141 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>ChatterBox DM</title>
+<title>ChatterBox</title>
 
 <style>
 body{
     font-family:Arial;
+    margin:0;
     background:#111;
     color:white;
-    margin:0;
+}
+
+/* TOP */
+.top{
     display:flex;
-    height:100vh;
-}
-
-/* USERS */
-#users{
-    width:200px;
-    border-right:1px solid #333;
+    justify-content:space-between;
+    align-items:center;
     padding:10px;
+    border-bottom:1px solid #333;
 }
 
-.user{
-    padding:8px;
-    cursor:pointer;
+button{
+    padding:8px 12px;
+    border:none;
     border-radius:6px;
-}
-
-.user:hover{
-    background:#222;
+    cursor:pointer;
 }
 
 /* CHAT */
-#main{
-    flex:1;
-    display:flex;
-    flex-direction:column;
-}
-
 #chat{
-    flex:1;
+    height:70vh;
     overflow:auto;
     padding:10px;
 }
 
 .msg{
     margin:5px 0;
+    padding:6px;
+    background:#1e1e1e;
+    border-radius:6px;
 }
 
-#input{
+/* INPUT */
+.bottom{
     display:flex;
-    padding:10px;
     gap:10px;
+    padding:10px;
+    border-top:1px solid #333;
 }
 
 input{
     flex:1;
     padding:10px;
+    border:none;
+    border-radius:6px;
+    outline:none;
 }
 
-button{
-    padding:10px;
-}
-
-.private{
-    color:#00ffcc;
-}
 </style>
 </head>
 
 <body>
 
-<div id="users">
-<h3>👥 Онлайн</h3>
-<div id="list"></div>
-</div>
+<div class="top">
+    <div>💬 ChatterBox</div>
 
-<div id="main">
+    <div>
+        <input id="nick" placeholder="Ник" style="width:120px">
+        <button onclick="setNick()">Войти</button>
+    </div>
+</div>
 
 <div id="chat"></div>
 
-<div id="input">
-<input id="msg" placeholder="Сообщение">
-<button onclick="send()">Send</button>
-</div>
-
+<div class="bottom">
+    <input id="msg" placeholder="Сообщение">
+    <button onclick="send()">Отправить</button>
 </div>
 
 <script>
 
 let ws;
-let nick;
-let currentDM = null;
 
 function connect(){
-    ws = new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
-
-    ws.onopen = () => {
-        nick = prompt("Ник:");
-        ws.send(JSON.stringify({type:"nick",nick}));
-    };
+    ws = new WebSocket(
+        (location.protocol==="https:"?"wss://":"ws://")+location.host
+    );
 
     ws.onmessage = (e)=>{
-        const data = JSON.parse(e.data);
-
-        const chat = document.getElementById("chat");
-
-        if(data.type==="public"){
-            addMsg(data.text);
-        }
-
-        if(data.type==="private"){
-            addMsg("💬 "+data.text, true);
-        }
-
-        if(data.type==="notify"){
-            notify(data.text);
-        }
+        const div=document.createElement("div");
+        div.className="msg";
+        div.textContent=e.data;
+        chat.appendChild(div);
+        chat.scrollTop=chat.scrollHeight;
     };
 }
 
-function addMsg(text, isPrivate=false){
-    const div=document.createElement("div");
-    div.className="msg";
-    if(isPrivate) div.classList.add("private");
-    div.textContent=text;
-    document.getElementById("chat").appendChild(div);
-    chat.scrollTop=chat.scrollHeight;
+connect();
+
+/* FIX TIME (UTC+3) */
+function now(){
+    const d=new Date();
+    d.setHours(d.getHours()+3);
+
+    return d.toLocaleTimeString("ru-RU",{
+        hour:"2-digit",
+        minute:"2-digit"
+    });
+}
+
+function setNick(){
+    const nick=document.getElementById("nick").value.trim();
+    if(!nick) return;
+
+    ws.send(JSON.stringify({
+        type:"nick",
+        nick
+    }));
 }
 
 function send(){
-    const text=document.getElementById("msg").value;
+    const text=document.getElementById("msg").value.trim();
+    if(!text) return;
 
     ws.send(JSON.stringify({
         type:"chat",
-        text,
-        to: currentDM
+        text
     }));
 
-    document.getElementById("msg").value="";
+    msg.value="";
 }
 
-function notify(t){
-    if(Notification.permission==="granted"){
-        new Notification(t);
-    }
-}
-
-Notification.requestPermission();
-
-connect();
+/* ENTER */
+document.getElementById("msg")
+.addEventListener("keydown",(e)=>{
+    if(e.key==="Enter") send();
+});
 
 </script>
 
