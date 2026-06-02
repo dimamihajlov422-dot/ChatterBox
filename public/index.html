@@ -12,7 +12,6 @@ body{
     color:white;
     margin:0;
     padding:20px;
-    transition:0.3s;
 }
 
 body.light{
@@ -20,18 +19,11 @@ body.light{
     color:black;
 }
 
-.topbar{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:15px;
-}
-
 #chat{
     height:400px;
     overflow-y:auto;
     border:1px solid #333;
-    border-radius:12px;
+    border-radius:10px;
     padding:10px;
     margin-bottom:15px;
 }
@@ -42,13 +34,7 @@ body.light #chat{
 
 .msg{
     margin:6px 0;
-    padding:8px;
-    border-radius:10px;
-    background:#222;
-}
-
-body.light .msg{
-    background:#f0f0f0;
+    padding:6px;
 }
 
 input{
@@ -58,14 +44,6 @@ input{
     outline:none;
 }
 
-#nick{
-    width:200px;
-}
-
-#msg{
-    width:70%;
-}
-
 button{
     padding:10px 14px;
     border:none;
@@ -73,28 +51,26 @@ button{
     cursor:pointer;
 }
 
-.controls{
-    margin-bottom:15px;
-}
-
 .chat-controls{
     display:flex;
     gap:10px;
+    margin-top:10px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="topbar">
-    <h2>💬 ChatterBox</h2>
-    <button onclick="toggleTheme()">🌙/☀️</button>
-</div>
+<h2>💬 ChatterBox</h2>
 
-<div class="controls">
-    <input id="nick" placeholder="Ник">
-    <button onclick="setNick()">Войти</button>
-</div>
+<button onclick="toggleTheme()">🌙/☀️</button>
+
+<br><br>
+
+<input id="nick" placeholder="Ник">
+<button onclick="setNick()">Войти</button>
+
+<br><br>
 
 <div id="chat"></div>
 
@@ -105,70 +81,87 @@ button{
 
 <script>
 
-const ws = new WebSocket(
-    (location.protocol === "https:" ? "wss://" : "ws://") + location.host
-);
+let ws;
+
+function connect(){
+    ws = new WebSocket(
+        (location.protocol === "https:" ? "wss://" : "ws://") + location.host
+    );
+
+    ws.onopen = () => {
+        console.log("WS CONNECTED");
+    };
+
+    ws.onerror = (e) => console.log("WS ERROR", e);
+
+    ws.onclose = () => console.log("WS CLOSED");
+
+    ws.onmessage = (e) => {
+        const div = document.createElement("div");
+        div.className = "msg";
+        div.textContent = e.data;
+
+        document.getElementById("chat").appendChild(div);
+        document.getElementById("chat").scrollTop =
+            document.getElementById("chat").scrollHeight;
+    };
+}
+
+connect();
 
 const savedNick = localStorage.getItem("nick");
-
 if(savedNick){
     document.getElementById("nick").value = savedNick;
 }
 
-if(localStorage.getItem("theme") === "light"){
+if(localStorage.getItem("theme")==="light"){
     document.body.classList.add("light");
 }
 
-ws.onmessage = (e) => {
-    const div = document.createElement("div");
-    div.className = "msg";
-    div.textContent = e.data;
-
-    document.getElementById("chat").appendChild(div);
-
-    document.getElementById("chat").scrollTop =
-        document.getElementById("chat").scrollHeight;
-};
-
 function setNick(){
 
-    const nick =
-        document.getElementById("nick").value.trim();
-
+    const nick = document.getElementById("nick").value.trim();
     if(!nick) return;
+
+    if(!ws || ws.readyState !== 1){
+        alert("Нет соединения");
+        return;
+    }
 
     localStorage.setItem("nick", nick);
 
     ws.send(JSON.stringify({
-        type: "nick",
-        nick: nick
+        type:"nick",
+        nick
     }));
 }
 
 function sendMsg(){
 
-    const text =
-        document.getElementById("msg").value.trim();
-
+    const text = document.getElementById("msg").value.trim();
     if(!text) return;
 
+    if(!ws || ws.readyState !== 1){
+        alert("Нет соединения");
+        return;
+    }
+
     ws.send(JSON.stringify({
-        type: "chat",
-        text: text
+        type:"chat",
+        text
     }));
 
-    document.getElementById("msg").value = "";
+    document.getElementById("msg").value="";
 }
 
 document.getElementById("msg")
-.addEventListener("keydown", (e) => {
-    if(e.key === "Enter"){
+.addEventListener("keydown",(e)=>{
+    if(e.key==="Enter"){
         sendMsg();
     }
 });
 
 function toggleTheme(){
-
     document.body.classList.toggle("light");
 
     localStorage.setItem(
@@ -181,5 +174,7 @@ function toggleTheme(){
 
 </script>
 
+</body>
+</html>
 </body>
 </html>
