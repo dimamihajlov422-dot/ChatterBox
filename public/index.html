@@ -2,47 +2,46 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>ChatterBox</title>
+<title>ChatterBox v3.5</title>
 
 <style>
 body{
-    font-family:Arial;
     margin:0;
+    font-family:Arial;
     background:#111;
     color:white;
+    transition:0.2s;
 }
 
-/* TOP */
-.top{
+body.light{
+    background:white;
+    color:black;
+}
+
+.topbar{
     display:flex;
     justify-content:space-between;
-    align-items:center;
     padding:10px;
     border-bottom:1px solid #333;
 }
 
-button{
-    padding:8px 12px;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-}
-
-/* CHAT */
 #chat{
-    height:70vh;
+    height:80vh;
     overflow:auto;
     padding:10px;
 }
 
 .msg{
-    margin:5px 0;
-    padding:6px;
+    margin:6px 0;
+    padding:8px;
     background:#1e1e1e;
-    border-radius:6px;
+    border-radius:8px;
 }
 
-/* INPUT */
+body.light .msg{
+    background:#eee;
+}
+
 .bottom{
     display:flex;
     gap:10px;
@@ -58,17 +57,28 @@ input{
     outline:none;
 }
 
+button{
+    padding:10px 12px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+.small{
+    width:120px;
+}
 </style>
 </head>
 
 <body>
 
-<div class="top">
-    <div>💬 ChatterBox</div>
+<div class="topbar">
+    <div>💬 ChatterBox v3.5</div>
 
     <div>
-        <input id="nick" placeholder="Ник" style="width:120px">
+        <input id="nick" class="small" placeholder="Ник">
         <button onclick="setNick()">Войти</button>
+        <button onclick="toggleTheme()">🌙/☀️</button>
     </div>
 </div>
 
@@ -99,29 +109,29 @@ function connect(){
 
 connect();
 
-/* FIX TIME (UTC+3) */
-function now(){
-    const d=new Date();
-    d.setHours(d.getHours()+3);
+// ---------- TIME LOCAL STORAGE ----------
+const savedNick = localStorage.getItem("nick");
+if(savedNick) nick.value = savedNick;
 
-    return d.toLocaleTimeString("ru-RU",{
-        hour:"2-digit",
-        minute:"2-digit"
-    });
+if(localStorage.getItem("theme")==="light"){
+    document.body.classList.add("light");
 }
 
+// ---------- FUNCTIONS ----------
 function setNick(){
-    const nick=document.getElementById("nick").value.trim();
-    if(!nick) return;
+    const n = nick.value.trim();
+    if(!n) return;
+
+    localStorage.setItem("nick", n);
 
     ws.send(JSON.stringify({
         type:"nick",
-        nick
+        nick:n
     }));
 }
 
 function send(){
-    const text=document.getElementById("msg").value.trim();
+    const text = msg.value.trim();
     if(!text) return;
 
     ws.send(JSON.stringify({
@@ -132,11 +142,20 @@ function send(){
     msg.value="";
 }
 
-/* ENTER */
-document.getElementById("msg")
-.addEventListener("keydown",(e)=>{
+msg.addEventListener("keydown",(e)=>{
     if(e.key==="Enter") send();
 });
+
+function toggleTheme(){
+    document.body.classList.toggle("light");
+
+    localStorage.setItem(
+        "theme",
+        document.body.classList.contains("light")
+            ? "light"
+            : "dark"
+    );
+}
 
 </script>
 
