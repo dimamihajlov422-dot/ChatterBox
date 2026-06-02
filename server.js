@@ -11,7 +11,7 @@ app.use(express.static("public"));
 
 const DB_FILE = "db.json";
 
-// ---------- SAFE HISTORY ----------
+// ---------- LOAD HISTORY ----------
 let history = [];
 
 if (fs.existsSync(DB_FILE)) {
@@ -25,32 +25,37 @@ if (fs.existsSync(DB_FILE)) {
 
 let clients = new Map();
 
+// ---------- TIME FIX ----------
 function now() {
     return new Date().toLocaleTimeString("ru-RU", {
+        timeZone: "Europe/Moscow",
         hour: "2-digit",
         minute: "2-digit"
     });
 }
 
-function save(message) {
-    history.push(message);
-    if (history.length > 100) history.shift();
+// ---------- SAVE ----------
+function save(msg) {
+    history.push(msg);
+    if (history.length > 200) history.shift();
+
     fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
 }
 
-function broadcast(message) {
-    wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
+// ---------- BROADCAST ----------
+function broadcast(msg) {
+    wss.clients.forEach(c => {
+        if (c.readyState === WebSocket.OPEN) {
+            c.send(msg);
         }
     });
 }
 
+// ---------- WS ----------
 wss.on("connection", (ws) => {
-    console.log("Client connected");
 
     // история
-    history.forEach(msg => ws.send(msg));
+    history.forEach(m => ws.send(m));
 
     ws.on("message", (data) => {
         let msg;
@@ -65,7 +70,7 @@ wss.on("connection", (ws) => {
         if (msg.type === "nick") {
             clients.set(ws, msg.nick);
 
-            const message = `[${now()}] 🟢 ${msg.nick} вошёл в чат`;
+            const message = `[${now()}] 🟢 ${msg.nick} вошёл`;
 
             save(message);
             broadcast(message);
@@ -97,7 +102,4 @@ wss.on("connection", (ws) => {
 });
 
 const PORT = process.env.PORT || 3000;
-
-server.listen(PORT, () => {
-    console.log("Server running on port " + PORT);
-});
+server.listen(PORT, () => console.log("Server running"));
