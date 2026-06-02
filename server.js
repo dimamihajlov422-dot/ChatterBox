@@ -11,7 +11,9 @@ app.use(express.static("public"));
 
 const DB_FILE = "db.json";
 
+// ---------- SAFE HISTORY ----------
 let history = [];
+
 if (fs.existsSync(DB_FILE)) {
     try {
         const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
@@ -21,7 +23,7 @@ if (fs.existsSync(DB_FILE)) {
     }
 }
 
-let clients = new Map(); // ws -> nick
+let clients = new Map();
 
 function now() {
     return new Date().toLocaleTimeString("ru-RU", {
@@ -30,39 +32,29 @@ function now() {
     });
 }
 
-function save(msg) {
-    history.push(msg);
+function save(message) {
+    history.push(message);
     if (history.length > 100) history.shift();
     fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
 }
 
-function broadcast(msg) {
-    wss.clients.forEach(c => {
-        if (c.readyState === WebSocket.OPEN) {
-            c.send(JSON.stringify({ type: "public", text: msg }));
+function broadcast(message) {
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
         }
     });
-}
-
-function sendToNick(nick, data) {
-    for (let [ws, name] of clients.entries()) {
-        if (name === nick && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify(data));
-            return ws;
-        }
-    }
-    return null;
 }
 
 wss.on("connection", (ws) => {
+    console.log("Client connected");
 
-    // отправка истории
-    history.forEach(m => {
-        ws.send(JSON.stringify({ type: "public", text: m }));
-    });
+    // история
+    history.forEach(msg => ws.send(msg));
 
     ws.on("message", (data) => {
         let msg;
+
         try {
             msg = JSON.parse(data.toString());
         } catch {
@@ -72,7 +64,11 @@ wss.on("connection", (ws) => {
         // ---------- NICK ----------
         if (msg.type === "nick") {
             clients.set(ws, msg.nick);
-            broadcast(`[${now()}] 🟢 ${msg.nick} вошёл`);
+
+            const message = `[${now()}] 🟢 ${msg.nick} вошёл в чат`;
+
+            save(message);
+            broadcast(message);
             return;
         }
 
@@ -80,36 +76,7 @@ wss.on("connection", (ws) => {
         if (msg.type === "chat") {
             const nick = clients.get(ws) || "Anon";
 
-            const time = now();
-
-            // PRIVATE MESSAGE
-            if (msg.to) {
-                const text = `[ЛС ${time}] ${nick}: ${msg.text}`;
-
-                ws.send(JSON.stringify({
-                    type: "private",
-                    from: nick,
-                    text
-                }));
-
-                const target = sendToNick(msg.to, {
-                    type: "private",
-                    from: nick,
-                    text: text
-                });
-
-                if (target) {
-                    target.send(JSON.stringify({
-                        type: "notify",
-                        text: `🔔 ЛС от ${nick}`
-                    }));
-                }
-
-                return;
-            }
-
-            // PUBLIC
-            const message = `[${time}] ${nick}: ${msg.text}`;
+            const message = `[${now()}] ${nick}: ${msg.text}`;
 
             save(message);
             broadcast(message);
@@ -121,10 +88,16 @@ wss.on("connection", (ws) => {
         clients.delete(ws);
 
         if (nick) {
-            broadcast(`[${now()}] 🔴 ${nick} вышел`);
+            const message = `[${now()}] 🔴 ${nick} вышел`;
+
+            save(message);
+            broadcast(message);
         }
     });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log("Server running"));
+
+server.listen(PORT, () => {
+    console.log("Server running on port " + PORT);
+});
