@@ -11,9 +11,8 @@ app.use(express.static("public"));
 
 const DB_FILE = "db.json";
 
-// ---------- LOAD HISTORY ----------
+// ---------- LOAD ----------
 let history = [];
-
 if (fs.existsSync(DB_FILE)) {
     try {
         const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
@@ -25,7 +24,7 @@ if (fs.existsSync(DB_FILE)) {
 
 let clients = new Map();
 
-// ---------- TIME FIX ----------
+// ---------- TIME (FIXED) ----------
 function now() {
     return new Date().toLocaleTimeString("ru-RU", {
         timeZone: "Europe/Moscow",
@@ -38,15 +37,16 @@ function now() {
 function save(msg) {
     history.push(msg);
     if (history.length > 200) history.shift();
-
     fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
 }
 
 // ---------- BROADCAST ----------
-function broadcast(msg) {
+function broadcast(obj) {
+    const data = JSON.stringify(obj);
+
     wss.clients.forEach(c => {
         if (c.readyState === WebSocket.OPEN) {
-            c.send(msg);
+            c.send(data);
         }
     });
 }
@@ -54,8 +54,10 @@ function broadcast(msg) {
 // ---------- WS ----------
 wss.on("connection", (ws) => {
 
-    // история
-    history.forEach(m => ws.send(m));
+    // history
+    history.forEach(m => {
+        ws.send(JSON.stringify({ type: "msg", text: m }));
+    });
 
     ws.on("message", (data) => {
         let msg;
@@ -70,10 +72,10 @@ wss.on("connection", (ws) => {
         if (msg.type === "nick") {
             clients.set(ws, msg.nick);
 
-            const message = `[${now()}] 🟢 ${msg.nick} вошёл`;
+            const text = `[${now()}] 🟢 ${msg.nick} вошёл`;
 
-            save(message);
-            broadcast(message);
+            save(text);
+            broadcast({ type: "msg", text });
             return;
         }
 
@@ -81,10 +83,10 @@ wss.on("connection", (ws) => {
         if (msg.type === "chat") {
             const nick = clients.get(ws) || "Anon";
 
-            const message = `[${now()}] ${nick}: ${msg.text}`;
+            const text = `[${now()}] ${nick}: ${msg.text}`;
 
-            save(message);
-            broadcast(message);
+            save(text);
+            broadcast({ type: "msg", text });
         }
     });
 
@@ -93,10 +95,10 @@ wss.on("connection", (ws) => {
         clients.delete(ws);
 
         if (nick) {
-            const message = `[${now()}] 🔴 ${nick} вышел`;
+            const text = `[${now()}] 🔴 ${nick} вышел`;
 
-            save(message);
-            broadcast(message);
+            save(text);
+            broadcast({ type: "msg", text });
         }
     });
 });
