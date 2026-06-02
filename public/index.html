@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatterBox v3.6</title>
+<title>ChatterBox v3.7</title>
 
 <style>
 body{
@@ -25,13 +25,8 @@ body.light{
 .top{
     display:flex;
     justify-content:space-between;
-    align-items:center;
     padding:10px;
     border-bottom:1px solid #333;
-}
-
-body.light .top{
-    border-bottom:1px solid #ddd;
 }
 
 /* CHAT */
@@ -51,16 +46,25 @@ body.light .top{
     display:flex;
     justify-content:space-between;
     gap:10px;
-    align-items:center;
-    word-break:break-word;
 }
 
 body.light .msg{
     background:#eee;
 }
 
-.pinned{
-    border:2px solid gold;
+button{
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+input{
+    padding:10px;
+    border-radius:8px;
+    border:none;
+    outline:none;
+    font-size:16px;
 }
 
 /* BOTTOM */
@@ -75,21 +79,8 @@ body.light .bottom{
     border-top:1px solid #ddd;
 }
 
-input{
-    flex:1;
-    padding:12px;
-    border:none;
-    border-radius:10px;
-    outline:none;
-    font-size:16px;
-}
-
-button{
-    padding:12px;
-    border:none;
-    border-radius:10px;
-    cursor:pointer;
-    font-size:16px;
+.pinned{
+    border:2px solid gold;
 }
 </style>
 </head>
@@ -97,7 +88,7 @@ button{
 <body>
 
 <div class="top">
-    <div>💬 ChatterBox v3.6</div>
+    <div>💬 v3.7 Chat</div>
 
     <div style="display:flex; gap:6px;">
         <input id="nick" placeholder="Ник" style="width:90px">
@@ -116,6 +107,7 @@ button{
 <script>
 
 let ws;
+let currentDM = null;
 
 function connect(){
     ws = new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
@@ -127,9 +119,8 @@ function connect(){
             render(data.data);
         }
 
-        if(data.type==="pin"){
-            const el = document.getElementById(data.id);
-            if(el) el.classList.add("pinned");
+        if(data.type==="dm"){
+            renderDM(data);
         }
 
         if(data.type==="error"){
@@ -140,7 +131,9 @@ function connect(){
 
 connect();
 
-/* NICK */
+/* =====================
+   NICK
+===================== */
 function setNick(){
     const n = nick.value.trim();
     if(!n) return;
@@ -151,20 +144,32 @@ function setNick(){
     }));
 }
 
-/* SEND */
+/* =====================
+   SEND
+===================== */
 function send(){
     const text = msg.value.trim();
     if(!text) return;
 
-    ws.send(JSON.stringify({
-        type:"chat",
-        text
-    }));
+    if(currentDM){
+        ws.send(JSON.stringify({
+            type:"dm",
+            to: currentDM,
+            text
+        }));
+    }else{
+        ws.send(JSON.stringify({
+            type:"chat",
+            text
+        }));
+    }
 
     msg.value="";
 }
 
-/* RENDER MSG */
+/* =====================
+   RENDER CHAT
+===================== */
 function render(m){
 
     const div = document.createElement("div");
@@ -174,41 +179,44 @@ function render(m){
     const text = document.createElement("div");
     text.textContent = m.text;
 
-    const pin = document.createElement("button");
-    pin.textContent="📌";
-    pin.onclick = ()=>{
-        ws.send(JSON.stringify({
-            type:"pin",
-            id:m.id
-        }));
+    const dmBtn = document.createElement("button");
+    dmBtn.textContent="💌";
+    dmBtn.onclick=()=>{
+        const name = prompt("Кому ЛС?");
+        if(name) currentDM = name;
     };
-
-    const del = document.createElement("button");
-    del.textContent="🗑";
-    del.onclick = ()=>{
-        div.remove(); // локально
-    };
-
-    const right = document.createElement("div");
-    right.style.display="flex";
-    right.style.gap="5px";
-
-    right.appendChild(pin);
-    right.appendChild(del);
 
     div.appendChild(text);
-    div.appendChild(right);
+    div.appendChild(dmBtn);
 
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
 }
 
-/* ENTER */
+/* =====================
+   DM RENDER
+===================== */
+function renderDM(d){
+
+    const div = document.createElement("div");
+    div.className="msg";
+
+    div.textContent = `💌 ${d.from} → ${d.to}: ${d.text}`;
+
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+/* =====================
+   ENTER
+===================== */
 msg.addEventListener("keydown",(e)=>{
     if(e.key==="Enter") send();
 });
 
-/* THEME */
+/* =====================
+   THEME
+===================== */
 if(localStorage.getItem("theme")==="light"){
     document.body.classList.add("light");
 }
