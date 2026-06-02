@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>ChatterBox v3.5</title>
+<title>ChatterBox</title>
 
 <style>
 body{
@@ -10,7 +10,6 @@ body{
     font-family:Arial;
     background:#111;
     color:white;
-    transition:0.2s;
 }
 
 body.light{
@@ -63,20 +62,16 @@ button{
     border-radius:6px;
     cursor:pointer;
 }
-
-.small{
-    width:120px;
-}
 </style>
 </head>
 
 <body>
 
 <div class="topbar">
-    <div>💬 ChatterBox v3.5</div>
+    <div>💬 ChatterBox</div>
 
     <div>
-        <input id="nick" class="small" placeholder="Ник">
+        <input id="nick" placeholder="Ник" style="width:120px">
         <button onclick="setNick()">Войти</button>
         <button onclick="toggleTheme()">🌙/☀️</button>
     </div>
@@ -102,6 +97,7 @@ function connect(){
         const div=document.createElement("div");
         div.className="msg";
         div.textContent=e.data;
+
         chat.appendChild(div);
         chat.scrollTop=chat.scrollHeight;
     };
@@ -109,15 +105,7 @@ function connect(){
 
 connect();
 
-// ---------- TIME LOCAL STORAGE ----------
-const savedNick = localStorage.getItem("nick");
-if(savedNick) nick.value = savedNick;
-
-if(localStorage.getItem("theme")==="light"){
-    document.body.classList.add("light");
-}
-
-// ---------- FUNCTIONS ----------
+// ---------- nick ----------
 function setNick(){
     const n = nick.value.trim();
     if(!n) return;
@@ -130,21 +118,28 @@ function setNick(){
     }));
 }
 
+// ---------- send ----------
 function send(){
     const text = msg.value.trim();
     if(!text) return;
 
     ws.send(JSON.stringify({
         type:"chat",
-        text
+        text:text
     }));
 
     msg.value="";
 }
 
+// ---------- enter ----------
 msg.addEventListener("keydown",(e)=>{
     if(e.key==="Enter") send();
 });
+
+// ---------- theme ----------
+if(localStorage.getItem("theme")==="light"){
+    document.body.classList.add("light");
+}
 
 function toggleTheme(){
     document.body.classList.toggle("light");
