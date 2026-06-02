@@ -2,82 +2,46 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatterBox</title>
+<title>ChatterBox v3.5</title>
 
 <style>
-*{
-    box-sizing:border-box;
-}
-
 body{
     margin:0;
     font-family:Arial;
     background:#111;
     color:white;
-    display:flex;
-    flex-direction:column;
-    height:100vh;
+    transition:0.2s;
 }
 
-/* TOP */
+body.light{
+    background:white;
+    color:black;
+}
+
 .topbar{
     display:flex;
     justify-content:space-between;
-    align-items:center;
     padding:10px;
     border-bottom:1px solid #333;
-    gap:10px;
 }
 
-.left, .right{
-    display:flex;
-    align-items:center;
-    gap:10px;
-}
-
-input, button{
-    border:none;
-    border-radius:8px;
-    padding:10px;
-    font-size:14px;
-}
-
-input{
-    background:#222;
-    color:white;
-    outline:none;
-}
-
-button{
-    cursor:pointer;
-    background:#2a2a2a;
-    color:white;
-}
-
-button:hover{
-    background:#3a3a3a;
-}
-
-/* CHAT */
 #chat{
-    flex:1;
+    height:80vh;
     overflow:auto;
     padding:10px;
-    display:flex;
-    flex-direction:column;
-    gap:8px;
 }
 
 .msg{
-    padding:10px;
-    border-radius:10px;
+    margin:6px 0;
+    padding:8px;
     background:#1e1e1e;
-    max-width:80%;
-    word-wrap:break-word;
+    border-radius:8px;
 }
 
-/* INPUT */
+body.light .msg{
+    background:#eee;
+}
+
 .bottom{
     display:flex;
     gap:10px;
@@ -85,36 +49,23 @@ button:hover{
     border-top:1px solid #333;
 }
 
-/* LIGHT */
-body.light{
-    background:white;
-    color:black;
+input{
+    flex:1;
+    padding:10px;
+    border:none;
+    border-radius:6px;
+    outline:none;
 }
 
-body.light .msg{
-    background:#eee;
+button{
+    padding:10px 12px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
 }
 
-body.light input{
-    background:#f0f0f0;
-    color:black;
-}
-
-body.light button{
-    background:#ddd;
-    color:black;
-}
-
-/* MOBILE */
-@media(max-width:600px){
-    .topbar{
-        flex-direction:column;
-        align-items:stretch;
-    }
-
-    .msg{
-        max-width:100%;
-    }
+.small{
+    width:120px;
 }
 </style>
 </head>
@@ -122,17 +73,13 @@ body.light button{
 <body>
 
 <div class="topbar">
+    <div>💬 ChatterBox v3.5</div>
 
-    <div class="left">
-        💬 ChatterBox
-    </div>
-
-    <div class="right">
-        <input id="nick" placeholder="Ник" style="width:120px">
+    <div>
+        <input id="nick" class="small" placeholder="Ник">
         <button onclick="setNick()">Войти</button>
-        <button onclick="toggleTheme()">🌙</button>
+        <button onclick="toggleTheme()">🌙/☀️</button>
     </div>
-
 </div>
 
 <div id="chat"></div>
@@ -152,26 +99,25 @@ function connect(){
     );
 
     ws.onmessage = (e)=>{
-        const data = JSON.parse(e.data);
-
-        if(data.type==="msg"){
-            addMsg(data.text);
-        }
+        const div=document.createElement("div");
+        div.className="msg";
+        div.textContent=e.data;
+        chat.appendChild(div);
+        chat.scrollTop=chat.scrollHeight;
     };
-}
-
-function addMsg(text){
-    const div=document.createElement("div");
-    div.className="msg";
-    div.textContent=text;
-
-    chat.appendChild(div);
-    chat.scrollTop=chat.scrollHeight;
 }
 
 connect();
 
-// ---------- NICK ----------
+// ---------- TIME LOCAL STORAGE ----------
+const savedNick = localStorage.getItem("nick");
+if(savedNick) nick.value = savedNick;
+
+if(localStorage.getItem("theme")==="light"){
+    document.body.classList.add("light");
+}
+
+// ---------- FUNCTIONS ----------
 function setNick(){
     const n = nick.value.trim();
     if(!n) return;
@@ -184,7 +130,6 @@ function setNick(){
     }));
 }
 
-// ---------- SEND ----------
 function send(){
     const text = msg.value.trim();
     if(!text) return;
@@ -197,15 +142,9 @@ function send(){
     msg.value="";
 }
 
-// ---------- ENTER ----------
 msg.addEventListener("keydown",(e)=>{
     if(e.key==="Enter") send();
 });
-
-// ---------- THEME ----------
-if(localStorage.getItem("theme")==="light"){
-    document.body.classList.add("light");
-}
 
 function toggleTheme(){
     document.body.classList.toggle("light");
@@ -213,8 +152,8 @@ function toggleTheme(){
     localStorage.setItem(
         "theme",
         document.body.classList.contains("light")
-        ? "light"
-        : "dark"
+            ? "light"
+            : "dark"
     );
 }
 
