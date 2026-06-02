@@ -11,29 +11,56 @@ app.use(express.static("public"));
 
 const DB_FILE = "db.json";
 
+// ---------- SAFE LOAD HISTORY ----------
 let history = [];
 
 if (fs.existsSync(DB_FILE)) {
     try {
-        history = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
-    } catch {
+        const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+
+        if (Array.isArray(data)) {
+            history = data;
+        } else {
+            history = [];
+        }
+
+    } catch (e) {
+        console.log("DB read error, resetting history");
         history = [];
     }
 }
 
+// ---------- CLIENTS ----------
 let clients = new Map();
 
+// ---------- BROADCAST ----------
+function broadcast(message) {
+    wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+}
+
+// ---------- WS ----------
 wss.on("connection", (ws) => {
     console.log("Client connected");
 
-    // Отправляем историю новому пользователю
+    // отправляем историю
     history.forEach(msg => {
         ws.send(msg);
     });
 
     ws.on("message", (data) => {
-        const msg = JSON.parse(data.toString());
+        let msg;
 
+        try {
+            msg = JSON.parse(data.toString());
+        } catch {
+            return;
+        }
+
+        // ---------- NICK ----------
         if (msg.type === "nick") {
             clients.set(ws, msg.nick);
 
@@ -42,10 +69,18 @@ wss.on("connection", (ws) => {
                 minute: "2-digit"
             });
 
-            broadcast(`[${time}] 🟢 ${msg.nick} вошёл в чат`);
+            const message = `[${time}] 🟢 ${msg.nick} вошёл в чат`;
+
+            history.push(message);
+            if (history.length > 100) history.shift();
+
+            fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
+
+            broadcast(message);
             return;
         }
 
+        // ---------- CHAT ----------
         if (msg.type === "chat") {
             const nick = clients.get(ws) || "Anon";
 
@@ -57,15 +92,9 @@ wss.on("connection", (ws) => {
             const message = `[${time}] ${nick}: ${msg.text}`;
 
             history.push(message);
+            if (history.length > 100) history.shift();
 
-            if (history.length > 100) {
-                history.shift();
-            }
-
-            fs.writeFileSync(
-                DB_FILE,
-                JSON.stringify(history, null, 2)
-            );
+            fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
 
             broadcast(message);
         }
@@ -73,7 +102,6 @@ wss.on("connection", (ws) => {
 
     ws.on("close", () => {
         const nick = clients.get(ws);
-
         clients.delete(ws);
 
         if (nick) {
@@ -82,19 +110,19 @@ wss.on("connection", (ws) => {
                 minute: "2-digit"
             });
 
-            broadcast(`[${time}] 🔴 ${nick} вышел`);
+            const message = `[${time}] 🔴 ${nick} вышел`;
+
+            history.push(message);
+            if (history.length > 100) history.shift();
+
+            fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
+
+            broadcast(message);
         }
     });
 });
 
-function broadcast(message) {
-    wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
-        }
-    });
-}
-
+// ---------- START ----------
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
