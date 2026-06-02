@@ -1,59 +1,184 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>ChatterBox v2</title>
-    <style>
-        body { font-family: Arial; background:#111; color:#fff; }
-        #chat { height:300px; overflow:auto; border:1px solid #333; padding:10px; }
-        input { width:70%; padding:10px; }
-        button { padding:10px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChatterBox</title>
+
+<style>
+body{
+    font-family:Arial,sans-serif;
+    background:#111;
+    color:white;
+    margin:0;
+    padding:20px;
+    transition:0.3s;
+}
+
+body.light{
+    background:white;
+    color:black;
+}
+
+.topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:15px;
+}
+
+#chat{
+    height:400px;
+    overflow-y:auto;
+    border:1px solid #333;
+    border-radius:12px;
+    padding:10px;
+    margin-bottom:15px;
+}
+
+body.light #chat{
+    border:1px solid #ccc;
+}
+
+.msg{
+    margin:6px 0;
+    padding:8px;
+    border-radius:10px;
+    background:#222;
+}
+
+body.light .msg{
+    background:#f0f0f0;
+}
+
+input{
+    padding:10px;
+    border-radius:8px;
+    border:none;
+    outline:none;
+}
+
+#nick{
+    width:200px;
+}
+
+#msg{
+    width:70%;
+}
+
+button{
+    padding:10px 14px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.controls{
+    margin-bottom:15px;
+}
+
+.chat-controls{
+    display:flex;
+    gap:10px;
+}
+</style>
 </head>
+
 <body>
 
-<h2>💬 ChatterBox v2</h2>
+<div class="topbar">
+    <h2>💬 ChatterBox</h2>
+    <button onclick="toggleTheme()">🌙/☀️</button>
+</div>
+
+<div class="controls">
+    <input id="nick" placeholder="Ник">
+    <button onclick="setNick()">Войти</button>
+</div>
 
 <div id="chat"></div>
 
-<input id="nick" placeholder="Ник">
-<button onclick="setNick()">Войти</button>
-
-<br><br>
-
-<input id="msg" placeholder="Сообщение">
-<button onclick="sendMsg()">Отправить</button>
+<div class="chat-controls">
+    <input id="msg" placeholder="Сообщение">
+    <button onclick="sendMsg()">Отправить</button>
+</div>
 
 <script>
+
 const ws = new WebSocket(
     (location.protocol === "https:" ? "wss://" : "ws://") + location.host
 );
 
+const savedNick = localStorage.getItem("nick");
+
+if(savedNick){
+    document.getElementById("nick").value = savedNick;
+}
+
+if(localStorage.getItem("theme") === "light"){
+    document.body.classList.add("light");
+}
+
 ws.onmessage = (e) => {
     const div = document.createElement("div");
+    div.className = "msg";
     div.textContent = e.data;
+
     document.getElementById("chat").appendChild(div);
-    document.getElementById("chat").scrollTop = 999999;
+
+    document.getElementById("chat").scrollTop =
+        document.getElementById("chat").scrollHeight;
 };
 
-ws.onopen = () => console.log("WS connected");
+function setNick(){
 
-function setNick() {
-    const nick = document.getElementById("nick").value;
+    const nick =
+        document.getElementById("nick").value.trim();
+
+    if(!nick) return;
+
+    localStorage.setItem("nick", nick);
+
     ws.send(JSON.stringify({
         type: "nick",
-        nick
+        nick: nick
     }));
 }
 
-function sendMsg() {
-    const text = document.getElementById("msg").value;
+function sendMsg(){
+
+    const text =
+        document.getElementById("msg").value.trim();
+
+    if(!text) return;
+
     ws.send(JSON.stringify({
         type: "chat",
-        text
+        text: text
     }));
+
     document.getElementById("msg").value = "";
 }
+
+document.getElementById("msg")
+.addEventListener("keydown", (e) => {
+    if(e.key === "Enter"){
+        sendMsg();
+    }
+});
+
+function toggleTheme(){
+
+    document.body.classList.toggle("light");
+
+    localStorage.setItem(
+        "theme",
+        document.body.classList.contains("light")
+            ? "light"
+            : "dark"
+    );
+}
+
 </script>
 
 </body>
