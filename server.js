@@ -11,49 +11,58 @@ app.use(express.static("public"));
 
 const DB_FILE = "db.json";
 
-// ---------- SAFE LOAD HISTORY ----------
 let history = [];
-
 if (fs.existsSync(DB_FILE)) {
     try {
         const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
-
-        if (Array.isArray(data)) {
-            history = data;
-        } else {
-            history = [];
-        }
-
-    } catch (e) {
-        console.log("DB read error, resetting history");
+        history = Array.isArray(data) ? data : [];
+    } catch {
         history = [];
     }
 }
 
-// ---------- CLIENTS ----------
-let clients = new Map();
+let clients = new Map(); // ws -> nick
 
-// ---------- BROADCAST ----------
-function broadcast(message) {
-    wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
+function now() {
+    return new Date().toLocaleTimeString("ru-RU", {
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
+function save(msg) {
+    history.push(msg);
+    if (history.length > 100) history.shift();
+    fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
+}
+
+function broadcast(msg) {
+    wss.clients.forEach(c => {
+        if (c.readyState === WebSocket.OPEN) {
+            c.send(JSON.stringify({ type: "public", text: msg }));
         }
     });
 }
 
-// ---------- WS ----------
-wss.on("connection", (ws) => {
-    console.log("Client connected");
+function sendToNick(nick, data) {
+    for (let [ws, name] of clients.entries()) {
+        if (name === nick && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(data));
+            return ws;
+        }
+    }
+    return null;
+}
 
-    // отправляем историю
-    history.forEach(msg => {
-        ws.send(msg);
+wss.on("connection", (ws) => {
+
+    // отправка истории
+    history.forEach(m => {
+        ws.send(JSON.stringify({ type: "public", text: m }));
     });
 
     ws.on("message", (data) => {
         let msg;
-
         try {
             msg = JSON.parse(data.toString());
         } catch {
@@ -63,20 +72,7 @@ wss.on("connection", (ws) => {
         // ---------- NICK ----------
         if (msg.type === "nick") {
             clients.set(ws, msg.nick);
-
-            const time = new Date().toLocaleTimeString("ru-RU", {
-                hour: "2-digit",
-                minute: "2-digit"
-            });
-
-            const message = `[${time}] 🟢 ${msg.nick} вошёл в чат`;
-
-            history.push(message);
-            if (history.length > 100) history.shift();
-
-            fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
-
-            broadcast(message);
+            broadcast(`[${now()}] 🟢 ${msg.nick} вошёл`);
             return;
         }
 
@@ -84,18 +80,38 @@ wss.on("connection", (ws) => {
         if (msg.type === "chat") {
             const nick = clients.get(ws) || "Anon";
 
-            const time = new Date().toLocaleTimeString("ru-RU", {
-                hour: "2-digit",
-                minute: "2-digit"
-            });
+            const time = now();
 
+            // PRIVATE MESSAGE
+            if (msg.to) {
+                const text = `[ЛС ${time}] ${nick}: ${msg.text}`;
+
+                ws.send(JSON.stringify({
+                    type: "private",
+                    from: nick,
+                    text
+                }));
+
+                const target = sendToNick(msg.to, {
+                    type: "private",
+                    from: nick,
+                    text: text
+                });
+
+                if (target) {
+                    target.send(JSON.stringify({
+                        type: "notify",
+                        text: `🔔 ЛС от ${nick}`
+                    }));
+                }
+
+                return;
+            }
+
+            // PUBLIC
             const message = `[${time}] ${nick}: ${msg.text}`;
 
-            history.push(message);
-            if (history.length > 100) history.shift();
-
-            fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
-
+            save(message);
             broadcast(message);
         }
     });
@@ -105,26 +121,10 @@ wss.on("connection", (ws) => {
         clients.delete(ws);
 
         if (nick) {
-            const time = new Date().toLocaleTimeString("ru-RU", {
-                hour: "2-digit",
-                minute: "2-digit"
-            });
-
-            const message = `[${time}] 🔴 ${nick} вышел`;
-
-            history.push(message);
-            if (history.length > 100) history.shift();
-
-            fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
-
-            broadcast(message);
+            broadcast(`[${now()}] 🔴 ${nick} вышел`);
         }
     });
 });
 
-// ---------- START ----------
 const PORT = process.env.PORT || 3000;
-
-server.listen(PORT, () => {
-    console.log("Server running on port " + PORT);
-});
+server.listen(PORT, () => console.log("Server running"));
