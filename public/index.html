@@ -2,7 +2,8 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>ChatterBox v3.5</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChatterBox v3.6</title>
 
 <style>
 body{
@@ -10,7 +11,9 @@ body{
     font-family:Arial;
     background:#111;
     color:white;
-    transition:0.2s;
+    display:flex;
+    flex-direction:column;
+    height:100vh;
 }
 
 body.light{
@@ -18,30 +21,49 @@ body.light{
     color:black;
 }
 
-.topbar{
+/* TOP */
+.top{
     display:flex;
     justify-content:space-between;
+    align-items:center;
     padding:10px;
     border-bottom:1px solid #333;
 }
 
+body.light .top{
+    border-bottom:1px solid #ddd;
+}
+
+/* CHAT */
 #chat{
-    height:80vh;
+    flex:1;
     overflow:auto;
     padding:10px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
 }
 
 .msg{
-    margin:6px 0;
-    padding:8px;
     background:#1e1e1e;
-    border-radius:8px;
+    padding:10px;
+    border-radius:10px;
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    align-items:center;
+    word-break:break-word;
 }
 
 body.light .msg{
     background:#eee;
 }
 
+.pinned{
+    border:2px solid gold;
+}
+
+/* BOTTOM */
 .bottom{
     display:flex;
     gap:10px;
@@ -49,36 +71,38 @@ body.light .msg{
     border-top:1px solid #333;
 }
 
+body.light .bottom{
+    border-top:1px solid #ddd;
+}
+
 input{
     flex:1;
-    padding:10px;
+    padding:12px;
     border:none;
-    border-radius:6px;
+    border-radius:10px;
     outline:none;
+    font-size:16px;
 }
 
 button{
-    padding:10px 12px;
+    padding:12px;
     border:none;
-    border-radius:6px;
+    border-radius:10px;
     cursor:pointer;
-}
-
-.small{
-    width:120px;
+    font-size:16px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="topbar">
-    <div>💬 ChatterBox</div>
+<div class="top">
+    <div>💬 ChatterBox v3.6</div>
 
-    <div>
-        <input id="nick" class="small" placeholder="Ник">
-        <button onclick="setNick()">Войти</button>
-        <button onclick="toggleTheme()">🌙/☀️</button>
+    <div style="display:flex; gap:6px;">
+        <input id="nick" placeholder="Ник" style="width:90px">
+        <button onclick="setNick()">OK</button>
+        <button onclick="toggleTheme()">🌙</button>
     </div>
 </div>
 
@@ -86,7 +110,7 @@ button{
 
 <div class="bottom">
     <input id="msg" placeholder="Сообщение">
-    <button onclick="send()">Отправить</button>
+    <button onclick="send()">➤</button>
 </div>
 
 <script>
@@ -94,35 +118,32 @@ button{
 let ws;
 
 function connect(){
-    ws = new WebSocket(
-        (location.protocol==="https:"?"wss://":"ws://")+location.host
-    );
+    ws = new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
 
     ws.onmessage = (e)=>{
-        const div=document.createElement("div");
-        div.className="msg";
-        div.textContent=e.data;
-        chat.appendChild(div);
-        chat.scrollTop=chat.scrollHeight;
+        const data = JSON.parse(e.data);
+
+        if(data.type==="msg"){
+            render(data.data);
+        }
+
+        if(data.type==="pin"){
+            const el = document.getElementById(data.id);
+            if(el) el.classList.add("pinned");
+        }
+
+        if(data.type==="error"){
+            alert(data.text);
+        }
     };
 }
 
 connect();
 
-// ---------- TIME LOCAL STORAGE ----------
-const savedNick = localStorage.getItem("nick");
-if(savedNick) nick.value = savedNick;
-
-if(localStorage.getItem("theme")==="light"){
-    document.body.classList.add("light");
-}
-
-// ---------- FUNCTIONS ----------
+/* NICK */
 function setNick(){
     const n = nick.value.trim();
     if(!n) return;
-
-    localStorage.setItem("nick", n);
 
     ws.send(JSON.stringify({
         type:"nick",
@@ -130,6 +151,7 @@ function setNick(){
     }));
 }
 
+/* SEND */
 function send(){
     const text = msg.value.trim();
     if(!text) return;
@@ -142,9 +164,54 @@ function send(){
     msg.value="";
 }
 
+/* RENDER MSG */
+function render(m){
+
+    const div = document.createElement("div");
+    div.className="msg";
+    div.id=m.id;
+
+    const text = document.createElement("div");
+    text.textContent = m.text;
+
+    const pin = document.createElement("button");
+    pin.textContent="📌";
+    pin.onclick = ()=>{
+        ws.send(JSON.stringify({
+            type:"pin",
+            id:m.id
+        }));
+    };
+
+    const del = document.createElement("button");
+    del.textContent="🗑";
+    del.onclick = ()=>{
+        div.remove(); // локально
+    };
+
+    const right = document.createElement("div");
+    right.style.display="flex";
+    right.style.gap="5px";
+
+    right.appendChild(pin);
+    right.appendChild(del);
+
+    div.appendChild(text);
+    div.appendChild(right);
+
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+/* ENTER */
 msg.addEventListener("keydown",(e)=>{
     if(e.key==="Enter") send();
 });
+
+/* THEME */
+if(localStorage.getItem("theme")==="light"){
+    document.body.classList.add("light");
+}
 
 function toggleTheme(){
     document.body.classList.toggle("light");
