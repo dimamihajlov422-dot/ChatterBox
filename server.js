@@ -8,40 +8,32 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-/* =========================
-   STATIC FILES (ВАЖНО)
-========================= */
 app.use(express.static(path.join(__dirname, "public")));
 
-/* =========================
-   DB FILE
-========================= */
 const DB_FILE = path.join(__dirname, "db.json");
 
-/* =========================
-   LOAD HISTORY SAFE
-========================= */
+/* ======================
+   LOAD HISTORY
+====================== */
 let history = [];
 
 try {
     if (fs.existsSync(DB_FILE)) {
-        const data = fs.readFileSync(DB_FILE, "utf8");
-        const parsed = JSON.parse(data);
-        history = Array.isArray(parsed) ? parsed : [];
+        const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+        history = Array.isArray(data) ? data : [];
     }
-} catch (e) {
-    console.log("DB load error → reset history");
+} catch {
     history = [];
 }
 
-/* =========================
+/* ======================
    USERS
-========================= */
-let clients = new Map();
+====================== */
+let clients = new Map(); // ws -> nick
 
-/* =========================
+/* ======================
    TIME (MOSCOW FIX)
-========================= */
+====================== */
 function now() {
     return new Date().toLocaleTimeString("ru-RU", {
         timeZone: "Europe/Moscow",
@@ -50,69 +42,106 @@ function now() {
     });
 }
 
-/* =========================
-   SAVE MESSAGE
-========================= */
-function save(message) {
-    history.push(message);
-
-    if (history.length > 200) {
-        history.shift();
-    }
-
+/* ======================
+   SAVE
+====================== */
+function save() {
     fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
 }
 
-/* =========================
+/* ======================
    BROADCAST
-========================= */
-function broadcast(message) {
-    wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
+====================== */
+function broadcast(obj) {
+    const data = JSON.stringify(obj);
+
+    wss.clients.forEach(c => {
+        if (c.readyState === WebSocket.OPEN) {
+            c.send(data);
         }
     });
 }
 
-/* =========================
-   WS CONNECTION
-========================= */
+/* ======================
+   WS
+====================== */
 wss.on("connection", (ws) => {
-    console.log("Client connected");
 
     // send history
-    history.forEach(msg => {
-        ws.send(msg);
-    });
+    history.forEach(m => ws.send(JSON.stringify({
+        type: "msg",
+        data: m
+    })));
 
-    ws.on("message", (data) => {
+    ws.on("message", (raw) => {
         let msg;
 
         try {
-            msg = JSON.parse(data.toString());
+            msg = JSON.parse(raw.toString());
         } catch {
             return;
         }
 
-        /* ===== NICK ===== */
+        /* ======================
+           NICK (NO DUPLICATES)
+        ====================== */
         if (msg.type === "nick") {
+
+            for (let name of clients.values()) {
+                if (name === msg.nick) {
+                    ws.send(JSON.stringify({
+                        type: "error",
+                        text: "❌ Ник уже занят"
+                    }));
+                    return;
+                }
+            }
+
             clients.set(ws, msg.nick);
 
-            const message = `[${now()}] 🟢 ${msg.nick} вошёл в чат`;
+            const m = {
+                id: Date.now().toString(),
+                text: `[${now()}] 🟢 ${msg.nick} вошёл`,
+                pinned: false
+            };
 
-            save(message);
-            broadcast(message);
+            history.push(m);
+            save();
+
+            broadcast({ type: "msg", data: m });
             return;
         }
 
-        /* ===== CHAT ===== */
+        /* ======================
+           CHAT
+        ====================== */
         if (msg.type === "chat") {
+
             const nick = clients.get(ws) || "Anon";
 
-            const message = `[${now()}] ${nick}: ${msg.text}`;
+            const m = {
+                id: Date.now().toString() + Math.random(),
+                text: `[${now()}] ${nick}: ${msg.text}`,
+                pinned: false
+            };
 
-            save(message);
-            broadcast(message);
+            history.push(m);
+            save();
+
+            broadcast({ type: "msg", data: m });
+        }
+
+        /* ======================
+           PIN
+        ====================== */
+        if (msg.type === "pin") {
+            const item = history.find(m => m.id === msg.id);
+            if (item) {
+                item.pinned = true;
+                save();
+
+                broadcast({ type: "pin", id: msg.id });
+            }
         }
     });
 
@@ -121,19 +150,22 @@ wss.on("connection", (ws) => {
         clients.delete(ws);
 
         if (nick) {
-            const message = `[${now()}] 🔴 ${nick} вышел`;
+            const m = {
+                id: Date.now().toString(),
+                text: `[${now()}] 🔴 ${nick} вышел`,
+                pinned: false
+            };
 
-            save(message);
-            broadcast(message);
+            history.push(m);
+            save();
+
+            broadcast({ type: "msg", data: m });
         }
     });
 });
 
-/* =========================
-   START SERVER
-========================= */
+/* ======================
+   START
+====================== */
 const PORT = process.env.PORT || 3000;
-
-server.listen(PORT, () => {
-    console.log("Server running on port " + PORT);
-});
+server.listen(PORT, () => console.log("Server running"));
