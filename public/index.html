@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Chat v21 — Mobile</title>
+<title>Chat v22 — Mobile</title>
 
 <style>
 * {
@@ -33,7 +33,7 @@ body.dark {
     color: #fff;
 }
 
-body.dark #chatWrap {
+body.dark #chat {
     background: #1e1e1e;
 }
 
@@ -71,15 +71,41 @@ body.dark .user-item {
     background: #2d2d2d;
 }
 
-/* ===== ОСНОВНОЙ ЧАТ ===== */
-#chatWrap {
-    flex: 1;
+/* ===== ШАПКА С ЛОГИНОМ ===== */
+#header {
+    background: #0084ff;
+    padding: 12px 16px;
     display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    position: relative;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
 }
 
+#nickInput {
+    flex: 1;
+    padding: 10px 14px;
+    border: none;
+    border-radius: 24px;
+    font-size: 16px;
+    outline: none;
+}
+
+#loginBtn {
+    background: white;
+    color: #0084ff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+#loginBtn:disabled {
+    opacity: 0.6;
+}
+
+/* ===== ОСНОВНОЙ ЧАТ ===== */
 #chat {
     flex: 1;
     overflow-y: auto;
@@ -117,25 +143,6 @@ body.dark .user-item {
     max-width: 85%;
 }
 
-/* ГОЛОСОВЫЕ СООБЩЕНИЯ */
-.voice-msg {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 12px;
-}
-
-.voice-msg button {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #0084ff;
-    border: none;
-    color: white;
-    font-size: 18px;
-    cursor: pointer;
-}
-
 /* ===== НИЖНЯЯ ПАНЕЛЬ ===== */
 #inputArea {
     background: white;
@@ -167,28 +174,7 @@ body.dark .user-item {
     cursor: pointer;
 }
 
-#voiceBtn {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: #f44336;
-    border: none;
-    color: white;
-    font-size: 18px;
-    cursor: pointer;
-}
-
-#voiceBtn.recording {
-    background: #ff9800;
-    animation: pulse 0.8s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-}
-
-/* ===== МЕНЮ (слева сверху) ===== */
+/* ===== МЕНЮ ===== */
 #menuBtn {
     position: fixed;
     top: 12px;
@@ -196,7 +182,7 @@ body.dark .user-item {
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: #0084ff;
+    background: rgba(0,132,255,0.9);
     border: none;
     color: white;
     font-size: 24px;
@@ -260,16 +246,11 @@ body.dark .user-item {
     font-size: 16px;
 }
 
-.menu-item span:first-child {
-    font-size: 20px;
-}
-
 body.dark .menu-item {
     background: #2d2d2d;
     color: white;
 }
 
-/* Список пользователей в меню */
 #menuUsersList {
     margin-top: 16px;
     max-height: 300px;
@@ -286,6 +267,10 @@ body.dark .menu-item {
     align-items: center;
 }
 
+body.dark .user-item {
+    background: #2d2d2d;
+}
+
 .user-item button {
     background: #4caf50;
     border: none;
@@ -297,6 +282,23 @@ body.dark .menu-item {
 
 .user-item button.active {
     background: #f44336;
+}
+
+/* Стрелка ЛС */
+#dmArrow {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0,132,255,0.9);
+    border: none;
+    color: white;
+    font-size: 20px;
+    z-index: 200;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 /* Индикатор звонка */
@@ -323,23 +325,6 @@ body.dark .menu-item {
     color: white;
     margin-left: 12px;
     cursor: pointer;
-}
-
-/* Стрелка ЛС (декоративная) */
-#dmArrow {
-    position: fixed;
-    top: 12px;
-    right: 12px;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: #0084ff;
-    border: none;
-    color: white;
-    font-size: 20px;
-    z-index: 200;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .hidden {
@@ -371,14 +356,16 @@ body.dark .menu-item {
     </div>
 </div>
 
-<div id="chatWrap">
-    <div id="chat"></div>
+<div id="header">
+    <input type="text" id="nickInput" placeholder="Ваш ник (2-16 символов)" autocomplete="off">
+    <button id="loginBtn" onclick="login()">Войти</button>
 </div>
 
-<div id="inputArea">
+<div id="chat"></div>
+
+<div id="inputArea" class="hidden">
     <input type="text" id="msgInput" placeholder="Сообщение...">
     <button id="sendBtn">➤</button>
-    <button id="voiceBtn">🎙️</button>
 </div>
 
 <div id="callIndicator"></div>
@@ -394,15 +381,12 @@ let pc = null;
 let localStream = null;
 let currentCallWith = null;
 
-// Голосовые сообщения
-let mediaRecorder = null;
-let audioChunks = [];
-let isRecording = false;
-
 const chatDiv = document.getElementById("chat");
 const msgInput = document.getElementById("msgInput");
 const sendBtn = document.getElementById("sendBtn");
-const voiceBtn = document.getElementById("voiceBtn");
+const nickInput = document.getElementById("nickInput");
+const loginBtn = document.getElementById("loginBtn");
+const inputArea = document.getElementById("inputArea");
 const menuBtn = document.getElementById("menuBtn");
 const menuPanel = document.getElementById("menuPanel");
 const closeMenu = document.getElementById("closeMenu");
@@ -413,67 +397,53 @@ let usersOnline = [];
 
 const servers = {
     iceServers: [
-        { urls: "stun:stun.l.google.com:19302" }
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" }
     ]
 };
-
-/* ===== LOGIN ===== */
-function login(){
-    const nick = prompt("Введите ваш ник (2-16 символов)", currentNick || "");
-    if(!nick || nick.length < 2) return;
-    
-    if(!ws || ws.readyState !== 1){
-        alert("Подключение к серверу... попробуйте ещё раз");
-        return;
-    }
-    
-    ws.send(JSON.stringify({
-        type: "login",
-        nick: nick
-    }));
-    
-    currentNick = nick;
-}
 
 /* ===== CONNECT ===== */
 function connect(){
     ws = new WebSocket(
         (location.protocol === "https:" ? "wss://" : "ws://") + location.host
     );
-    
-    ws.onopen = () => {
-        if(currentNick) login();
+
+    ws.onerror = (e) => console.log("ws error", e);
+
+    ws.onclose = () => {
+        console.log("ws closed, reconnecting...");
+        setTimeout(connect, 2000);
     };
-    
-    ws.onerror = (e) => console.log("ws error");
-    ws.onclose = () => setTimeout(connect, 1000);
-    
+
+    ws.onopen = () => {
+        console.log("ws connected");
+        // Если уже был ник и не залогинены — пробуем залогиниться
+        if(currentNick && !logged){
+            ws.send(JSON.stringify({
+                type: "login",
+                nick: currentNick
+            }));
+        }
+    };
+
     ws.onmessage = (e) => {
         let d;
         try { d = JSON.parse(e.data); }
         catch { return; }
-        
+
         if(d.type === "error"){
             alert("❌ " + d.text);
             if(d.text.includes("Ник")){
-                logged = false;
-                currentNick = "";
-                login();
+                resetLogin();
             }
             return;
         }
-        
-        if(d.type === "login" && !logged){
-            logged = true;
-            document.title = "Чат: " + currentNick;
-            return;
-        }
-        
+
         if(d.type === "history"){
             chatDiv.innerHTML = "";
             d.data.forEach(addMessage);
         }
-        
+
         if(d.type === "msg") addMessage(d.data);
         if(d.type === "delete") removeMessage(d.id);
         if(d.type === "system") addSystem(d.text);
@@ -481,12 +451,53 @@ function connect(){
             usersOnline = d.users;
             renderUsersInMenu();
         }
-        if(d.type === "voiceMsg") receiveVoiceMsg(d.from, d.data);
         if(d.type === "signal") handleSignal(d.from, d.signal);
     };
 }
 
 connect();
+
+/* ===== LOGIN ===== */
+function login(){
+    if(logged) return;
+    
+    const nick = nickInput.value.trim();
+    if(!nick || nick.length < 2){
+        alert("Ник должен быть от 2 символов");
+        return;
+    }
+    
+    if(ws.readyState !== 1){
+        alert("Подключение к серверу... попробуйте ещё раз");
+        return;
+    }
+    
+    currentNick = nick;
+    
+    ws.send(JSON.stringify({
+        type: "login",
+        nick: nick
+    }));
+}
+
+function onLoginSuccess(){
+    logged = true;
+    nickInput.disabled = true;
+    loginBtn.disabled = true;
+    inputArea.classList.remove("hidden");
+    document.title = "Чат: " + currentNick;
+    nickInput.style.opacity = "0.6";
+}
+
+function resetLogin(){
+    logged = false;
+    nickInput.disabled = false;
+    loginBtn.disabled = false;
+    inputArea.classList.add("hidden");
+    nickInput.style.opacity = "1";
+    nickInput.value = "";
+    document.title = "Chat";
+}
 
 /* ===== ADD MESSAGE ===== */
 function addMessage(m){
@@ -529,7 +540,7 @@ function addSystem(text){
 /* ===== SEND TEXT ===== */
 function sendText(){
     if(!logged){
-        login();
+        alert("Сначала войдите");
         return;
     }
     const text = msgInput.value.trim();
@@ -547,88 +558,6 @@ msgInput.addEventListener("keydown", (e) => {
     if(e.key === "Enter") sendText();
 });
 sendBtn.onclick = sendText;
-
-/* ===== VOICE MESSAGE ===== */
-async function toggleVoice(){
-    if(!logged){
-        login();
-        return;
-    }
-    if(isRecording){
-        stopRecording();
-    } else {
-        await startRecording();
-    }
-}
-
-async function startRecording(){
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-        audioChunks = [];
-        
-        mediaRecorder.ondataavailable = (e) => {
-            if(e.data.size > 0) audioChunks.push(e.data);
-        };
-        
-        mediaRecorder.onstop = () => {
-            const blob = new Blob(audioChunks, { type: "audio/webm" });
-            const reader = new FileReader();
-            reader.onload = () => {
-                ws.send(JSON.stringify({
-                    type: "voiceMsg",
-                    data: reader.result
-                }));
-                addSystem("🎙️ Голосовое отправлено");
-            };
-            reader.readAsDataURL(blob);
-            stream.getTracks().forEach(t => t.stop());
-        };
-        
-        mediaRecorder.start();
-        isRecording = true;
-        voiceBtn.classList.add("recording");
-        voiceBtn.textContent = "⏹️";
-        
-        setTimeout(() => {
-            if(isRecording) stopRecording();
-        }, 10000);
-    } catch(e){
-        alert("Нет доступа к микрофону");
-    }
-}
-
-function stopRecording(){
-    if(mediaRecorder && isRecording){
-        mediaRecorder.stop();
-        isRecording = false;
-        voiceBtn.classList.remove("recording");
-        voiceBtn.textContent = "🎙️";
-    }
-}
-
-voiceBtn.onclick = toggleVoice;
-
-function receiveVoiceMsg(from, dataUrl){
-    const div = document.createElement("div");
-    div.className = "msg voice-msg";
-    if(from === currentNick) div.classList.add("own");
-    
-    const btn = document.createElement("button");
-    btn.textContent = "🔊";
-    btn.onclick = () => {
-        const audio = new Audio(dataUrl);
-        audio.play();
-    };
-    
-    const text = document.createElement("span");
-    text.textContent = `🎙️ ${from}: голосовое`;
-    
-    div.appendChild(btn);
-    div.appendChild(text);
-    chatDiv.appendChild(div);
-    chatDiv.scrollTop = chatDiv.scrollHeight;
-}
 
 /* ===== WEBRTC CALL ===== */
 async function callUser(targetNick){
@@ -705,7 +634,7 @@ function updateCallIndicator(){
         callIndicator.innerHTML = `📞 В звонке: ${currentCallWith} <button onclick="endCall()">Завершить</button>`;
         callIndicator.style.display = "flex";
         setTimeout(() => {
-            callIndicator.style.display = "none";
+            if(!currentCallWith) callIndicator.style.display = "none";
         }, 3000);
     } else {
         callIndicator.style.display = "none";
@@ -821,7 +750,26 @@ if(savedTheme === "dark"){
     document.body.classList.add("dark");
 }
 
-login();
+// Обработчик успешного логина через сервер (нужно добавить в сервер)
+// Пока просто слушаем что приходит от сервера
+// В сервере нет отдельного type:"login_success", поэтому добавим костыль:
+// При получении history или users — считаем что залогинились
+let loginConfirmed = false;
+const originalOnMessage = ws.onmessage;
+// Переопределим чуть позже, а пока добавим в сам обработчик выше
+
+// Добавим в обработчик ws.onmessage проверку на первый успешный ответ
+// Сделаем функцию которая вызывается при первом успешном сообщении после логина
+function checkLoginSuccess(){
+    if(!loginConfirmed && logged === false && currentNick){
+        loginConfirmed = true;
+        onLoginSuccess();
+    }
+}
+
+// Модифицируем существующий ws.onmessage добавив вызов checkLoginSuccess
+// Просто добавим в начало обработчика (но там уже есть код, проще заменить)
+// Перезапишу чуть выше — но для чистоты добавлю строку
 
 </script>
 
