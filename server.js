@@ -10,7 +10,7 @@ const wss = new WebSocket.Server({ server });
 app.use(express.static("public"));
 
 let history = [];
-let users = new Map();   // ws -> nick
+let users = new Map();
 let rate = new Map();
 
 /* ===== LOAD ===== */
@@ -49,11 +49,9 @@ function checkRate(ws){
 
 /* ===== USERS BROADCAST ===== */
 function sendUsers(){
-    const list = Array.from(users.values());
-
     broadcast({
         type:"users",
-        users: list
+        users: Array.from(users.values())
     });
 }
 
@@ -130,6 +128,11 @@ wss.on("connection", (ws) => {
             ws.nick = nick;
             users.set(ws, nick);
 
+            ws.send(JSON.stringify({
+                type:"login_success",
+                nick: nick
+            }));
+
             sendUsers();
 
             broadcast({
@@ -167,38 +170,21 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        /* DELETE (SAFE OWNER CHECK) */
+        /* DELETE */
         if(msg.type === "delete"){
 
             const m = history.find(x => x.id === msg.id);
-
             if(!m) return;
             if(m.owner !== ws.nick) return;
 
             history = history.filter(x => x.id !== msg.id);
             save();
 
-            broadcast({
-                type:"delete",
-                id: msg.id
-            });
-
+            broadcast({ type:"delete", id: msg.id });
             return;
         }
 
-        /* ===== VOICE MESSAGE (base64 audio) ===== */
-        if(msg.type === "voiceMsg"){
-            if(!msg.data) return;
-            
-            broadcast({
-                type: "voiceMsg",
-                from: ws.nick,
-                data: msg.data
-            });
-            return;
-        }
-
-        /* ===== WEBRTC SIGNALING ===== */
+        /* WEBRTC SIGNALING */
         if(msg.type === "signal"){
             const targetNick = msg.target;
             
@@ -246,4 +232,4 @@ setInterval(() => {
     });
 }, 30000);
 
-server.listen(3000, () => console.log("v19 WebRTC + Voice MSG running"));
+server.listen(3000, () => console.log("v23 running on port 3000"));
