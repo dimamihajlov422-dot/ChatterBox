@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatterBox v5</title>
+<title>ChatterBox Stable</title>
 
 <style>
 body{
@@ -41,6 +41,7 @@ body.light{
     background:#1e1e1e;
     padding:10px;
     border-radius:10px;
+    word-break:break-word;
 }
 
 body.light .msg{
@@ -59,6 +60,7 @@ input{
     padding:12px;
     border-radius:10px;
     border:none;
+    font-size:16px;
 }
 
 button{
@@ -74,16 +76,17 @@ button{
 <body>
 
 <div class="top">
-    <div>💬 Telegram-like v5</div>
     <div>
-        <button onclick="toggleTheme()">🌙</button>
+        <input id="nick" placeholder="ник">
+        <button onclick="setNick()">OK</button>
     </div>
+
+    <button onclick="toggleTheme()">🌙</button>
 </div>
 
 <div id="chat"></div>
 
 <div class="bottom">
-    <input id="nick" placeholder="ник">
     <input id="msg" placeholder="сообщение">
     <button onclick="send()">➤</button>
 </div>
@@ -91,55 +94,55 @@ button{
 <script>
 
 let ws;
-let nickName = localStorage.getItem("nick") || "";
+let nickSet = false;
 
+/* CONNECT */
 function connect(){
 
     ws = new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
 
-    ws.onopen = ()=>{
-
-        if(nickName){
-            ws.send(JSON.stringify({
-                type:"nick",
-                nick:nickName
-            }));
-        }
-    };
-
     ws.onmessage = (e)=>{
 
         let d;
-        try{ d = JSON.parse(e.data); }
-        catch{return;}
+        try { d = JSON.parse(e.data); }
+        catch { return; }
 
-        if(d.type==="msg" || d.type==="system"){
-            const div = document.createElement("div");
-            div.className="msg";
-            div.textContent = d.data ? d.data.text : d.text;
-            chat.appendChild(div);
-            chat.scrollTop = chat.scrollHeight;
-        }
+        const div = document.createElement("div");
+        div.className="msg";
+
+        if(d.type === "msg") div.textContent = d.text;
+        if(d.type === "system") div.textContent = d.text;
+
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+    };
+
+    ws.onclose = ()=>{
+        setTimeout(connect, 2000);
     };
 }
 
 connect();
+
+/* NICK */
+function setNick(){
+
+    const n = nick.value.trim();
+    if(!n) return;
+
+    ws.send(JSON.stringify({
+        type:"nick",
+        nick:n
+    }));
+
+    nickSet = true;
+}
 
 /* SEND */
 function send(){
 
     const text = msg.value.trim();
     if(!text) return;
-
-    if(nick.value){
-        nickName = nick.value;
-        localStorage.setItem("nick",nickName);
-
-        ws.send(JSON.stringify({
-            type:"nick",
-            nick:nickName
-        }));
-    }
 
     ws.send(JSON.stringify({
         type:"chat",
@@ -149,16 +152,14 @@ function send(){
     msg.value="";
 }
 
+/* ENTER */
+msg.addEventListener("keydown",(e)=>{
+    if(e.key==="Enter") send();
+});
+
 /* THEME */
 function toggleTheme(){
     document.body.classList.toggle("light");
-    localStorage.setItem("theme",
-        document.body.classList.contains("light") ? "light":"dark"
-    );
-}
-
-if(localStorage.getItem("theme")==="light"){
-    document.body.classList.add("light");
 }
 
 </script>
