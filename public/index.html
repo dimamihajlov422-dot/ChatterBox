@@ -3,14 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatterBox v9</title>
+<title>Chat v10</title>
 
 <style>
 body{
     margin:0;
     font-family:Arial;
     background:#fff;
-    color:#000;
     height:100vh;
     display:flex;
     flex-direction:column;
@@ -41,7 +40,6 @@ body.dark{
     background:#eee;
     padding:10px;
     border-radius:10px;
-    word-break:break-word;
 }
 
 body.dark .msg{
@@ -58,16 +56,30 @@ body.dark .msg{
 input{
     flex:1;
     padding:10px;
-    border-radius:8px;
-    border:1px solid #ccc;
 }
 
 button{
     min-width:45px;
     min-height:45px;
-    border:none;
     border-radius:8px;
+    border:none;
     cursor:pointer;
+}
+
+/* ===== COLORS ===== */
+.call-on{
+    background:#00c853 !important; /* зелёный */
+    color:white;
+}
+
+.call-off{
+  background:#333 !important;
+    color:white;
+}
+
+.mute-on{
+    background:#d50000 !important; /* красный */
+    color:white;
 }
 </style>
 </head>
@@ -81,8 +93,8 @@ button{
     </div>
 
     <div>
-        <button onclick="toggleCall()">📞</button>
-        <button onclick="toggleMute()">🔇</button>
+        <button id="callBtn" class="call-off" onclick="toggleCall()">📞</button>
+        <button id="muteBtn" onclick="toggleMute()">🔇</button>
         <button onclick="toggleTheme()">🌙</button>
     </div>
 </div>
@@ -90,7 +102,7 @@ button{
 <div id="chat"></div>
 
 <div class="bottom">
-    <input id="msg" placeholder="сообщение">
+    <input id="msg">
     <button onclick="send()">➤</button>
 </div>
 
@@ -99,6 +111,7 @@ button{
 let ws;
 let stream;
 let muted = false;
+let inCall = false;
 
 /* CONNECT */
 function connect(){
@@ -125,6 +138,10 @@ function connect(){
 
         if(d.type==="voice"){
             play(d.data);
+        }
+
+        if(d.type==="call-state"){
+            updateCallUI(d.active);
         }
     };
 }
@@ -157,17 +174,17 @@ function add(t){
     chat.scrollTop=chat.scrollHeight;
 }
 
-/* ===== VOICE ===== */
-
+/* ===== CALL ===== */
 async function toggleCall(){
 
-    if(!stream){
+    inCall = !inCall;
+
+    if(inCall){
 
         stream = await navigator.mediaDevices.getUserMedia({audio:true});
 
         const ctx = new AudioContext();
         const source = ctx.createMediaStreamSource(stream);
-
         const processor = ctx.createScriptProcessor(2048,1,1);
 
         source.connect(processor);
@@ -187,6 +204,7 @@ async function toggleCall(){
 
         ws.send(JSON.stringify({type:"call-start"}));
 
+        updateCallUI(true);
         add("📞 звонок начат");
 
     } else {
@@ -196,11 +214,42 @@ async function toggleCall(){
 
         ws.send(JSON.stringify({type:"call-end"}));
 
+        updateCallUI(false);
         add("📴 звонок завершён");
     }
 }
 
-/* PLAY AUDIO */
+/* ===== CALL UI ===== */
+function updateCallUI(active){
+
+    const btn = document.getElementById("callBtn");
+
+    if(active){
+        btn.classList.add("call-on");
+        btn.classList.remove("call-off");
+    } else {
+        btn.classList.remove("call-on");
+        btn.classList.add("call-off");
+    }
+}
+
+/* ===== MUTE ===== */
+function toggleMute(){
+
+    muted = !muted;
+
+    const btn = document.getElementById("muteBtn");
+
+    if(muted){
+        btn.classList.add("mute-on");
+    } else {
+        btn.classList.remove("mute-on");
+    }
+
+    add(muted ? "🔇 mute" : "🎤 unmute");
+}
+
+/* ===== VOICE PLAY ===== */
 let audioCtx;
 
 function play(data){
@@ -218,21 +267,15 @@ function play(data){
     src.start();
 }
 
-/* MUTE */
-function toggleMute(){
-    muted = !muted;
-    add(muted ? "🔇 mute" : "🎤 unmute");
-}
+/* ENTER */
+msg.addEventListener("keydown",(e)=>{
+    if(e.key==="Enter") send();
+});
 
 /* THEME */
 function toggleTheme(){
     document.body.classList.toggle("dark");
 }
-
-/* ENTER */
-msg.addEventListener("keydown",(e)=>{
-    if(e.key==="Enter") send();
-});
 
 </script>
 
