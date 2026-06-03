@@ -3,31 +3,64 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatterBox Stable</title>
+<title>ChatterBox</title>
 
 <style>
 body{
     margin:0;
     font-family:Arial;
-    background:#111;
-    color:white;
+    background:#fff;   /* 🌞 СВЕТЛАЯ ПО УМОЛЧАНИЮ */
+    color:#000;
     height:100vh;
     display:flex;
     flex-direction:column;
 }
 
-body.light{
-    background:#fff;
-    color:#000;
+body.dark{
+    background:#111;
+    color:#fff;
 }
 
+/* TOP */
 .top{
     display:flex;
     justify-content:space-between;
     padding:10px;
+    border-bottom:1px solid #ccc;
+}
+
+body.dark .top{
     border-bottom:1px solid #333;
 }
 
+.top-left{
+    display:flex;
+    gap:8px;
+    align-items:center;
+}
+
+input{
+    padding:10px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    font-size:14px;
+}
+
+body.dark input{
+    background:#222;
+    color:#fff;
+    border:1px solid #444;
+}
+
+button{
+    min-width:44px;
+    min-height:44px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+/* CHAT */
 #chat{
     flex:1;
     overflow:auto;
@@ -38,37 +71,39 @@ body.light{
 }
 
 .msg{
-    background:#1e1e1e;
+    background:#eee;
     padding:10px;
     border-radius:10px;
     word-break:break-word;
 }
 
-body.light .msg{
-    background:#eee;
+body.dark .msg{
+    background:#1e1e1e;
 }
 
+/* BOTTOM */
 .bottom{
     display:flex;
     gap:8px;
     padding:10px;
+    border-top:1px solid #ccc;
+}
+
+body.dark .bottom{
     border-top:1px solid #333;
 }
 
-input{
+#msg{
     flex:1;
     padding:12px;
     border-radius:10px;
-    border:none;
-    font-size:16px;
+    border:1px solid #ccc;
 }
 
-button{
-    min-width:48px;
-    min-height:48px;
-    border:none;
-    border-radius:10px;
-    font-size:18px;
+body.dark #msg{
+    background:#222;
+    color:#fff;
+    border:1px solid #444;
 }
 </style>
 </head>
@@ -76,12 +111,15 @@ button{
 <body>
 
 <div class="top">
-    <div>
+    <div class="top-left">
         <input id="nick" placeholder="ник">
         <button onclick="setNick()">OK</button>
     </div>
 
-    <button onclick="toggleTheme()">🌙</button>
+    <div>
+        <button onclick="toggleTheme()">🌙</button>
+        <button onclick="logout()">🚪</button>
+    </div>
 </div>
 
 <div id="chat"></div>
@@ -104,27 +142,23 @@ function connect(){
     ws.onmessage = (e)=>{
 
         let d;
-        try { d = JSON.parse(e.data); }
-        catch { return; }
+        try{ d = JSON.parse(e.data); }
+        catch{return;}
 
         const div = document.createElement("div");
         div.className="msg";
 
-        if(d.type === "msg") div.textContent = d.text;
-        if(d.type === "system") div.textContent = d.text;
+        if(d.type==="msg") div.textContent = d.text;
+        if(d.type==="system") div.textContent = d.text;
 
         chat.appendChild(div);
         chat.scrollTop = chat.scrollHeight;
-    };
-
-    ws.onclose = ()=>{
-        setTimeout(connect, 2000);
     };
 }
 
 connect();
 
-/* NICK */
+/* SET NICK */
 function setNick(){
 
     const n = nick.value.trim();
@@ -152,15 +186,27 @@ function send(){
     msg.value="";
 }
 
-/* ENTER */
+/* THEME (по умолчанию светлая) */
+function toggleTheme(){
+    document.body.classList.toggle("dark");
+}
+
+/* 🚪 LOGOUT */
+function logout(){
+
+    nick.value = "";
+    nickSet = false;
+
+    chat.innerHTML = "";
+
+    // просто переподключаемся
+    ws.close();
+    connect();
+}
+
 msg.addEventListener("keydown",(e)=>{
     if(e.key==="Enter") send();
 });
-
-/* THEME */
-function toggleTheme(){
-    document.body.classList.toggle("light");
-}
 
 </script>
 
