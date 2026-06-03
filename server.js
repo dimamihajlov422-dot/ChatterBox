@@ -27,26 +27,21 @@ const PRIVATE_FILE = "private.json";
 const GROUPS_FILE = "groups.json";
 const USERS_FILE = "users.json";
 
-// ========== ЗАГРУЗКА ==========
 try { usersDB = JSON.parse(fs.readFileSync(USERS_FILE, "utf8")) || {}; } catch { usersDB = {}; }
 try { history = JSON.parse(fs.readFileSync(DB_FILE, "utf8")) || []; } catch { history = []; }
 try { privateHistory = JSON.parse(fs.readFileSync(PRIVATE_FILE, "utf8")) || {}; } catch { privateHistory = {}; }
 try { groups = JSON.parse(fs.readFileSync(GROUPS_FILE, "utf8")) || {}; } catch { groups = {}; }
 
-// ========== СОХРАНЕНИЕ ==========
 function saveUsers() { fs.writeFileSync(USERS_FILE, JSON.stringify(usersDB, null, 2)); }
 function savePublic() { fs.writeFileSync(DB_FILE, JSON.stringify(history.slice(-500), null, 2)); }
 function savePrivate() { fs.writeFileSync(PRIVATE_FILE, JSON.stringify(privateHistory, null, 2)); }
 function saveGroups() { fs.writeFileSync(GROUPS_FILE, JSON.stringify(groups, null, 2)); }
 
-// ========== ХЭШИРОВАНИЕ ==========
 function hashPassword(password) { return crypto.createHash("sha256").update(password).digest("hex"); }
 function generateToken() { return crypto.randomBytes(32).toString("hex"); }
 
-// ========== ФОРМАТИРОВАНИЕ ВРЕМЕНИ (МСК) ==========
 function formatTime(timestamp) { const date = new Date(timestamp); date.setHours(date.getHours() + 3); return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }); }
 
-// ========== ЗАЩИТА ==========
 function escapeHtml(str) { if (!str) return ""; return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 function checkRate(ws) { const now = Date.now(); if (!rate.has(ws)) rate.set(ws, []); const arr = rate.get(ws).filter(t => now - t < 1000); arr.push(now); rate.set(ws, arr); return arr.length <= 10; }
 function broadcast(obj) { const data = JSON.stringify(obj); for (const c of wss.clients) if (c.readyState === 1) c.send(data); }
@@ -56,10 +51,9 @@ function nickExistsInDB(nick) { return !!usersDB[nick]; }
 function nickExistsOnline(nick) { for (const u of usersOnline.values()) if (u === nick) return true; return false; }
 function getPrivateKey(u1, u2) { return [u1, u2].sort().join("_"); }
 
-// ========== ГРУППЫ ==========
 function createGroup(name, creator) {
     const id = Date.now().toString() + "-" + Math.random().toString(36).substr(2, 6);
-    groups[id] = { id, name: escapeHtml(name), creator, members: [creator], messages: [], createdAt: Date.now() };
+    groups[id] = { id, name: escapeHtml(name), creator, members: [creator], messages: [], avatar: null, createdAt: Date.now() };
     saveGroups();
     return id;
 }
@@ -73,6 +67,27 @@ function addToGroup(groupId, nick, adder) {
         if (targetWs && targetWs.readyState === 1) targetWs.send(JSON.stringify({ type: "group_update", group: groups[groupId] }));
     }
     return true;
+}
+function removeFromGroup(groupId, nick, remover) {
+    if (!groups[groupId] || groups[groupId].creator !== remover) return false;
+    groups[groupId].members = groups[groupId].members.filter(m => m !== nick);
+    saveGroups();
+    for (const member of groups[groupId].members) {
+        let targetWs = null;
+        for (const [c, n] of usersOnline.entries()) if (n === member) { targetWs = c; break; }
+        if (targetWs && targetWs.readyState === 1) targetWs.send(JSON.stringify({ type: "group_update", group: groups[groupId] }));
+    }
+    return true;
+}
+function updateGroupAvatar(groupId, avatar) {
+    if (!groups[groupId]) return;
+    groups[groupId].avatar = avatar;
+    saveGroups();
+    for (const member of groups[groupId].members) {
+        let targetWs = null;
+        for (const [c, n] of usersOnline.entries()) if (n === member) { targetWs = c; break; }
+        if (targetWs && targetWs.readyState === 1) targetWs.send(JSON.stringify({ type: "group_update", group: groups[groupId] }));
+    }
 }
 function sendGroupMessage(groupId, from, msgData) {
     if (!groups[groupId]) return;
@@ -91,7 +106,6 @@ function sendGroupMessage(groupId, from, msgData) {
     }
 }
 
-// ========== ЛЕНТА КОНТАКТОВ ==========
 function updateLastChat(nick, chatType, chatId, lastMessage) {
     if (!usersDB[nick]) usersDB[nick] = {};
     if (!usersDB[nick].lastChats) usersDB[nick].lastChats = [];
@@ -103,7 +117,6 @@ function updateLastChat(nick, chatType, chatId, lastMessage) {
 }
 function getLastChats(nick) { return (usersDB[nick]?.lastChats || []).sort((a, b) => b.timestamp - a.timestamp); }
 
-// ========== РЕАКЦИИ ==========
 function updateReaction(type, id, from, reaction, remove) {
     let target = null;
     if (type === "public") target = history.find(x => x.id === id);
@@ -117,12 +130,6 @@ function updateReaction(type, id, from, reaction, remove) {
     broadcast({ type: "reaction_update", id, from, reaction, remove });
 }
 
-// ========== ВЫДЕЛЕНИЕ ТЕГОВ ==========
-function highlightTags(text) {
-    return text.replace(/@(\w+)/g, '<span class="mention" data-nick="$1">@$1</span>');
-}
-
-// ========== WEBSOCKET ==========
 wss.on("connection", (ws) => {
     ws.isAlive = true;
     ws.on("pong", () => ws.isAlive = true);
@@ -130,7 +137,6 @@ wss.on("connection", (ws) => {
     ws.on("message", (raw) => {
         let msg; try { msg = JSON.parse(raw); } catch { return; }
 
-        // АВТОВХОД
         if (msg.type === "auto_login") {
             const token = msg.token;
             const nick = sessions.get(token);
@@ -142,7 +148,6 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // РЕГИСТРАЦИЯ
         if (msg.type === "register") {
             const nick = msg.nick?.trim(); const password = msg.password?.trim();
             if (!validNick(nick)) { ws.send(JSON.stringify({ type: "error", text: "Ник 2-16 символов" })); return; }
@@ -154,7 +159,6 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // ЛОГИН
         if (msg.type === "login") {
             const nick = msg.nick?.trim(); const password = msg.password?.trim(); const remember = msg.remember || false;
             if (!validNick(nick)) { ws.send(JSON.stringify({ type: "error", text: "Неверный ник" })); return; }
@@ -171,7 +175,6 @@ wss.on("connection", (ws) => {
 
         if (!ws.nick) { ws.send(JSON.stringify({ type: "error", text: "Сначала войдите" })); return; }
 
-        // ПРОФИЛЬ
         if (msg.type === "get_profile") {
             if (usersDB[msg.nick]) ws.send(JSON.stringify({ type: "profile_data", nick: msg.nick, profile: usersDB[msg.nick].profile || {} }));
             return;
@@ -187,7 +190,11 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // ПЕЧАТАЕТ
+        if (msg.type === "update_group_avatar") {
+            updateGroupAvatar(msg.groupId, msg.avatar);
+            return;
+        }
+
         if (msg.type === "typing") {
             let targetWs = null;
             for (const [c, nick] of usersOnline.entries()) if (nick === msg.to) { targetWs = c; break; }
@@ -195,7 +202,6 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // ОБЩИЙ ЧАТ
         if (msg.type === "chat") {
             if (!checkRate(ws)) return;
             const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, file: msg.file || null, location: msg.location || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
@@ -205,7 +211,6 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // ЛИЧНЫЕ СООБЩЕНИЯ
         if (msg.type === "private_chat") {
             if (!checkRate(ws)) return;
             const key = getPrivateKey(ws.nick, msg.target);
@@ -220,24 +225,17 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // ГРУППЫ
         if (msg.type === "create_group") { const groupId = createGroup(msg.name, ws.nick); ws.send(JSON.stringify({ type: "group_created", group: groups[groupId] })); return; }
         if (msg.type === "invite_to_group") { if (addToGroup(msg.groupId, msg.nick, ws.nick)) ws.send(JSON.stringify({ type: "invite_sent", groupId: msg.groupId, nick: msg.nick })); return; }
-        if (msg.type === "group_chat") {
-            if (!checkRate(ws)) return;
-            sendGroupMessage(msg.groupId, ws.nick, msg);
-            for (const member of groups[msg.groupId].members) updateLastChat(member, "group", msg.groupId, msg.text || "📷 Изображение");
-            return;
-        }
+        if (msg.type === "remove_from_group") { if (removeFromGroup(msg.groupId, msg.nick, ws.nick)) ws.send(JSON.stringify({ type: "remove_sent", groupId: msg.groupId, nick: msg.nick })); return; }
+        if (msg.type === "group_chat") { if (!checkRate(ws)) return; sendGroupMessage(msg.groupId, ws.nick, msg); for (const member of groups[msg.groupId].members) updateLastChat(member, "group", msg.groupId, msg.text || "📷 Изображение"); return; }
         if (msg.type === "get_group_history") { if (groups[msg.groupId] && groups[msg.groupId].members.includes(ws.nick)) ws.send(JSON.stringify({ type: "group_history", groupId: msg.groupId, data: groups[msg.groupId].messages })); return; }
         if (msg.type === "get_my_groups") { ws.send(JSON.stringify({ type: "my_groups", groups: Object.values(groups).filter(g => g.members.includes(ws.nick)) })); return; }
         if (msg.type === "get_last_chats") { ws.send(JSON.stringify({ type: "last_chats", data: getLastChats(ws.nick) })); return; }
-        if (msg.type === "get_group_members") { if (groups[msg.groupId]) ws.send(JSON.stringify({ type: "group_members", groupId: msg.groupId, members: groups[msg.groupId].members })); return; }
+        if (msg.type === "get_group_info") { if (groups[msg.groupId]) ws.send(JSON.stringify({ type: "group_info", groupId: msg.groupId, group: groups[msg.groupId] })); return; }
 
-        // РЕАКЦИИ
         if (msg.type === "reaction") { updateReaction(msg.chatType, msg.id, ws.nick, msg.reaction, msg.remove); return; }
 
-        // РЕДАКТИРОВАНИЕ
         if (msg.type === "edit") {
             let found = false;
             const m = history.find(x => x.id === msg.id);
@@ -258,7 +256,6 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // УДАЛЕНИЕ
         if (msg.type === "delete") {
             let found = false;
             const m = history.find(x => x.id === msg.id);
@@ -279,7 +276,6 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // ИСТОРИЯ
         if (msg.type === "get_private_history") {
             const key = getPrivateKey(ws.nick, msg.with);
             ws.send(JSON.stringify({ type: "private_history", with: msg.with, data: (privateHistory[key] || []).map(m => ({ ...m, timeFormatted: formatTime(m.time) })) }));
@@ -290,7 +286,6 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // ФАЙЛЫ
         if (msg.type === "upload_file") {
             const filename = Date.now() + "_" + ws.nick + "_" + msg.filename;
             const filepath = path.join("files", filename);
@@ -299,13 +294,10 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // WEBRTC ЗВОНКИ
         if (msg.type === "signal") {
             let targetWs = null;
             for (const [c, nick] of usersOnline.entries()) if (nick === msg.target) { targetWs = c; break; }
-            if (targetWs && targetWs.readyState === 1) {
-                targetWs.send(JSON.stringify({ type: "signal", from: ws.nick, signal: msg.signal }));
-            }
+            if (targetWs && targetWs.readyState === 1) { targetWs.send(JSON.stringify({ type: "signal", from: ws.nick, signal: msg.signal })); }
             return;
         }
     });
