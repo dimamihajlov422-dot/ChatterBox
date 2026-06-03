@@ -12,9 +12,6 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const DB_FILE = path.join(__dirname, "db.json");
 
-/* =====================
-   LOAD HISTORY
-===================== */
 let history = [];
 
 try {
@@ -26,178 +23,131 @@ try {
     history = [];
 }
 
-/* =====================
-   USERS
-===================== */
-let clients = new Map(); 
-// ws -> {nick, id}
+let clients = new Map();
 
-/* =====================
-   DM STORAGE (optional future)
-===================== */
-function roomId(a, b){
-    return [a, b].sort().join("_");
-}
-
-/* =====================
-   TIME
-===================== */
-function now(){
-    return new Date().toLocaleTimeString("ru-RU", {
-        timeZone: "Europe/Moscow",
-        hour: "2-digit",
-        minute: "2-digit"
-    });
-}
-
-/* =====================
-   SAVE
-===================== */
 function save(){
     fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
 }
 
-/* =====================
-   BROADCAST
-===================== */
-function broadcast(obj){
-    const data = JSON.stringify(obj);
-
-    wss.clients.forEach(c=>{
-        if(c.readyState === WebSocket.OPEN){
-            c.send(data);
-        }
+function now(){
+    return new Date().toLocaleTimeString("ru-RU", {
+        timeZone:"Europe/Moscow",
+        hour:"2-digit",
+        minute:"2-digit"
     });
 }
 
-/* =====================
-   WS
-===================== */
+function broadcast(obj){
+    const data = JSON.stringify(obj);
+
+    for(const c of wss.clients){
+        if(c.readyState === WebSocket.OPEN){
+            c.send(data);
+        }
+    }
+}
+
 wss.on("connection",(ws)=>{
 
-    ws.id = Date.now().toString() + Math.random();
-
-    // send history
-    history.forEach(m=>{
-        ws.send(JSON.stringify({
-            type:"msg",
-            data:m
-        }));
-    });
+    ws.ready = false;
+    ws.queue = [];
 
     ws.on("message",(raw)=>{
+
         let msg;
+        try{ msg = JSON.parse(raw); }
+        catch{return;}
 
-        try{
-            msg = JSON.parse(raw.toString());
-        }catch{
-            return;
-        }
+        // NICK
+        if(msg.type === "nick"){
 
-        /* =====================
-           NICK (unique)
-        ===================== */
-        if(msg.type==="nick"){
-
-            for(let u of clients.values()){
+            for(const u of clients.values()){
                 if(u.nick === msg.nick){
                     ws.send(JSON.stringify({
                         type:"error",
-                        text:"❌ Ник уже занят"
+                        text:"Ник уже занят"
                     }));
                     return;
                 }
             }
 
-            clients.set(ws,{
-                nick: msg.nick,
-                id: ws.id
-            });
+            clients.set(ws,{nick:msg.nick});
 
-            const m = {
-                id: Date.now().toString(),
-                text: `[${now()}] 🟢 ${msg.nick} вошёл`,
-                pinned:false
-            };
+            ws.ready = true;
 
-            history.push(m);
-            save();
-
-            broadcast({type:"msg", data:m});
-            return;
-        }
-
-        /* =====================
-           CHAT
-        ===================== */
-        if(msg.type==="chat"){
-
-            const user = clients.get(ws);
-            const nick = user ? user.nick : "Anon";
-
-            const m = {
-                id: Date.now().toString() + Math.random(),
-                text: `[${now()}] ${nick}: ${msg.text}`,
-                pinned:false
-            };
-
-            history.push(m);
-            save();
-
-            broadcast({type:"msg", data:m});
-            return;
-        }
-
-        /* =====================
-           DM (PRIVATE MESSAGE)
-        ===================== */
-        if(msg.type==="dm"){
-
-            const from = clients.get(ws);
-            if(!from) return;
-
-            let toWs = null;
-
-            for(let [sock, u] of clients){
-                if(u.nick === msg.to){
-                    toWs = sock;
-                    break;
-                }
+            // отправка истории
+            for(const m of history){
+                ws.send(JSON.stringify({type:"msg", data:m}));
             }
 
-            if(!toWs) return;
+            // отправка очереди (если были сообщения до подключения)
+            ws.queue.forEach(q => ws.send(JSON.stringify(q)));
+            ws.queue = [];
+
+            broadcast({
+                type:"msg",
+                data:{
+                    id:Date.now().toString(),
+                    text:`[${now()}] 🟢 ${msg.nick} вошёл`
+                }
+            });
+
+            return;
+        }
+
+        const user = clients.get(ws);
+        const nick = user ? user.nick : "Anon";
+
+        // CHAT
+        if(msg.type === "chat"){
+
+            const m = {
+                id:Date.now().toString(),
+                text:`[${now()}] ${nick}: ${msg.text}`
+            };
+
+            history.push(m);
+            save();
+
+            broadcast({type:"msg", data:m});
+            return;
+        }
+
+        // DM
+        if(msg.type === "dm"){
 
             const payload = {
                 type:"dm",
-                from: from.nick,
-                to: msg.to,
-                text: msg.text,
-                room: roomId(from.nick, msg.to)
+                from:nick,
+                to:msg.to,
+                text:msg.text
             };
 
+            for(const [sock,u] of clients){
+                if(u.nick === msg.to){
+                    sock.send(JSON.stringify(payload));
+                }
+            }
+
             ws.send(JSON.stringify(payload));
-            toWs.send(JSON.stringify(payload));
         }
     });
 
     ws.on("close",()=>{
-        const user = clients.get(ws);
+        const u = clients.get(ws);
         clients.delete(ws);
 
-        if(user){
-            const m = {
-                id: Date.now().toString(),
-                text:`[${now()}] 🔴 ${user.nick} вышел`,
-                pinned:false
-            };
-
-            history.push(m);
-            save();
-
-            broadcast({type:"msg", data:m});
+        if(u){
+            broadcast({
+                type:"msg",
+                data:{
+                    id:Date.now().toString(),
+                    text:`[${now()}] 🔴 ${u.nick} вышел`
+                }
+            });
         }
     });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, ()=>console.log("Server running"));
+server.listen(PORT,()=>console.log("Server running"));
