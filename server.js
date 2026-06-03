@@ -17,31 +17,27 @@ if (!fs.existsSync("files")) fs.mkdirSync("files");
 let history = [];
 let privateHistory = {};
 let groups = {};
-let usersOnline = new Map();
-let sessions = new Map();
+let usersOnline = new Map();      // ws -> nick
+let sessions = new Map();         // token -> nick
 let rate = new Map();
 let usersDB = {};
-let bookmarks = []; // массив закладок { type, id, name }
 
 const DB_FILE = "db.json";
 const PRIVATE_FILE = "private.json";
 const GROUPS_FILE = "groups.json";
 const USERS_FILE = "users.json";
-const BOOKMARKS_FILE = "bookmarks.json";
 
 // ========== ЗАГРУЗКА ==========
 try { usersDB = JSON.parse(fs.readFileSync(USERS_FILE, "utf8")) || {}; } catch { usersDB = {}; }
 try { history = JSON.parse(fs.readFileSync(DB_FILE, "utf8")) || []; } catch { history = []; }
 try { privateHistory = JSON.parse(fs.readFileSync(PRIVATE_FILE, "utf8")) || {}; } catch { privateHistory = {}; }
 try { groups = JSON.parse(fs.readFileSync(GROUPS_FILE, "utf8")) || {}; } catch { groups = {}; }
-try { bookmarks = JSON.parse(fs.readFileSync(BOOKMARKS_FILE, "utf8")) || []; } catch { bookmarks = []; }
 
 // ========== СОХРАНЕНИЕ ==========
 function saveUsers() { fs.writeFileSync(USERS_FILE, JSON.stringify(usersDB, null, 2)); }
 function savePublic() { fs.writeFileSync(DB_FILE, JSON.stringify(history.slice(-500), null, 2)); }
 function savePrivate() { fs.writeFileSync(PRIVATE_FILE, JSON.stringify(privateHistory, null, 2)); }
 function saveGroups() { fs.writeFileSync(GROUPS_FILE, JSON.stringify(groups, null, 2)); }
-function saveBookmarks() { fs.writeFileSync(BOOKMARKS_FILE, JSON.stringify(bookmarks, null, 2)); }
 
 // ========== ВСПОМОГАТЕЛЬНЫЕ ==========
 function hashPassword(password) { return crypto.createHash("sha256").update(password).digest("hex"); }
@@ -59,7 +55,7 @@ function getPrivateKey(u1, u2) { return [u1, u2].sort().join("_"); }
 // ========== ГРУППЫ ==========
 function createGroup(name, creator) {
     const id = Date.now().toString() + "-" + Math.random().toString(36).substr(2, 6);
-    groups[id] = { id, name: escapeHtml(name), creator, members: [creator], messages: [], pinned: null, createdAt: Date.now() };
+    groups[id] = { id, name: escapeHtml(name), creator, members: [creator], messages: [], createdAt: Date.now() };
     saveGroups();
     return id;
 }
@@ -78,7 +74,7 @@ function sendGroupMessage(groupId, from, msgData) {
     if (!groups[groupId]) return;
     const m = {
         id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
-        from, text: escapeHtml((msgData.text || "").slice(0, 500)), image: msgData.image || null, file: msgData.file || null,
+        from, text: escapeHtml((msgData.text || "").slice(0, 500)), image: msgData.image || null, file: msgData.file || null, location: msgData.location || null,
         replyTo: msgData.replyTo || null, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {}
     };
     groups[groupId].messages.push(m);
@@ -91,18 +87,24 @@ function sendGroupMessage(groupId, from, msgData) {
     }
 }
 
-// ========== ЗАКЛАДКИ ==========
-function addBookmark(nick, type, id, name) {
-    bookmarks = bookmarks.filter(b => !(b.nick === nick && b.id === id));
-    bookmarks.push({ nick, type, id, name });
-    saveBookmarks();
+// ========== ЛЕНТА КОНТАКТОВ ==========
+function updateLastChat(nick, chatType, chatId, lastMessage) {
+    if (!usersDB[nick]) usersDB[nick] = {};
+    if (!usersDB[nick].lastChats) usersDB[nick].lastChats = [];
+    const existing = usersDB[nick].lastChats.find(c => c.chatId === chatId);
+    if (existing) {
+        existing.lastMessage = lastMessage;
+        existing.timestamp = Date.now();
+    } else {
+        usersDB[nick].lastChats.unshift({ chatType, chatId, lastMessage, timestamp: Date.now() });
+    }
+    usersDB[nick].lastChats = usersDB[nick].lastChats.slice(0, 20);
+    saveUsers();
 }
-function removeBookmark(nick, id) {
-    bookmarks = bookmarks.filter(b => !(b.nick === nick && b.id === id));
-    saveBookmarks();
-}
-function getBookmarks(nick) {
-    return bookmarks.filter(b => b.nick === nick);
+
+function getLastChats(nick) {
+    if (!usersDB[nick]) return [];
+    return (usersDB[nick].lastChats || []).sort((a, b) => b.timestamp - a.timestamp);
 }
 
 // ========== РЕАКЦИИ ==========
@@ -133,7 +135,7 @@ wss.on("connection", (ws) => {
             const nick = sessions.get(token);
             if (nick && usersDB[nick] && !nickExistsOnline(nick)) {
                 ws.nick = nick; usersOnline.set(ws, nick);
-                ws.send(JSON.stringify({ type: "login_success", nick: nick, profile: usersDB[nick].profile || {}, groups: Object.values(groups).filter(g => g.members.includes(nick)), bookmarks: getBookmarks(nick) }));
+                ws.send(JSON.stringify({ type: "login_success", nick: nick, profile: usersDB[nick].profile || {}, groups: Object.values(groups).filter(g => g.members.includes(nick)), lastChats: getLastChats(nick) }));
                 sendUsers(); broadcast({ type: "system", text: `🟢 ${escapeHtml(nick)} вошёл` });
             } else ws.send(JSON.stringify({ type: "error", text: "Сессия устарела" }));
             return;
@@ -145,7 +147,7 @@ wss.on("connection", (ws) => {
             if (!validNick(nick)) { ws.send(JSON.stringify({ type: "error", text: "Ник 2-16 символов" })); return; }
             if (!password || password.length < 3) { ws.send(JSON.stringify({ type: "error", text: "Пароль минимум 3 символа" })); return; }
             if (nickExistsInDB(nick)) { ws.send(JSON.stringify({ type: "error", text: "Пользователь уже существует" })); return; }
-            usersDB[nick] = { password: hashPassword(password), created: new Date().toISOString(), profile: { bio: "", age: "", avatar: null } };
+            usersDB[nick] = { password: hashPassword(password), created: new Date().toISOString(), profile: { bio: "", age: "", avatar: null }, lastChats: [] };
             saveUsers();
             ws.send(JSON.stringify({ type: "register_success", text: "Регистрация успешна! Теперь войдите." }));
             return;
@@ -161,7 +163,7 @@ wss.on("connection", (ws) => {
             if (nickExistsOnline(nick)) { ws.send(JSON.stringify({ type: "error", text: "Уже в сети" })); return; }
             ws.nick = nick; usersOnline.set(ws, nick);
             let token = null; if (remember) { token = generateToken(); sessions.set(token, nick); }
-            ws.send(JSON.stringify({ type: "login_success", nick: nick, profile: usersDB[nick].profile || {}, token: token, groups: Object.values(groups).filter(g => g.members.includes(nick)), bookmarks: getBookmarks(nick) }));
+            ws.send(JSON.stringify({ type: "login_success", nick: nick, profile: usersDB[nick].profile || {}, token: token, groups: Object.values(groups).filter(g => g.members.includes(nick)), lastChats: getLastChats(nick) }));
             sendUsers(); broadcast({ type: "system", text: `🟢 ${escapeHtml(nick)} вошёл` });
             return;
         }
@@ -191,27 +193,12 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // ЗАКЛАДКИ
-        if (msg.type === "add_bookmark") {
-            addBookmark(ws.nick, msg.type, msg.id, msg.name);
-            ws.send(JSON.stringify({ type: "bookmarks_list", data: getBookmarks(ws.nick) }));
-            return;
-        }
-        if (msg.type === "remove_bookmark") {
-            removeBookmark(ws.nick, msg.id);
-            ws.send(JSON.stringify({ type: "bookmarks_list", data: getBookmarks(ws.nick) }));
-            return;
-        }
-        if (msg.type === "get_bookmarks") {
-            ws.send(JSON.stringify({ type: "bookmarks_list", data: getBookmarks(ws.nick) }));
-            return;
-        }
-
         // ОБЩИЙ ЧАТ
         if (msg.type === "chat") {
             if (!checkRate(ws)) return;
-            const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, file: msg.file || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
+            const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, file: msg.file || null, location: msg.location || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
             history.push(m); history = history.slice(-500); savePublic();
+            updateLastChat(ws.nick, "public", "public", m.text || "📷 Изображение");
             broadcast({ type: "msg", data: m });
             return;
         }
@@ -221,8 +208,10 @@ wss.on("connection", (ws) => {
             if (!checkRate(ws)) return;
             const key = getPrivateKey(ws.nick, msg.target);
             if (!privateHistory[key]) privateHistory[key] = [];
-            const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), from: ws.nick, to: msg.target, text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, file: msg.file || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
+            const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), from: ws.nick, to: msg.target, text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, file: msg.file || null, location: msg.location || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
             privateHistory[key].push(m); privateHistory[key] = privateHistory[key].slice(-500); savePrivate();
+            updateLastChat(ws.nick, "private", msg.target, m.text || "📷 Изображение");
+            updateLastChat(msg.target, "private", ws.nick, m.text || "📷 Изображение");
             ws.send(JSON.stringify({ type: "private_msg", data: m, with: msg.target }));
             let targetWs = null; for (const [c, nick] of usersOnline.entries()) if (nick === msg.target) { targetWs = c; break; }
             if (targetWs && targetWs.readyState === 1) targetWs.send(JSON.stringify({ type: "private_msg", data: m, with: ws.nick }));
@@ -232,9 +221,15 @@ wss.on("connection", (ws) => {
         // ГРУППЫ
         if (msg.type === "create_group") { const groupId = createGroup(msg.name, ws.nick); ws.send(JSON.stringify({ type: "group_created", group: groups[groupId] })); return; }
         if (msg.type === "invite_to_group") { if (addToGroup(msg.groupId, msg.nick, ws.nick)) ws.send(JSON.stringify({ type: "invite_sent", groupId: msg.groupId, nick: msg.nick })); return; }
-        if (msg.type === "group_chat") { if (!checkRate(ws)) return; sendGroupMessage(msg.groupId, ws.nick, msg); return; }
+        if (msg.type === "group_chat") {
+            if (!checkRate(ws)) return;
+            sendGroupMessage(msg.groupId, ws.nick, msg);
+            for (const member of groups[msg.groupId].members) updateLastChat(member, "group", msg.groupId, msg.text || "📷 Изображение");
+            return;
+        }
         if (msg.type === "get_group_history") { if (groups[msg.groupId] && groups[msg.groupId].members.includes(ws.nick)) ws.send(JSON.stringify({ type: "group_history", groupId: msg.groupId, data: groups[msg.groupId].messages })); return; }
         if (msg.type === "get_my_groups") { ws.send(JSON.stringify({ type: "my_groups", groups: Object.values(groups).filter(g => g.members.includes(ws.nick)) })); return; }
+        if (msg.type === "get_last_chats") { ws.send(JSON.stringify({ type: "last_chats", data: getLastChats(ws.nick) })); return; }
 
         // РЕАКЦИИ
         if (msg.type === "reaction") { updateReaction(msg.chatType, msg.id, ws.nick, msg.reaction, msg.remove); return; }
@@ -301,11 +296,13 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // ЗВОНКИ
+        // ========== WEBRTC СИГНАЛИНГ (ЗВОНКИ) ==========
         if (msg.type === "signal") {
             let targetWs = null;
             for (const [c, nick] of usersOnline.entries()) if (nick === msg.target) { targetWs = c; break; }
-            if (targetWs && targetWs.readyState === 1) targetWs.send(JSON.stringify({ type: "signal", from: ws.nick, signal: msg.signal }));
+            if (targetWs && targetWs.readyState === 1) {
+                targetWs.send(JSON.stringify({ type: "signal", from: ws.nick, signal: msg.signal }));
+            }
             return;
         }
     });
