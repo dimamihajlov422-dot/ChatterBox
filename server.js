@@ -39,10 +39,14 @@ function savePublic() { fs.writeFileSync(DB_FILE, JSON.stringify(history.slice(-
 function savePrivate() { fs.writeFileSync(PRIVATE_FILE, JSON.stringify(privateHistory, null, 2)); }
 function saveGroups() { fs.writeFileSync(GROUPS_FILE, JSON.stringify(groups, null, 2)); }
 
-// ========== ВСПОМОГАТЕЛЬНЫЕ ==========
+// ========== ХЭШИРОВАНИЕ ==========
 function hashPassword(password) { return crypto.createHash("sha256").update(password).digest("hex"); }
 function generateToken() { return crypto.randomBytes(32).toString("hex"); }
+
+// ========== ФОРМАТИРОВАНИЕ ВРЕМЕНИ (МСК) ==========
 function formatTime(timestamp) { const date = new Date(timestamp); date.setHours(date.getHours() + 3); return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }); }
+
+// ========== ЗАЩИТА ==========
 function escapeHtml(str) { if (!str) return ""; return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 function checkRate(ws) { const now = Date.now(); if (!rate.has(ws)) rate.set(ws, []); const arr = rate.get(ws).filter(t => now - t < 1000); arr.push(now); rate.set(ws, arr); return arr.length <= 10; }
 function broadcast(obj) { const data = JSON.stringify(obj); for (const c of wss.clients) if (c.readyState === 1) c.send(data); }
@@ -92,20 +96,12 @@ function updateLastChat(nick, chatType, chatId, lastMessage) {
     if (!usersDB[nick]) usersDB[nick] = {};
     if (!usersDB[nick].lastChats) usersDB[nick].lastChats = [];
     const existing = usersDB[nick].lastChats.find(c => c.chatId === chatId);
-    if (existing) {
-        existing.lastMessage = lastMessage;
-        existing.timestamp = Date.now();
-    } else {
-        usersDB[nick].lastChats.unshift({ chatType, chatId, lastMessage, timestamp: Date.now() });
-    }
+    if (existing) { existing.lastMessage = lastMessage; existing.timestamp = Date.now(); }
+    else { usersDB[nick].lastChats.unshift({ chatType, chatId, lastMessage, timestamp: Date.now() }); }
     usersDB[nick].lastChats = usersDB[nick].lastChats.slice(0, 20);
     saveUsers();
 }
-
-function getLastChats(nick) {
-    if (!usersDB[nick]) return [];
-    return (usersDB[nick].lastChats || []).sort((a, b) => b.timestamp - a.timestamp);
-}
+function getLastChats(nick) { return (usersDB[nick]?.lastChats || []).sort((a, b) => b.timestamp - a.timestamp); }
 
 // ========== РЕАКЦИИ ==========
 function updateReaction(type, id, from, reaction, remove) {
@@ -147,7 +143,7 @@ wss.on("connection", (ws) => {
             if (!validNick(nick)) { ws.send(JSON.stringify({ type: "error", text: "Ник 2-16 символов" })); return; }
             if (!password || password.length < 3) { ws.send(JSON.stringify({ type: "error", text: "Пароль минимум 3 символа" })); return; }
             if (nickExistsInDB(nick)) { ws.send(JSON.stringify({ type: "error", text: "Пользователь уже существует" })); return; }
-            usersDB[nick] = { password: hashPassword(password), created: new Date().toISOString(), profile: { bio: "", age: "", avatar: null }, lastChats: [] };
+            usersDB[nick] = { password: hashPassword(password), created: new Date().toISOString(), profile: { bio: "", age: "", phone: "", avatar: null }, lastChats: [] };
             saveUsers();
             ws.send(JSON.stringify({ type: "register_success", text: "Регистрация успешна! Теперь войдите." }));
             return;
@@ -179,6 +175,7 @@ wss.on("connection", (ws) => {
             if (!usersDB[ws.nick].profile) usersDB[ws.nick].profile = {};
             if (msg.bio !== undefined) usersDB[ws.nick].profile.bio = escapeHtml(msg.bio.slice(0, 200));
             if (msg.age !== undefined) usersDB[ws.nick].profile.age = escapeHtml(msg.age.slice(0, 3));
+            if (msg.phone !== undefined) usersDB[ws.nick].profile.phone = escapeHtml(msg.phone.slice(0, 20));
             if (msg.avatar !== undefined) usersDB[ws.nick].profile.avatar = msg.avatar;
             saveUsers();
             ws.send(JSON.stringify({ type: "profile_updated", profile: usersDB[ws.nick].profile }));
@@ -221,12 +218,7 @@ wss.on("connection", (ws) => {
         // ГРУППЫ
         if (msg.type === "create_group") { const groupId = createGroup(msg.name, ws.nick); ws.send(JSON.stringify({ type: "group_created", group: groups[groupId] })); return; }
         if (msg.type === "invite_to_group") { if (addToGroup(msg.groupId, msg.nick, ws.nick)) ws.send(JSON.stringify({ type: "invite_sent", groupId: msg.groupId, nick: msg.nick })); return; }
-        if (msg.type === "group_chat") {
-            if (!checkRate(ws)) return;
-            sendGroupMessage(msg.groupId, ws.nick, msg);
-            for (const member of groups[msg.groupId].members) updateLastChat(member, "group", msg.groupId, msg.text || "📷 Изображение");
-            return;
-        }
+        if (msg.type === "group_chat") { if (!checkRate(ws)) return; sendGroupMessage(msg.groupId, ws.nick, msg); for (const member of groups[msg.groupId].members) updateLastChat(member, "group", msg.groupId, msg.text || "📷 Изображение"); return; }
         if (msg.type === "get_group_history") { if (groups[msg.groupId] && groups[msg.groupId].members.includes(ws.nick)) ws.send(JSON.stringify({ type: "group_history", groupId: msg.groupId, data: groups[msg.groupId].messages })); return; }
         if (msg.type === "get_my_groups") { ws.send(JSON.stringify({ type: "my_groups", groups: Object.values(groups).filter(g => g.members.includes(ws.nick)) })); return; }
         if (msg.type === "get_last_chats") { ws.send(JSON.stringify({ type: "last_chats", data: getLastChats(ws.nick) })); return; }
@@ -296,7 +288,7 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // ========== WEBRTC СИГНАЛИНГ (ЗВОНКИ) ==========
+        // WEBRTC ЗВОНКИ
         if (msg.type === "signal") {
             let targetWs = null;
             for (const [c, nick] of usersOnline.entries()) if (nick === msg.target) { targetWs = c; break; }
@@ -317,4 +309,13 @@ setInterval(() => { wss.clients.forEach(ws => { if (!ws.isAlive) return ws.termi
 server.listen(3000, () => {
     console.log("✅ Сервер запущен на порту 3000");
     console.log("   http://localhost:3000");
+    console.log("");
+    console.log("📱 Функции:");
+    console.log("   • Регистрация и вход с запоминанием");
+    console.log("   • Общий чат, ЛС, Группы");
+    console.log("   • Геолокация, картинки, файлы");
+    console.log("   • Реакции, редактирование, удаление");
+    console.log("   • Профиль (био, возраст, телефон, аватар)");
+    console.log("   • Звонки WebRTC");
+    console.log("   • Лента последних чатов");
 });
