@@ -39,7 +39,6 @@ body.dark {
     align-items: center;
     padding: 20px;
     z-index: 1000;
-    transition: opacity 0.3s;
 }
 
 .auth-screen.hidden {
@@ -99,11 +98,6 @@ body.dark .auth-card input {
     background: none;
     color: #0084ff;
     border: 1px solid #0084ff;
-}
-
-body.dark .auth-card .switch-btn {
-    background: none;
-    color: #0084ff;
 }
 
 .error-msg {
@@ -577,6 +571,11 @@ function connect() {
             authScreen.classList.add("hidden");
             mainApp.classList.remove("hidden");
             menuBtn.classList.remove("hidden");
+            
+            // ✅ ПРИВЯЗЫВАЕМ ОБРАБОТЧИКИ МЕНЮ
+            menuBtn.onclick = () => menuPanel.classList.toggle("open");
+            closeMenu.onclick = () => menuPanel.classList.remove("open");
+            
             document.title = "Чат: " + currentNick;
             addSystem(`✅ Вы вошли как ${currentNick}`);
             switchToPublic();
@@ -790,9 +789,6 @@ function switchToPrivate(withNick) {
 backBtn.onclick = switchToPublic;
 
 // ========== ПОЛЬЗОВАТЕЛИ ==========
-menuBtn.onclick = () => menuPanel.classList.toggle("open");
-closeMenu.onclick = () => menuPanel.classList.remove("open");
-
 let usersVisible = false;
 showUsersItem.onclick = () => {
     usersVisible = !usersVisible;
@@ -823,165 +819,3 @@ function renderUsersList() {
         usersListDiv.appendChild(div);
     });
 }
-
-setInterval(() => {
-    const current = JSON.parse(localStorage.getItem("allUsers") || "[]");
-    const updated = [...new Set([...current, ...usersOnline])];
-    localStorage.setItem("allUsers", JSON.stringify(updated));
-    if (usersVisible) renderUsersList();
-}, 5000);
-
-// ========== ТЕМА ==========
-let isDark = localStorage.getItem("theme") === "dark";
-if (isDark) document.body.classList.add("dark");
-
-themeItem.onclick = () => {
-    isDark = !isDark;
-    if (isDark) {
-        document.body.classList.add("dark");
-    } else {
-        document.body.classList.remove("dark");
-    }
-    localStorage.setItem("theme", isDark ? "dark" : "light");
-};
-
-// ========== WEBRTC ЗВОНКИ ==========
-async function callUser(targetNick) {
-    if (currentCallWith === targetNick) {
-        endCall();
-        return;
-    }
-    if (currentCallWith) endCall();
-    currentCallWith = targetNick;
-    updateCallIndicator();
-
-    try {
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        pc = new RTCPeerConnection(servers);
-
-        localStream.getTracks().forEach(track => {
-            pc.addTrack(track, localStream);
-        });
-
-        pc.ontrack = (event) => {
-            const audio = new Audio();
-            audio.srcObject = event.streams[0];
-            audio.play();
-            addSystem(`🔊 Говорим с ${targetNick}`);
-        };
-
-        pc.onicecandidate = (event) => {
-            if (event.candidate) {
-                ws.send(JSON.stringify({
-                    type: "signal",
-                    target: targetNick,
-                    signal: { candidate: event.candidate }
-                }));
-            }
-        };
-
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-
-        ws.send(JSON.stringify({
-            type: "signal",
-            target: targetNick,
-            signal: { sdp: offer }
-        }));
-
-        addSystem(`📞 Звоним ${targetNick}...`);
-    } catch (e) {
-        addSystem("❌ Ошибка звонка");
-        endCall();
-    }
-}
-
-function endCall() {
-    if (localStream) {
-        localStream.getTracks().forEach(t => t.stop());
-        localStream = null;
-    }
-    if (pc) {
-        pc.close();
-        pc = null;
-    }
-    if (currentCallWith) {
-        addSystem(`📴 Звонок с ${currentCallWith} завершён`);
-        currentCallWith = null;
-        updateCallIndicator();
-    }
-}
-
-function updateCallIndicator() {
-    if (currentCallWith) {
-        callIndicator.innerHTML = `📞 В звонке: ${currentCallWith} <button onclick="endCall()">Завершить</button>`;
-        callIndicator.style.display = "block";
-        setTimeout(() => {
-            if (!currentCallWith) callIndicator.style.display = "none";
-        }, 3000);
-    } else {
-        callIndicator.style.display = "none";
-    }
-}
-
-async function handleSignal(from, signal) {
-    if (!pc && signal.sdp && signal.sdp.type === "offer") {
-        const answer = confirm(`📞 ${from} звонит. Ответить?`);
-        if (!answer) return;
-
-        currentCallWith = from;
-        updateCallIndicator();
-
-        try {
-            localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            pc = new RTCPeerConnection(servers);
-
-            localStream.getTracks().forEach(track => {
-                pc.addTrack(track, localStream);
-            });
-
-            pc.ontrack = (event) => {
-                const audio = new Audio();
-                audio.srcObject = event.streams[0];
-                audio.play();
-                addSystem(`🔊 Говорим с ${from}`);
-            };
-
-            pc.onicecandidate = (event) => {
-                if (event.candidate) {
-                    ws.send(JSON.stringify({
-                        type: "signal",
-                        target: from,
-                        signal: { candidate: event.candidate }
-                    }));
-                }
-            };
-
-            await pc.setRemoteDescription(signal.sdp);
-            const answerSdp = await pc.createAnswer();
-            await pc.setLocalDescription(answerSdp);
-
-            ws.send(JSON.stringify({
-                type: "signal",
-                target: from,
-                signal: { sdp: answerSdp }
-            }));
-
-            addSystem(`📞 Разговор с ${from}`);
-        } catch (e) {
-            endCall();
-        }
-        return;
-    }
-
-    if (!pc) return;
-    if (signal.sdp) await pc.setRemoteDescription(signal.sdp);
-    if (signal.candidate) await pc.addIceCandidate(signal.candidate);
-}
-
-window.callUser = callUser;
-window.endCall = endCall;
-window.switchToPrivate = switchToPrivate;
-</script>
-</body>
-</html>
