@@ -3,65 +3,156 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chat v18 FINAL</title>
+<title>Chat v19 - WebRTC + Voice MSG</title>
 
 <style>
-body{
-    margin:0;
-    font-family:Arial;
-    display:flex;
-    height:100vh;
+* {
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
-#left{
-    width:140px;
-    border-right:1px solid #ccc;
-    overflow:auto;
-    padding:5px;
+body {
+    margin: 0;
+    font-family: Arial;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
 }
 
-.user{
-    padding:6px;
-    background:#eee;
-    margin:4px;
-    border-radius:6px;
+#left {
+    width: 150px;
+    border-right: 1px solid #ccc;
+    overflow-y: auto;
+    padding: 5px;
+    background: #f9f9f9;
 }
 
-#right{
-    flex:1;
-    display:flex;
-    flex-direction:column;
+.user {
+    padding: 8px;
+    background: #eee;
+    margin-bottom: 5px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 5px;
 }
 
-#chat{
-    flex:1;
-    overflow:auto;
-    padding:10px;
+.user span {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 14px;
 }
 
-.msg{
-    background:#eee;
-    margin:5px;
-    padding:8px;
-    border-radius:6px;
-    word-break:break-word;
+.call-btn {
+    background: #4caf50;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 14px;
 }
 
-#top{
-    padding:5px;
-    border-bottom:1px solid #ccc;
-    display:flex;
-    gap:5px;
+.call-btn.active {
+    background: #f44336;
 }
 
-#bottom{
-    padding:5px;
-    display:flex;
-    gap:5px;
+#right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
-input,button{
-    padding:8px;
+#chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.msg {
+    background: #e0e0e0;
+    margin: 5px 0;
+    padding: 8px;
+    border-radius: 8px;
+    word-break: break-word;
+    position: relative;
+}
+
+.voice-msg {
+    background: #c8e6c9;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.voice-msg button {
+    background: #2196f3;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+#top {
+    padding: 8px;
+    border-bottom: 1px solid #ccc;
+    display: flex;
+    gap: 8px;
+    background: white;
+}
+
+#bottom {
+    padding: 8px;
+    display: flex;
+    gap: 8px;
+    background: white;
+    border-top: 1px solid #ccc;
+}
+
+input, button {
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+button {
+    cursor: pointer;
+    background: #2196f3;
+    color: white;
+    border: none;
+}
+
+button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+#recordBtn {
+    background: #f44336;
+}
+
+#recordBtn.recording {
+    background: #ff9800;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+.system {
+    color: #666;
+    font-size: 12px;
+    text-align: center;
+    margin: 5px;
 }
 </style>
 </head>
@@ -73,16 +164,16 @@ input,button{
 <div id="right">
 
 <div id="top">
-    <input id="nick" placeholder="ник (2-16 символов)">
+    <input id="nick" placeholder="ник (2-16 символов)" autocomplete="off">
     <button id="loginBtn" onclick="login()">login</button>
 </div>
 
 <div id="chat"></div>
 
 <div id="bottom">
-    <input id="msg" placeholder="сообщение" style="flex:1">
+    <input id="msg" placeholder="сообщение" style="flex:1" autocomplete="off">
     <button onclick="send()">➤</button>
-    <button id="callBtn" onclick="toggleCall()">📞</button>
+    <button id="recordBtn" onclick="toggleRecording()">🎙️</button>
 </div>
 
 </div>
@@ -91,18 +182,33 @@ input,button{
 
 let ws;
 let logged = false;
-let callActive = false;
+
+// WebRTC
+let pc = null;
+let localStream = null;
+let currentCallWith = null;
+
+// Voice message
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
 
 const chat = document.getElementById("chat");
 const left = document.getElementById("left");
 const msg = document.getElementById("msg");
 const nick = document.getElementById("nick");
 const loginBtn = document.getElementById("loginBtn");
-const callBtn = document.getElementById("callBtn");
+const recordBtn = document.getElementById("recordBtn");
 
-/* ===== CONNECT SAFE + RECONNECT ===== */
+const servers = {
+    iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" }
+    ]
+};
+
+/* ===== CONNECT ===== */
 function connect(){
-
     ws = new WebSocket(
         (location.protocol === "https:" ? "wss://" : "ws://") + location.host
     );
@@ -112,7 +218,6 @@ function connect(){
     ws.onclose = () => setTimeout(connect, 1000);
 
     ws.onmessage = (e) => {
-
         let d;
         try { d = JSON.parse(e.data); }
         catch { return; }
@@ -137,6 +242,10 @@ function connect(){
 
         if(d.type === "users") renderUsers(d.users);
         if(d.type === "system") system(d.text);
+
+        if(d.type === "voiceMsg") receiveVoiceMsg(d.from, d.data);
+        
+        if(d.type === "signal") handleSignal(d.from, d.signal);
     };
 }
 
@@ -144,7 +253,6 @@ connect();
 
 /* ===== LOGIN ===== */
 function login(){
-
     if(logged) return;
 
     const nickVal = nick.value.trim();
@@ -158,20 +266,16 @@ function login(){
     logged = true;
     nick.disabled = true;
     loginBtn.disabled = true;
-
     document.title = "Чат: " + nickVal;
 }
 
-/* ===== SEND ===== */
+/* ===== TEXT MESSAGE ===== */
 function send(){
-
     if(!logged){
         alert("Сначала залогинься");
         return;
     }
-
     if(ws.readyState !== 1) return;
-
     if(!msg.value.trim()) return;
 
     ws.send(JSON.stringify({
@@ -184,13 +288,11 @@ function send(){
 
 /* ===== ADD MESSAGE ===== */
 function add(m){
-
     const div = document.createElement("div");
     div.className = "msg";
     div.id = m.id;
     div.textContent = m.text;
 
-    /* DELETE ONLY OWN MESSAGES (right click) */
     div.oncontextmenu = (e) => {
         e.preventDefault();
         if(confirm("Удалить сообщение?")){
@@ -201,7 +303,6 @@ function add(m){
         }
     };
 
-    /* LONG TAP FOR MOBILE */
     let pressTimer;
     div.ontouchstart = () => {
         pressTimer = setTimeout(() => {
@@ -219,59 +320,271 @@ function add(m){
     chat.scrollTop = chat.scrollHeight;
 }
 
-/* ===== REMOVE MESSAGE ===== */
 function remove(id){
     const el = document.getElementById(id);
     if(el) el.remove();
 }
 
-/* ===== USERS ===== */
-function renderUsers(list){
-    left.innerHTML = "";
-    list.forEach(u => {
-        const d = document.createElement("div");
-        d.className = "user";
-        d.textContent = u;
-        left.appendChild(d);
-    });
-}
-
-/* ===== SYSTEM MESSAGE ===== */
 function system(t){
     const d = document.createElement("div");
-    d.style.opacity = "0.7";
-    d.style.fontSize = "12px";
-    d.style.margin = "5px";
+    d.className = "system";
     d.textContent = t;
     chat.appendChild(d);
     chat.scrollTop = chat.scrollHeight;
 }
 
-/* ===== CALL TOGGLE ===== */
-function toggleCall(){
-
+/* ===== VOICE MESSAGE (GS) ===== */
+async function toggleRecording(){
     if(!logged){
         alert("Сначала залогинься");
         return;
     }
-
-    callActive = !callActive;
-
-    ws.send(JSON.stringify({
-        type: callActive ? "call-start" : "call-end"
-    }));
-
-    callBtn.style.background = callActive ? "#4caf50" : "";
-    callBtn.textContent = callActive ? "📞 (в звонке)" : "📞";
+    
+    if(isRecording){
+        stopRecording();
+    } else {
+        await startRecording();
+    }
 }
 
-/* ===== ENTER TO SEND ===== */
+async function startRecording(){
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+        audioChunks = [];
+        
+        mediaRecorder.ondataavailable = (e) => {
+            if(e.data.size > 0) audioChunks.push(e.data);
+        };
+        
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(audioChunks, { type: "audio/webm" });
+            const reader = new FileReader();
+            reader.onload = () => {
+                ws.send(JSON.stringify({
+                    type: "voiceMsg",
+                    data: reader.result
+                }));
+                system("🎙️ Голосовое отправлено");
+            };
+            reader.readAsDataURL(blob);
+            
+            stream.getTracks().forEach(track => track.stop());
+        };
+        
+        mediaRecorder.start();
+        isRecording = true;
+        recordBtn.classList.add("recording");
+        recordBtn.textContent = "⏹️";
+        
+        setTimeout(() => {
+            if(isRecording) stopRecording();
+        }, 10000);
+        
+    } catch(e){
+        alert("Нет доступа к микрофону");
+    }
+}
+
+function stopRecording(){
+    if(mediaRecorder && isRecording){
+        mediaRecorder.stop();
+        isRecording = false;
+        recordBtn.classList.remove("recording");
+        recordBtn.textContent = "🎙️";
+    }
+}
+
+function receiveVoiceMsg(from, dataUrl){
+    const div = document.createElement("div");
+    div.className = "msg voice-msg";
+    
+    const btn = document.createElement("button");
+    btn.textContent = "🔊";
+    btn.onclick = () => {
+        const audio = new Audio(dataUrl);
+        audio.play();
+    };
+    
+    const text = document.createElement("span");
+    text.textContent = `🎙️ ${from}: голосовое (нажми ▶️)`;
+    
+    div.appendChild(btn);
+    div.appendChild(text);
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+/* ===== WEBRTC CALL ===== */
+async function callUser(targetNick){
+    if(currentCallWith){
+        endCall();
+    }
+    
+    currentCallWith = targetNick;
+    
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        pc = new RTCPeerConnection(servers);
+        
+        localStream.getTracks().forEach(track => {
+            pc.addTrack(track, localStream);
+        });
+        
+        pc.ontrack = (event) => {
+            const remoteAudio = new Audio();
+            remoteAudio.srcObject = event.streams[0];
+            remoteAudio.play();
+            system(`🔊 Аудио от ${targetNick}`);
+        };
+        
+        pc.onicecandidate = (event) => {
+            if(event.candidate){
+                ws.send(JSON.stringify({
+                    type: "signal",
+                    target: targetNick,
+                    signal: { candidate: event.candidate }
+                }));
+            }
+        };
+        
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        
+        ws.send(JSON.stringify({
+            type: "signal",
+            target: targetNick,
+            signal: { sdp: offer }
+        }));
+        
+        system(`📞 Звоним ${targetNick}...`);
+        
+    } catch(e){
+        console.error(e);
+        system("❌ Не удалось начать звонок");
+        endCall();
+    }
+}
+
+function endCall(){
+    if(localStream){
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
+    if(pc){
+        pc.close();
+        pc = null;
+    }
+    if(currentCallWith){
+        system(`📴 Звонок с ${currentCallWith} завершён`);
+        currentCallWith = null;
+    }
+}
+
+async function handleSignal(from, signal){
+    if(!pc && signal.sdp && signal.sdp.type === "offer"){
+        const answer = confirm(`📞 ${from} звонит. Ответить?`);
+        if(!answer) return;
+        
+        currentCallWith = from;
+        
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            pc = new RTCPeerConnection(servers);
+            
+            localStream.getTracks().forEach(track => {
+                pc.addTrack(track, localStream);
+            });
+            
+            pc.ontrack = (event) => {
+                const audio = new Audio();
+                audio.srcObject = event.streams[0];
+                audio.play();
+                system(`🔊 Аудио от ${from}`);
+            };
+            
+            pc.onicecandidate = (event) => {
+                if(event.candidate){
+                    ws.send(JSON.stringify({
+                        type: "signal",
+                        target: from,
+                        signal: { candidate: event.candidate }
+                    }));
+                }
+            };
+            
+            await pc.setRemoteDescription(signal.sdp);
+            const answerSdp = await pc.createAnswer();
+            await pc.setLocalDescription(answerSdp);
+            
+            ws.send(JSON.stringify({
+                type: "signal",
+                target: from,
+                signal: { sdp: answerSdp }
+            }));
+            
+            system(`📞 Разговор с ${from}`);
+            
+        } catch(e){
+            console.error(e);
+            endCall();
+        }
+        return;
+    }
+    
+    if(!pc) return;
+    
+    if(signal.sdp){
+        await pc.setRemoteDescription(signal.sdp);
+    }
+    
+    if(signal.candidate){
+        await pc.addIceCandidate(signal.candidate);
+    }
+}
+
+/* ===== USERS RENDER ===== */
+function renderUsers(list){
+    left.innerHTML = "";
+    list.forEach(u => {
+        const div = document.createElement("div");
+        div.className = "user";
+        
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = u;
+        
+        const callButton = document.createElement("button");
+        callButton.textContent = "📞";
+        callButton.className = "call-btn";
+        if(currentCallWith === u) callButton.classList.add("active");
+        
+        callButton.onclick = (e) => {
+            e.stopPropagation();
+            if(currentCallWith === u){
+                endCall();
+                callButton.classList.remove("active");
+            } else {
+                callUser(u);
+            }
+        };
+        
+        div.appendChild(nameSpan);
+        div.appendChild(callButton);
+        left.appendChild(div);
+    });
+}
+
+/* ===== ENTER ===== */
 msg.addEventListener("keydown", (e) => {
     if(e.key === "Enter") send();
 });
 
-/* ===== AUTO-FOCUS NICK IF NOT LOGGED ===== */
-if(!logged) nick.focus();
+nick.focus();
+
+/* ===== CALL END ON PAGE CLOSE ===== */
+window.addEventListener("beforeunload", () => {
+    if(currentCallWith) endCall();
+});
 
 </script>
 
