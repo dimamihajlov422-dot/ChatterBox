@@ -26,7 +26,9 @@ function save(){
     fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
 }
 
-/* ===== BROADCAST ===== */
+/* ===== CALL STATE ===== */
+let callUsers = new Set();
+
 function broadcast(obj){
     const data = JSON.stringify(obj);
 
@@ -35,6 +37,13 @@ function broadcast(obj){
             c.send(data);
         }
     }
+}
+
+function updateCallState(){
+    broadcast({
+        type:"call-state",
+        active: callUsers.size > 0
+    });
 }
 
 wss.on("connection", (ws) => {
@@ -72,6 +81,32 @@ wss.on("connection", (ws) => {
             return;
         }
 
+        /* CALL START */
+        if(msg.type === "call-start"){
+            callUsers.add(ws.id);
+            updateCallState();
+
+            broadcast({
+                type:"system",
+                text:`📞 ${ws.nick} в звонке`
+            });
+
+            return;
+        }
+
+        /* CALL END */
+        if(msg.type === "call-end"){
+            callUsers.delete(ws.id);
+            updateCallState();
+
+            broadcast({
+                type:"system",
+                text:`📴 ${ws.nick} вышел из звонка`
+            });
+
+            return;
+        }
+
         /* VOICE */
         if(msg.type === "voice"){
             for(const c of wss.clients){
@@ -83,17 +118,12 @@ wss.on("connection", (ws) => {
                 }
             }
         }
-
-        if(msg.type === "call-start"){
-            broadcast({ type:"system", text:`📞 ${ws.nick} начал звонок` });
-        }
-
-        if(msg.type === "call-end"){
-            broadcast({ type:"system", text:`📴 ${ws.nick} завершил звонок` });
-        }
     });
 
     ws.on("close", () => {
+        callUsers.delete(ws.id);
+        updateCallState();
+
         if(ws.nick){
             broadcast({ type:"system", text:`🔴 ${ws.nick} вышел` });
         }
