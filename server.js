@@ -186,13 +186,38 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        /* CALL */
-        if(msg.type === "call-start"){
-            broadcast({ type:"system", text:`📞 ${escapeHtml(ws.nick)} в звонке` });
+        /* ===== VOICE MESSAGE (base64 audio) ===== */
+        if(msg.type === "voiceMsg"){
+            if(!msg.data) return;
+            
+            broadcast({
+                type: "voiceMsg",
+                from: ws.nick,
+                data: msg.data
+            });
+            return;
         }
 
-        if(msg.type === "call-end"){
-            broadcast({ type:"system", text:`📴 ${escapeHtml(ws.nick)} вышел из звонка` });
+        /* ===== WEBRTC SIGNALING ===== */
+        if(msg.type === "signal"){
+            const targetNick = msg.target;
+            
+            let targetWs = null;
+            for(const [wsClient, nick] of users.entries()){
+                if(nick === targetNick){
+                    targetWs = wsClient;
+                    break;
+                }
+            }
+            
+            if(targetWs && targetWs.readyState === 1){
+                targetWs.send(JSON.stringify({
+                    type: "signal",
+                    from: ws.nick,
+                    signal: msg.signal
+                }));
+            }
+            return;
         }
     });
 
@@ -221,4 +246,4 @@ setInterval(() => {
     });
 }, 30000);
 
-server.listen(3000, () => console.log("v18 FINAL running"));
+server.listen(3000, () => console.log("v19 WebRTC + Voice MSG running"));
