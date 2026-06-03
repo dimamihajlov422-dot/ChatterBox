@@ -1,7 +1,6 @@
 const express = require("express");
 const http = require("http");
 const WebSocket = require("ws");
-const fs = require("fs");
 
 const app = express();
 const server = http.createServer(app);
@@ -9,37 +8,14 @@ const wss = new WebSocket.Server({ server });
 
 app.use(express.static("public"));
 
-const DB_FILE = "db.json";
-
-/* ===== MEMORY ===== */
-let history = [];
-
-function loadHistory(){
-    try {
-        if (fs.existsSync(DB_FILE)) {
-            history = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
-        }
-    } catch {
-        history = [];
-    }
-}
-
-function saveHistory(){
-    fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
-}
-
-loadHistory();
-
-/* ===== CLIENTS ===== */
 let clients = new Set();
 
-/* ===== BROADCAST ===== */
-function broadcast(data){
-    const str = JSON.stringify(data);
+function broadcast(obj){
+    const data = JSON.stringify(obj);
 
-    for (const c of clients) {
-        if (c.readyState === 1) {
-            c.send(str);
+    for(const c of clients){
+        if(c.readyState === 1){
+            c.send(data);
         }
     }
 }
@@ -48,52 +24,60 @@ wss.on("connection", (ws) => {
 
     clients.add(ws);
 
-    // 🔥 отправляем старые сообщения
-    history.forEach(m => {
-        ws.send(JSON.stringify({ type: "msg", text: m }));
-    });
-
     ws.on("message", (raw) => {
 
         let msg;
-        try {
-            msg = JSON.parse(raw.toString());
-        } catch {
-            return;
-        }
+        try { msg = JSON.parse(raw.toString()); }
+        catch { return; }
 
-        if (msg.type === "nick") {
-            ws.nick = msg.nick;
-            broadcast({
-                type: "system",
-                text: `🟢 ${ws.nick} вошёл`
-            });
-            return;
-        }
-
-        if (msg.type === "chat") {
-
-            const text = `${ws.nick || "Anon"}: ${msg.text}`;
-
-            history.push(text);
-            saveHistory();
+        // NICK
+        if(msg.type === "nick"){
+            ws.nick = msg.nick || "Anon";
 
             broadcast({
-                type: "msg",
-                text
+                type:"system",
+                text:`🟢 ${ws.nick} вошёл`
             });
 
             return;
         }
+
+        // CHAT
+        if(msg.type === "chat"){
+            broadcast({
+                type:"msg",
+                text:`${ws.nick || "Anon"}: ${msg.text}`
+            });
+            return;
+        }
+
+        // CALL START
+        if(msg.type === "call-start"){
+            broadcast({
+                type:"system",
+                text:`📞 ${ws.nick || "Anon"} начал звонок`
+            });
+            return;
+        }
+
+        // CALL END
+        if(msg.type === "call-end"){
+            broadcast({
+                type:"system",
+                text:`📴 ${ws.nick || "Anon"} завершил звонок`
+            });
+            return;
+        }
+
     });
 
     ws.on("close", () => {
         clients.delete(ws);
 
-        if (ws.nick) {
+        if(ws.nick){
             broadcast({
-                type: "system",
-                text: `🔴 ${ws.nick} вышел`
+                type:"system",
+                text:`🔴 ${ws.nick} вышел`
             });
         }
     });
