@@ -65,7 +65,7 @@ function savePrivate() {
     fs.writeFileSync(PRIVATE_FILE, JSON.stringify(privateHistory, null, 2));
 }
 
-/* ===== ХЭШИРОВАНИЕ ПАРОЛЯ (SHA-256) ===== */
+/* ===== ХЭШИРОВАНИЕ ПАРОЛЯ ===== */
 function hashPassword(password) {
     return crypto.createHash("sha256").update(password).digest("hex");
 }
