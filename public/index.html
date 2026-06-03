@@ -3,16 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chat + Call v7</title>
+<title>ChatterBox v9</title>
 
 <style>
 body{
     margin:0;
     font-family:Arial;
     background:#fff;
+    color:#000;
     height:100vh;
     display:flex;
     flex-direction:column;
+}
+
+body.dark{
+    background:#111;
+    color:#fff;
 }
 
 .top{
@@ -35,6 +41,11 @@ body{
     background:#eee;
     padding:10px;
     border-radius:10px;
+    word-break:break-word;
+}
+
+body.dark .msg{
+    background:#1e1e1e;
 }
 
 .bottom{
@@ -47,11 +58,16 @@ body{
 input{
     flex:1;
     padding:10px;
+    border-radius:8px;
+    border:1px solid #ccc;
 }
 
 button{
     min-width:45px;
     min-height:45px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
 }
 </style>
 </head>
@@ -65,23 +81,23 @@ button{
     </div>
 
     <div>
-        <button onclick="startCall()">📞</button>
+        <button onclick="toggleCall()">📞</button>
         <button onclick="toggleMute()">🔇</button>
+        <button onclick="toggleTheme()">🌙</button>
     </div>
 </div>
 
 <div id="chat"></div>
 
 <div class="bottom">
-    <input id="msg">
+    <input id="msg" placeholder="сообщение">
     <button onclick="send()">➤</button>
 </div>
 
 <script>
 
 let ws;
-let localStream;
-let peers = {};
+let stream;
 let muted = false;
 
 /* CONNECT */
@@ -91,7 +107,9 @@ function connect(){
 
     ws.onmessage = async (e)=>{
 
-        let d = JSON.parse(e.data);
+        let d;
+        try{ d = JSON.parse(e.data); }
+        catch{return;}
 
         if(d.type==="history"){
             d.data.forEach(m=>add(m.text));
@@ -105,8 +123,8 @@ function connect(){
             add(d.text);
         }
 
-        if(d.type==="signal"){
-            handleSignal(d.from, d.data);
+        if(d.type==="voice"){
+            play(d.data);
         }
     };
 }
@@ -132,96 +150,89 @@ function setNick(){
 
 /* UI */
 function add(t){
-    const d = document.createElement("div");
+    const d=document.createElement("div");
     d.className="msg";
     d.textContent=t;
     chat.appendChild(d);
-    chat.scrollTop = chat.scrollHeight;
+    chat.scrollTop=chat.scrollHeight;
 }
 
-/* ===== CALL ===== */
+/* ===== VOICE ===== */
 
-async function startCall(){
+async function toggleCall(){
 
-    localStream = await navigator.mediaDevices.getUserMedia({
-        audio:true
-    });
+    if(!stream){
 
-    ws.send(JSON.stringify({type:"call-start"}));
-}
+        stream = await navigator.mediaDevices.getUserMedia({audio:true});
 
-/* PEER */
-async function createPeer(id){
+        const ctx = new AudioContext();
+        const source = ctx.createMediaStreamSource(stream);
 
-    const pc = new RTCPeerConnection({
-        iceServers:[{urls:"stun:stun.l.google.com:19302"}]
-    });
+        const processor = ctx.createScriptProcessor(2048,1,1);
 
-    localStream.getTracks().forEach(t=>{
-        pc.addTrack(t, localStream);
-    });
+        source.connect(processor);
+        processor.connect(ctx.destination);
 
-    pc.ontrack = (e)=>{
-        const audio = document.createElement("audio");
-        audio.autoplay = true;
-        audio.srcObject = e.streams[0];
-        document.body.appendChild(audio);
-    };
+        processor.onaudioprocess = (e)=>{
 
-    pc.onicecandidate = (e)=>{
-        if(e.candidate){
+            if(muted) return;
+
+            const data = e.inputBuffer.getChannelData(0);
+
             ws.send(JSON.stringify({
-                type:"signal",
-                data:{type:"candidate", candidate:e.candidate, from:id}
+                type:"voice",
+                data:Array.from(data)
             }));
-        }
-    };
+        };
 
-    peers[id] = pc;
-    return pc;
+        ws.send(JSON.stringify({type:"call-start"}));
+
+        add("📞 звонок начат");
+
+    } else {
+
+        stream.getTracks().forEach(t=>t.stop());
+        stream = null;
+
+        ws.send(JSON.stringify({type:"call-end"}));
+
+        add("📴 звонок завершён");
+    }
 }
 
-/* SIGNAL */
-async function handleSignal(id, data){
+/* PLAY AUDIO */
+let audioCtx;
 
-    let pc = peers[id];
-    if(!pc) pc = await createPeer(id);
+function play(data){
 
-    if(data.type==="candidate"){
-        try{
-            await pc.addIceCandidate(data.candidate);
-        }catch{}
+    if(!audioCtx){
+        audioCtx = new AudioContext();
     }
 
-    if(data.type==="offer"){
-        await pc.setRemoteDescription(data.offer);
-        const ans = await pc.createAnswer();
-        await pc.setLocalDescription(ans);
+    const buffer = audioCtx.createBuffer(1, data.length, audioCtx.sampleRate);
+    buffer.copyToChannel(new Float32Array(data),0);
 
-        ws.send(JSON.stringify({
-            type:"signal",
-            data:{type:"answer", answer:pc.localDescription, from:id}
-        }));
-    }
-
-    if(data.type==="answer"){
-        await pc.setRemoteDescription(data.answer);
-    }
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(audioCtx.destination);
+    src.start();
 }
 
 /* MUTE */
 function toggleMute(){
-
-    if(!localStream) return;
-
     muted = !muted;
-
-    localStream.getAudioTracks().forEach(t=>{
-        t.enabled = !muted;
-    });
-
     add(muted ? "🔇 mute" : "🎤 unmute");
 }
+
+/* THEME */
+function toggleTheme(){
+    document.body.classList.toggle("dark");
+}
+
+/* ENTER */
+msg.addEventListener("keydown",(e)=>{
+    if(e.key==="Enter") send();
+});
 
 </script>
 
