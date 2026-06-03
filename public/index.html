@@ -25,7 +25,6 @@ body.dark {
     background: #121212;
 }
 
-/* ===== ЭКРАН ВХОДА ===== */
 .auth-screen {
     position: fixed;
     top: 0;
@@ -107,7 +106,6 @@ body.dark .auth-card input {
     margin-top: 8px;
 }
 
-/* ===== ОСНОВНОЙ ИНТЕРФЕЙС ===== */
 .main-app {
     display: flex;
     flex-direction: column;
@@ -118,7 +116,6 @@ body.dark .auth-card input {
     display: none;
 }
 
-/* ШАПКА */
 .header {
     background: #0084ff;
     padding: 12px 16px;
@@ -145,7 +142,6 @@ body.dark .auth-card input {
     cursor: pointer;
 }
 
-/* ВЕРХНЯЯ ПАНЕЛЬ РЕЖИМА */
 .mode-bar {
     background: #0084ff;
     padding: 10px 12px;
@@ -174,7 +170,6 @@ body.dark .auth-card input {
     font-size: 15px;
 }
 
-/* ЧАТ */
 .chat {
     flex: 1;
     overflow-y: auto;
@@ -221,7 +216,6 @@ body.dark .system {
     color: #aaa;
 }
 
-/* НИЖНЯЯ ПАНЕЛЬ */
 .input-bar {
     background: white;
     padding: 10px 12px;
@@ -264,7 +258,6 @@ body.dark .input-bar input {
     flex-shrink: 0;
 }
 
-/* КНОПКА МЕНЮ */
 .menu-btn {
     position: fixed;
     bottom: 80px;
@@ -284,7 +277,6 @@ body.dark .input-bar input {
     justify-content: center;
 }
 
-/* МЕНЮ */
 .menu-panel {
     position: fixed;
     bottom: 140px;
@@ -392,7 +384,6 @@ body.dark .user-item {
     cursor: pointer;
 }
 
-/* ИНДИКАТОР ЗВОНКА */
 .call-indicator {
     position: fixed;
     bottom: 140px;
@@ -426,7 +417,6 @@ body.dark .user-item {
 
 <body>
 
-<!-- ЭКРАН ВХОДА -->
 <div class="auth-screen" id="authScreen">
     <div class="auth-card">
         <h2 id="authTitle">Вход</h2>
@@ -438,20 +428,16 @@ body.dark .user-item {
     </div>
 </div>
 
-<!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
 <div class="main-app hidden" id="mainApp">
     <div class="header">
         <span class="nick" id="currentNick">--</span>
         <button id="logoutBtn">Выйти</button>
     </div>
-
     <div class="mode-bar hidden" id="modeBar">
         <button id="backBtn">← Общий чат</button>
         <span id="modeTitle"></span>
     </div>
-
     <div class="chat" id="chat"></div>
-
     <div class="input-bar" id="inputBar">
         <input type="text" id="msgInput" placeholder="Сообщение...">
         <button id="sendBtn">➤</button>
@@ -466,12 +452,8 @@ body.dark .user-item {
         <button id="closeMenu">✕</button>
     </div>
     <div class="menu-body">
-        <div class="menu-item" id="themeItem">
-            <span>🌓</span> Сменить тему
-        </div>
-        <div class="menu-item" id="showUsersItem">
-            <span>👥</span> Пользователи
-        </div>
+        <div class="menu-item" id="themeItem">🌓 Сменить тему</div>
+        <div class="menu-item" id="showUsersItem">👥 Пользователи</div>
         <div id="usersList" class="user-list hidden"></div>
     </div>
 </div>
@@ -479,7 +461,6 @@ body.dark .user-item {
 <div class="call-indicator" id="callIndicator"></div>
 
 <script>
-// ========== DOM ЭЛЕМЕНТЫ ==========
 const authScreen = document.getElementById("authScreen");
 const authTitle = document.getElementById("authTitle");
 const authNick = document.getElementById("authNick");
@@ -487,7 +468,6 @@ const authPassword = document.getElementById("authPassword");
 const authActionBtn = document.getElementById("authActionBtn");
 const authSwitchBtn = document.getElementById("authSwitchBtn");
 const authError = document.getElementById("authError");
-
 const mainApp = document.getElementById("mainApp");
 const currentNickSpan = document.getElementById("currentNick");
 const logoutBtn = document.getElementById("logoutBtn");
@@ -506,7 +486,6 @@ const showUsersItem = document.getElementById("showUsersItem");
 const usersListDiv = document.getElementById("usersList");
 const callIndicator = document.getElementById("callIndicator");
 
-// ========== ПЕРЕМЕННЫЕ ==========
 let ws;
 let logged = false;
 let currentNick = "";
@@ -518,38 +497,19 @@ let pc = null;
 let localStream = null;
 let currentCallWith = null;
 
-const servers = {
-    iceServers: [
-        { urls: "stun:stun.l.google.com:19302" }
-    ]
-};
+const servers = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
-// ========== ПОДКЛЮЧЕНИЕ ==========
 function connect() {
     ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host);
-
     ws.onerror = (e) => console.log("ws error");
-
-    ws.onclose = () => {
-        if (logged) {
-            addSystem("❌ Соединение потеряно, переподключение...");
-        }
-        setTimeout(connect, 2000);
-    };
-
+    ws.onclose = () => { if (logged) addSystem("❌ Соединение потеряно"); setTimeout(connect, 2000); };
     ws.onmessage = (e) => {
-        let d;
-        try { d = JSON.parse(e.data); } catch { return; }
-
+        let d; try { d = JSON.parse(e.data); } catch { return; }
         if (d.type === "error") {
-            if (authScreen && !authScreen.classList.contains("hidden")) {
-                authError.textContent = d.text;
-            } else {
-                alert("❌ " + d.text);
-            }
+            if (!authScreen.classList.contains("hidden")) authError.textContent = d.text;
+            else alert("❌ " + d.text);
             return;
         }
-
         if (d.type === "register_success") {
             authError.style.color = "#4caf50";
             authError.textContent = d.text;
@@ -563,7 +523,6 @@ function connect() {
             }, 1500);
             return;
         }
-
         if (d.type === "login_success") {
             logged = true;
             currentNick = d.nick;
@@ -571,65 +530,29 @@ function connect() {
             authScreen.classList.add("hidden");
             mainApp.classList.remove("hidden");
             menuBtn.classList.remove("hidden");
-            
-            // ✅ ПРИВЯЗЫВАЕМ ОБРАБОТЧИКИ МЕНЮ
             menuBtn.onclick = () => menuPanel.classList.toggle("open");
             closeMenu.onclick = () => menuPanel.classList.remove("open");
-            
             document.title = "Чат: " + currentNick;
             addSystem(`✅ Вы вошли как ${currentNick}`);
             switchToPublic();
             return;
         }
-
         if (!logged) return;
-
-        if (d.type === "history" && currentMode === "public") {
-            renderMessages(d.data);
-            return;
-        }
-
-        if (d.type === "msg" && currentMode === "public") {
-            addMessage(d.data);
-            return;
-        }
-
-        if (d.type === "system") {
-            addSystem(d.text);
-            return;
-        }
-
-        if (d.type === "users") {
-            usersOnline = d.users;
-            renderUsersList();
-        }
-
+        if (d.type === "history" && currentMode === "public") { renderMessages(d.data); return; }
+        if (d.type === "msg" && currentMode === "public") { addMessage(d.data); return; }
+        if (d.type === "system") { addSystem(d.text); return; }
+        if (d.type === "users") { usersOnline = d.users; renderUsersList(); }
         if (d.type === "private_msg") {
-            if (currentMode === "private" && currentPrivateWith === d.with) {
-                addPrivateMessage(d.data);
-            } else {
-                addSystem(`💬 Новое сообщение от ${d.with}`);
-            }
+            if (currentMode === "private" && currentPrivateWith === d.with) addPrivateMessage(d.data);
+            else addSystem(`💬 Новое сообщение от ${d.with}`);
         }
-
-        if (d.type === "private_history" && currentMode === "private" && currentPrivateWith === d.with) {
-            renderPrivateMessages(d.data);
-        }
-
-        if (d.type === "delete") {
-            const el = document.getElementById(d.id);
-            if (el) el.remove();
-        }
-
-        if (d.type === "signal") {
-            handleSignal(d.from, d.signal);
-        }
+        if (d.type === "private_history" && currentMode === "private" && currentPrivateWith === d.with) { renderPrivateMessages(d.data); return; }
+        if (d.type === "delete") { const el = document.getElementById(d.id); if (el) el.remove(); }
+        if (d.type === "signal") handleSignal(d.from, d.signal);
     };
 }
-
 connect();
 
-// ========== АВТОРИЗАЦИЯ ==========
 function setAuthMode(login) {
     isLoginMode = login;
     if (isLoginMode) {
@@ -642,180 +565,153 @@ function setAuthMode(login) {
         authSwitchBtn.textContent = "Уже есть аккаунт? Вход";
     }
     authError.textContent = "";
-    authError.style.color = "#f44336";
 }
 
 authActionBtn.onclick = () => {
     const nick = authNick.value.trim();
     const password = authPassword.value.trim();
-
-    if (!nick || nick.length < 2) {
-        authError.textContent = "Ник от 2 символов";
-        return;
-    }
-    if (!password || password.length < 3) {
-        authError.textContent = "Пароль от 3 символов";
-        return;
-    }
-
-    if (isLoginMode) {
-        ws.send(JSON.stringify({ type: "login", nick: nick, password: password }));
-    } else {
-        ws.send(JSON.stringify({ type: "register", nick: nick, password: password }));
-    }
+    if (!nick || nick.length < 2) { authError.textContent = "Ник от 2 символов"; return; }
+    if (!password || password.length < 3) { authError.textContent = "Пароль от 3 символов"; return; }
+    if (isLoginMode) ws.send(JSON.stringify({ type: "login", nick, password }));
+    else ws.send(JSON.stringify({ type: "register", nick, password }));
 };
+authSwitchBtn.onclick = () => setAuthMode(!isLoginMode);
+logoutBtn.onclick = () => { if (ws) ws.close(); location.reload(); };
 
-authSwitchBtn.onclick = () => {
-    setAuthMode(!isLoginMode);
-};
-
-// ========== ВЫХОД ==========
-logoutBtn.onclick = () => {
-    if (ws) ws.close();
-    logged = false;
-    currentNick = "";
-    authNick.value = "";
-    authPassword.value = "";
-    authError.textContent = "";
-    setAuthMode(true);
-    authScreen.classList.remove("hidden");
-    mainApp.classList.add("hidden");
-    menuBtn.classList.add("hidden");
-    chatDiv.innerHTML = "";
-    currentMode = "public";
-    currentPrivateWith = "";
-    location.reload();
-};
-
-// ========== СООБЩЕНИЯ ==========
-function renderMessages(messages) {
-    chatDiv.innerHTML = "";
-    messages.forEach(m => addMessage(m));
-}
-
+function renderMessages(messages) { chatDiv.innerHTML = ""; messages.forEach(m => addMessage(m)); }
 function addMessage(m) {
-    const div = document.createElement("div");
-    div.className = "message";
+    const div = document.createElement("div"); div.className = "message";
     if (m.owner === currentNick) div.classList.add("own");
-    div.id = m.id;
-    div.textContent = m.text;
+    div.id = m.id; div.textContent = m.text;
     attachDelete(div, m.id);
-    chatDiv.appendChild(div);
-    chatDiv.scrollTop = chatDiv.scrollHeight;
+    chatDiv.appendChild(div); chatDiv.scrollTop = chatDiv.scrollHeight;
 }
-
-function renderPrivateMessages(messages) {
-    chatDiv.innerHTML = "";
-    messages.forEach(m => addPrivateMessage(m));
-}
-
+function renderPrivateMessages(messages) { chatDiv.innerHTML = ""; messages.forEach(m => addPrivateMessage(m)); }
 function addPrivateMessage(m) {
-    const div = document.createElement("div");
-    div.className = "message";
+    const div = document.createElement("div"); div.className = "message";
     const isOwn = (m.from === currentNick);
     if (isOwn) div.classList.add("own");
-    div.id = m.id;
-    div.textContent = (isOwn ? "→ " : "← ") + m.text;
+    div.id = m.id; div.textContent = (isOwn ? "→ " : "← ") + m.text;
     attachDelete(div, m.id);
-    chatDiv.appendChild(div);
-    chatDiv.scrollTop = chatDiv.scrollHeight;
+    chatDiv.appendChild(div); chatDiv.scrollTop = chatDiv.scrollHeight;
 }
-
 function attachDelete(div, id) {
-    let pressTimer;
-    div.ontouchstart = () => {
-        pressTimer = setTimeout(() => {
-            if (confirm("Удалить сообщение?")) {
-                ws.send(JSON.stringify({ type: "delete", id: id }));
-            }
-        }, 600);
-    };
-    div.ontouchend = () => clearTimeout(pressTimer);
-    div.ontouchmove = () => clearTimeout(pressTimer);
+    let timer;
+    div.ontouchstart = () => { timer = setTimeout(() => { if (confirm("Удалить?")) ws.send(JSON.stringify({ type: "delete", id })); }, 600); };
+    div.ontouchend = () => clearTimeout(timer);
+    div.ontouchmove = () => clearTimeout(timer);
 }
-
 function addSystem(text) {
-    const div = document.createElement("div");
-    div.className = "system";
-    div.textContent = text;
-    chatDiv.appendChild(div);
-    chatDiv.scrollTop = chatDiv.scrollHeight;
+    const div = document.createElement("div"); div.className = "system"; div.textContent = text;
+    chatDiv.appendChild(div); chatDiv.scrollTop = chatDiv.scrollHeight;
 }
-
 function sendText() {
     if (!logged) return;
     const text = msgInput.value.trim();
     if (!text) return;
-
-    if (currentMode === "public") {
-        ws.send(JSON.stringify({ type: "chat", text: text }));
-    } else if (currentMode === "private" && currentPrivateWith) {
-        ws.send(JSON.stringify({
-            type: "private_chat",
-            target: currentPrivateWith,
-            text: text
-        }));
-    }
+    if (currentMode === "public") ws.send(JSON.stringify({ type: "chat", text }));
+    else if (currentMode === "private" && currentPrivateWith) ws.send(JSON.stringify({ type: "private_chat", target: currentPrivateWith, text }));
     msgInput.value = "";
 }
-
-msgInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") sendText();
-});
+msgInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendText(); });
 sendBtn.onclick = sendText;
 
-// ========== РЕЖИМЫ ==========
 function switchToPublic() {
-    currentMode = "public";
-    currentPrivateWith = "";
-    modeBar.classList.add("hidden");
-    chatDiv.innerHTML = "";
-    ws.send(JSON.stringify({ type: "get_history" }));
+    currentMode = "public"; currentPrivateWith = ""; modeBar.classList.add("hidden");
+    chatDiv.innerHTML = ""; ws.send(JSON.stringify({ type: "get_history" }));
 }
-
 function switchToPrivate(withNick) {
-    if (withNick === currentNick) {
-        addSystem("❌ Нельзя писать самому себе");
-        return;
-    }
-    currentMode = "private";
-    currentPrivateWith = withNick;
-    modeBar.classList.remove("hidden");
-    modeTitle.textContent = `💬 ЛС с ${withNick}`;
-    chatDiv.innerHTML = "";
+    if (withNick === currentNick) { addSystem("❌ Нельзя писать себе"); return; }
+    currentMode = "private"; currentPrivateWith = withNick; modeBar.classList.remove("hidden");
+    modeTitle.textContent = `💬 ЛС с ${withNick}`; chatDiv.innerHTML = "";
     ws.send(JSON.stringify({ type: "get_private_history", with: withNick }));
 }
-
 backBtn.onclick = switchToPublic;
 
-// ========== ПОЛЬЗОВАТЕЛИ ==========
 let usersVisible = false;
-showUsersItem.onclick = () => {
-    usersVisible = !usersVisible;
-    usersListDiv.classList.toggle("hidden", !usersVisible);
-    if (usersVisible) renderUsersList();
-};
-
+showUsersItem.onclick = () => { usersVisible = !usersVisible; usersListDiv.classList.toggle("hidden", !usersVisible); if (usersVisible) renderUsersList(); };
 function renderUsersList() {
     if (!usersVisible) return;
     usersListDiv.innerHTML = "";
-
     const allUsers = JSON.parse(localStorage.getItem("allUsers") || "[]");
     const uniqueUsers = [...new Set([...allUsers, ...usersOnline])];
-
     uniqueUsers.forEach(u => {
         if (u === currentNick) return;
         const isOnline = usersOnline.includes(u);
-
-        const div = document.createElement("div");
-        div.className = "user-item";
-        div.innerHTML = `
-            <div>
-                <span class="${isOnline ? 'online-dot' : 'offline-dot'}"></span>
-                ${u} ${isOnline ? '🟢' : '⚫'}
-            </div>
-            <button onclick="switchToPrivate('${u}'); menuPanel.classList.remove('open');">💬</button>
-        `;
+        const div = document.createElement("div"); div.className = "user-item";
+        div.innerHTML = `<div><span class="${isOnline ? 'online-dot' : 'offline-dot'}"></span> ${u} ${isOnline ? '🟢' : '⚫'}</div><button onclick="switchToPrivate('${u}'); menuPanel.classList.remove('open');">💬</button>`;
         usersListDiv.appendChild(div);
     });
 }
+setInterval(() => {
+    const current = JSON.parse(localStorage.getItem("allUsers") || "[]");
+    const updated = [...new Set([...current, ...usersOnline])];
+    localStorage.setItem("allUsers", JSON.stringify(updated));
+    if (usersVisible) renderUsersList();
+}, 5000);
+
+let isDark = localStorage.getItem("theme") === "dark";
+if (isDark) document.body.classList.add("dark");
+themeItem.onclick = () => {
+    isDark = !isDark;
+    if (isDark) document.body.classList.add("dark"); else document.body.classList.remove("dark");
+    localStorage.setItem("theme", isDark ? "dark" : "light");
+};
+
+async function callUser(targetNick) {
+    if (currentCallWith === targetNick) { endCall(); return; }
+    if (currentCallWith) endCall();
+    currentCallWith = targetNick;
+    updateCallIndicator();
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        pc = new RTCPeerConnection(servers);
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        pc.ontrack = (event) => { const audio = new Audio(); audio.srcObject = event.streams[0]; audio.play(); addSystem(`🔊 Говорим с ${targetNick}`); };
+        pc.onicecandidate = (event) => { if (event.candidate) ws.send(JSON.stringify({ type: "signal", target: targetNick, signal: { candidate: event.candidate } })); };
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        ws.send(JSON.stringify({ type: "signal", target: targetNick, signal: { sdp: offer } }));
+        addSystem(`📞 Звоним ${targetNick}...`);
+    } catch(e) { addSystem("❌ Ошибка звонка"); endCall(); }
+}
+function endCall() {
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    if (pc) { pc.close(); pc = null; }
+    if (currentCallWith) { addSystem(`📴 Звонок с ${currentCallWith} завершён`); currentCallWith = null; updateCallIndicator(); }
+}
+function updateCallIndicator() {
+    if (currentCallWith) {
+        callIndicator.innerHTML = `📞 В звонке: ${currentCallWith} <button onclick="endCall()">Завершить</button>`;
+        callIndicator.style.display = "block";
+        setTimeout(() => { if (!currentCallWith) callIndicator.style.display = "none"; }, 3000);
+    } else { callIndicator.style.display = "none"; }
+}
+async function handleSignal(from, signal) {
+    if (!pc && signal.sdp && signal.sdp.type === "offer") {
+        if (!confirm(`📞 ${from} звонит. Ответить?`)) return;
+        currentCallWith = from; updateCallIndicator();
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            pc = new RTCPeerConnection(servers);
+            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            pc.ontrack = (event) => { const audio = new Audio(); audio.srcObject = event.streams[0]; audio.play(); addSystem(`🔊 Говорим с ${from}`); };
+            pc.onicecandidate = (event) => { if (event.candidate) ws.send(JSON.stringify({ type: "signal", target: from, signal: { candidate: event.candidate } })); };
+            await pc.setRemoteDescription(signal.sdp);
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            ws.send(JSON.stringify({ type: "signal", target: from, signal: { sdp: answer } }));
+            addSystem(`📞 Разговор с ${from}`);
+        } catch(e) { endCall(); }
+        return;
+    }
+    if (!pc) return;
+    if (signal.sdp) await pc.setRemoteDescription(signal.sdp);
+    if (signal.candidate) await pc.addIceCandidate(signal.candidate);
+}
+window.switchToPrivate = switchToPrivate;
+window.endCall = endCall;
+window.callUser = callUser;
+</script>
+</body>
+</html>
