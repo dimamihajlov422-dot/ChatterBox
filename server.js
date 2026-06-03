@@ -12,45 +12,40 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const DB_FILE = path.join(__dirname, "db.json");
 
-let history = [];
+let db = { messages: [] };
 
 try {
     if (fs.existsSync(DB_FILE)) {
-        const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
-        history = Array.isArray(data) ? data : [];
+        db = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
     }
-} catch {
-    history = [];
-}
+} catch {}
 
 let clients = new Map();
 
+/* ROOM ID (как в Telegram диалог) */
+function roomId(a,b){
+    return [a,b].sort().join("_");
+}
+
 function save(){
-    fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
+    fs.writeFileSync(DB_FILE, JSON.stringify(db,null,2));
 }
 
 function now(){
-    return new Date().toLocaleTimeString("ru-RU", {
-        timeZone:"Europe/Moscow",
-        hour:"2-digit",
-        minute:"2-digit"
-    });
+    return new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
 }
 
-function broadcast(obj){
+function sendToRoom(room, obj){
     const data = JSON.stringify(obj);
 
-    for(const c of wss.clients){
-        if(c.readyState === WebSocket.OPEN){
-            c.send(data);
+    for(const [ws,u] of clients){
+        if(u.room === room && ws.readyState === 1){
+            ws.send(data);
         }
     }
 }
 
 wss.on("connection",(ws)=>{
-
-    ws.ready = false;
-    ws.queue = [];
 
     ws.on("message",(raw)=>{
 
@@ -58,94 +53,82 @@ wss.on("connection",(ws)=>{
         try{ msg = JSON.parse(raw); }
         catch{return;}
 
-        // NICK
-        if(msg.type === "nick"){
+        /* LOGIN */
+        if(msg.type==="nick"){
+            clients.set(ws,{
+                nick:msg.nick,
+                room:"global"
+            });
 
-            for(const u of clients.values()){
-                if(u.nick === msg.nick){
-                    ws.send(JSON.stringify({
-                        type:"error",
-                        text:"Ник уже занят"
-                    }));
-                    return;
-                }
-            }
-
-            clients.set(ws,{nick:msg.nick});
-
-            ws.ready = true;
-
-            // отправка истории
-            for(const m of history){
-                ws.send(JSON.stringify({type:"msg", data:m}));
-            }
-
-            // отправка очереди (если были сообщения до подключения)
-            ws.queue.forEach(q => ws.send(JSON.stringify(q)));
-            ws.queue = [];
-
-            broadcast({
-                type:"msg",
-                data:{
-                    id:Date.now().toString(),
-                    text:`[${now()}] 🟢 ${msg.nick} вошёл`
-                }
+            sendToRoom("global",{
+                type:"system",
+                text:`🟢 ${msg.nick} вошёл`
             });
 
             return;
         }
 
         const user = clients.get(ws);
-        const nick = user ? user.nick : "Anon";
+        if(!user) return;
 
-        // CHAT
-        if(msg.type === "chat"){
-
-            const m = {
-                id:Date.now().toString(),
-                text:`[${now()}] ${nick}: ${msg.text}`
-            };
-
-            history.push(m);
-            save();
-
-            broadcast({type:"msg", data:m});
+        /* SWITCH ROOM */
+        if(msg.type==="room"){
+            user.room = msg.room;
             return;
         }
 
-        // DM
-        if(msg.type === "dm"){
+        /* CHAT */
+        if(msg.type==="chat"){
 
-            const payload = {
-                type:"dm",
-                from:nick,
-                to:msg.to,
-                text:msg.text
+            const m = {
+                id:Date.now().toString(),
+                room:user.room,
+                text:`[${now()}] ${user.nick}: ${msg.text}`
             };
 
-            for(const [sock,u] of clients){
-                if(u.nick === msg.to){
-                    sock.send(JSON.stringify(payload));
-                }
-            }
+            db.messages.push(m);
+            save();
 
-            ws.send(JSON.stringify(payload));
+            sendToRoom(user.room,{
+                type:"msg",
+                data:m
+            });
+
+            return;
+        }
+
+        /* DM (как Telegram чат 1-1) */
+        if(msg.type==="dm"){
+
+            const room = roomId(user.nick,msg.to);
+
+            const m = {
+                id:Date.now().toString(),
+                room,
+                text:`[${now()}] ${user.nick}: ${msg.text}`
+            };
+
+            db.messages.push(m);
+            save();
+
+            sendToRoom(room,{
+                type:"msg",
+                data:m
+            });
+
+            return;
         }
     });
 
     ws.on("close",()=>{
         const u = clients.get(ws);
-        clients.delete(ws);
-
         if(u){
-            broadcast({
-                type:"msg",
-                data:{
-                    id:Date.now().toString(),
-                    text:`[${now()}] 🔴 ${u.nick} вышел`
-                }
+            sendToRoom("global",{
+                type:"system",
+                text:`🔴 ${u.nick} вышел`
             });
         }
+        clients.delete(ws);
     });
 });
 
