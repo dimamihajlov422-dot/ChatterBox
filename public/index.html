@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Chat v22 — Mobile</title>
+<title>Chat v23</title>
 
 <style>
 * {
@@ -69,6 +69,11 @@ body.dark #menuPanel {
 
 body.dark .user-item {
     background: #2d2d2d;
+}
+
+body.dark .menu-item {
+    background: #2d2d2d;
+    color: white;
 }
 
 /* ===== ШАПКА С ЛОГИНОМ ===== */
@@ -172,13 +177,14 @@ body.dark .user-item {
     color: white;
     font-size: 20px;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
-/* ===== МЕНЮ ===== */
+/* ===== МЕНЮ (выезжающее слева) ===== */
 #menuBtn {
     position: fixed;
-    top: 12px;
-    left: 12px;
+    top: 16px;
+    left: 16px;
     width: 44px;
     height: 44px;
     border-radius: 50%;
@@ -189,8 +195,41 @@ body.dark .user-item {
     z-index: 200;
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
+/* Стрелка ЛС (справа сверху, не налезает на меню) */
+#dmArrow {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0,132,255,0.9);
+    border: none;
+    color: white;
+    font-size: 20px;
+    z-index: 200;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Отступ сверху для чата, чтобы не наезжать на кнопки */
+#chat {
+    margin-top: 60px;
+}
+
+#header {
+    margin-top: 0;
+}
+
+/* Меню панель */
 #menuPanel {
     position: fixed;
     top: 0;
@@ -246,11 +285,6 @@ body.dark .user-item {
     font-size: 16px;
 }
 
-body.dark .menu-item {
-    background: #2d2d2d;
-    color: white;
-}
-
 #menuUsersList {
     margin-top: 16px;
     max-height: 300px;
@@ -267,10 +301,6 @@ body.dark .menu-item {
     align-items: center;
 }
 
-body.dark .user-item {
-    background: #2d2d2d;
-}
-
 .user-item button {
     background: #4caf50;
     border: none;
@@ -282,23 +312,6 @@ body.dark .user-item {
 
 .user-item button.active {
     background: #f44336;
-}
-
-/* Стрелка ЛС */
-#dmArrow {
-    position: fixed;
-    top: 12px;
-    right: 12px;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: rgba(0,132,255,0.9);
-    border: none;
-    color: white;
-    font-size: 20px;
-    z-index: 200;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 /* Индикатор звонка */
@@ -336,7 +349,7 @@ body.dark .user-item {
 <body class="light">
 
 <button id="menuBtn">☰</button>
-<button id="dmArrow" onclick="alert('Личные сообщения скоро')">💬</button>
+<button id="dmArrow" onclick="alert('Личные сообщения скоро ✨')">💬</button>
 
 <div id="menuPanel">
     <div id="menuHeader">
@@ -417,13 +430,6 @@ function connect(){
 
     ws.onopen = () => {
         console.log("ws connected");
-        // Если уже был ник и не залогинены — пробуем залогиниться
-        if(currentNick && !logged){
-            ws.send(JSON.stringify({
-                type: "login",
-                nick: currentNick
-            }));
-        }
     };
 
     ws.onmessage = (e) => {
@@ -436,6 +442,18 @@ function connect(){
             if(d.text.includes("Ник")){
                 resetLogin();
             }
+            return;
+        }
+
+        if(d.type === "login_success"){
+            logged = true;
+            currentNick = d.nick;
+            nickInput.disabled = true;
+            loginBtn.disabled = true;
+            inputArea.classList.remove("hidden");
+            document.title = "Чат: " + currentNick;
+            nickInput.style.opacity = "0.6";
+            addSystem(`✅ Вы вошли как ${currentNick}`);
             return;
         }
 
@@ -472,25 +490,15 @@ function login(){
         return;
     }
     
-    currentNick = nick;
-    
     ws.send(JSON.stringify({
         type: "login",
         nick: nick
     }));
 }
 
-function onLoginSuccess(){
-    logged = true;
-    nickInput.disabled = true;
-    loginBtn.disabled = true;
-    inputArea.classList.remove("hidden");
-    document.title = "Чат: " + currentNick;
-    nickInput.style.opacity = "0.6";
-}
-
 function resetLogin(){
     logged = false;
+    currentNick = "";
     nickInput.disabled = false;
     loginBtn.disabled = false;
     inputArea.classList.add("hidden");
@@ -749,27 +757,6 @@ if(savedTheme === "dark"){
     document.body.classList.remove("light");
     document.body.classList.add("dark");
 }
-
-// Обработчик успешного логина через сервер (нужно добавить в сервер)
-// Пока просто слушаем что приходит от сервера
-// В сервере нет отдельного type:"login_success", поэтому добавим костыль:
-// При получении history или users — считаем что залогинились
-let loginConfirmed = false;
-const originalOnMessage = ws.onmessage;
-// Переопределим чуть позже, а пока добавим в сам обработчик выше
-
-// Добавим в обработчик ws.onmessage проверку на первый успешный ответ
-// Сделаем функцию которая вызывается при первом успешном сообщении после логина
-function checkLoginSuccess(){
-    if(!loginConfirmed && logged === false && currentNick){
-        loginConfirmed = true;
-        onLoginSuccess();
-    }
-}
-
-// Модифицируем существующий ws.onmessage добавив вызов checkLoginSuccess
-// Просто добавим в начало обработчика (но там уже есть код, проще заменить)
-// Перезапишу чуть выше — но для чистоты добавлю строку
 
 </script>
 
