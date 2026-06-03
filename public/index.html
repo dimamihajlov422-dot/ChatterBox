@@ -91,9 +91,12 @@ body.dark .auth-card input { background: #2d2d2d; color: white; border-color: #4
     background: #e4e6eb;
     align-self: flex-start;
     word-break: break-word;
+    position: relative;
 }
 body.dark .message { background: #2d2d2d; color: white; }
 .message.own { background: #0084ff; color: white; align-self: flex-end; }
+.message img { max-width: 100%; border-radius: 12px; margin-top: 5px; cursor: pointer; }
+.message .reply-header { font-size: 12px; opacity: 0.7; margin-bottom: 5px; padding-left: 8px; border-left: 3px solid; }
 .system {
     text-align: center;
     font-size: 11px;
@@ -135,6 +138,7 @@ body.dark .input-bar input { background: #2d2d2d; color: white; border-color: #4
     cursor: pointer;
     flex-shrink: 0;
 }
+#attachBtn { background: #6c757d; }
 .menu-btn {
     position: fixed;
     bottom: 80px;
@@ -232,6 +236,23 @@ body.dark .user-item { background: #2d2d2d; }
     display: none;
 }
 .call-indicator button { background: #f44336; border: none; padding: 4px 12px; border-radius: 20px; color: white; margin-left: 12px; cursor: pointer; }
+.context-menu {
+    position: fixed;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    z-index: 1000;
+    overflow: hidden;
+    display: none;
+}
+body.dark .context-menu { background: #2d2d2d; }
+.context-menu div {
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.context-menu div:hover { background: #f0f0f0; }
+body.dark .context-menu div:hover { background: #1e1e1e; }
 .hidden { display: none; }
 </style>
 </head>
@@ -261,6 +282,7 @@ body.dark .user-item { background: #2d2d2d; }
     <div class="chat" id="chat"></div>
     <div class="input-bar" id="inputBar">
         <input type="text" id="msgInput" placeholder="Сообщение...">
+        <button id="attachBtn">📎</button>
         <button id="sendBtn">➤</button>
     </div>
 </div>
@@ -274,6 +296,7 @@ body.dark .user-item { background: #2d2d2d; }
     </div>
     <div class="menu-body">
         <div class="menu-item" id="themeItem">🌓 Сменить тему</div>
+        <div class="menu-item" id="soundItem">🔊 Звук: Вкл</div>
         <div class="search-box">
             <input type="text" id="searchUser" placeholder="🔍 Поиск пользователя...">
         </div>
@@ -282,6 +305,7 @@ body.dark .user-item { background: #2d2d2d; }
 </div>
 
 <div class="call-indicator" id="callIndicator"></div>
+<div class="context-menu" id="contextMenu"></div>
 
 <script>
 const authScreen = document.getElementById("authScreen");
@@ -301,13 +325,16 @@ const chatDiv = document.getElementById("chat");
 const inputBar = document.getElementById("inputBar");
 const msgInput = document.getElementById("msgInput");
 const sendBtn = document.getElementById("sendBtn");
+const attachBtn = document.getElementById("attachBtn");
 const menuBtn = document.getElementById("menuBtn");
 const menuPanel = document.getElementById("menuPanel");
 const closeMenu = document.getElementById("closeMenu");
 const themeItem = document.getElementById("themeItem");
+const soundItem = document.getElementById("soundItem");
 const usersListDiv = document.getElementById("usersList");
 const searchUser = document.getElementById("searchUser");
 const callIndicator = document.getElementById("callIndicator");
+const contextMenu = document.getElementById("contextMenu");
 
 let ws;
 let logged = false;
@@ -317,6 +344,10 @@ let currentPrivateWith = "";
 let usersOnline = [];
 let allUsers = [];
 let isLoginMode = true;
+let soundEnabled = true;
+let currentMessageElement = null;
+let replyToMsg = null;
+
 let pc = null;
 let localStream = null;
 let currentCallWith = null;
@@ -361,8 +392,8 @@ function connect() {
         }
         if (!logged) return;
         if (d.type === "history" && currentMode === "public") { renderMessages(d.data); return; }
-        if (d.type === "msg" && currentMode === "public") { addMessage(d.data); return; }
-        if (d.type === "system") { addSystem(d.text); return; }
+        if (d.type === "msg" && currentMode === "public") { addMessage(d.data); notify(d.data.text); return; }
+        if (d.type === "system") { addSystem(d.text); notify(d.text); return; }
         if (d.type === "users") { 
             usersOnline = d.users; 
             allUsers = [...new Set([...allUsers, ...usersOnline])];
@@ -371,13 +402,27 @@ function connect() {
         if (d.type === "private_msg") {
             if (currentMode === "private" && currentPrivateWith === d.with) addPrivateMessage(d.data);
             else addSystem(`💬 Новое сообщение от ${d.with}`);
+            notify(`📩 ${d.with}: ${d.data.text}`);
         }
         if (d.type === "private_history" && currentMode === "private" && currentPrivateWith === d.with) { renderPrivateMessages(d.data); return; }
         if (d.type === "delete") { const el = document.getElementById(d.id); if (el) el.remove(); }
+        if (d.type === "edit") { 
+            const el = document.getElementById(d.id);
+            if (el) el.childNodes[0].textContent = d.newText;
+        }
         if (d.type === "signal") handleSignal(d.from, d.signal);
     };
 }
 connect();
+
+function notify(text) {
+    if (!soundEnabled) return;
+    if (Notification.permission === "granted") {
+        new Notification("Новое сообщение", { body: text });
+    } else if (Notification.permission !== "denied") {
+        Notification.requestPermission();
+    }
+}
 
 function setAuthMode(login) {
     isLoginMode = login;
@@ -408,8 +453,24 @@ function renderMessages(messages) { chatDiv.innerHTML = ""; messages.forEach(m =
 function addMessage(m) {
     const div = document.createElement("div"); div.className = "message";
     if (m.owner === currentNick) div.classList.add("own");
-    div.id = m.id; div.textContent = m.text;
-    attachDelete(div, m.id);
+    div.id = m.id;
+    if (m.replyTo) {
+        const replyDiv = document.createElement("div");
+        replyDiv.className = "reply-header";
+        replyDiv.textContent = `↩️ Ответ на: ${m.replyTo.text.substring(0, 50)}`;
+        div.appendChild(replyDiv);
+    }
+    if (m.image) {
+        const img = document.createElement("img");
+        img.src = m.image;
+        img.style.maxWidth = "200px";
+        img.style.borderRadius = "12px";
+        div.appendChild(img);
+    }
+    const textSpan = document.createElement("span");
+    textSpan.textContent = m.text;
+    div.appendChild(textSpan);
+    attachContextMenu(div, m);
     chatDiv.appendChild(div); chatDiv.scrollTop = chatDiv.scrollHeight;
 }
 function renderPrivateMessages(messages) { chatDiv.innerHTML = ""; messages.forEach(m => addPrivateMessage(m)); }
@@ -417,33 +478,93 @@ function addPrivateMessage(m) {
     const div = document.createElement("div"); div.className = "message";
     const isOwn = (m.from === currentNick);
     if (isOwn) div.classList.add("own");
-    div.id = m.id; div.textContent = (isOwn ? "→ " : "← ") + m.text;
-    attachDelete(div, m.id);
+    div.id = m.id;
+    if (m.replyTo) {
+        const replyDiv = document.createElement("div");
+        replyDiv.className = "reply-header";
+        replyDiv.textContent = `↩️ Ответ на: ${m.replyTo.text.substring(0, 50)}`;
+        div.appendChild(replyDiv);
+    }
+    if (m.image) {
+        const img = document.createElement("img");
+        img.src = m.image;
+        img.style.maxWidth = "200px";
+        img.style.borderRadius = "12px";
+        div.appendChild(img);
+    }
+    const textSpan = document.createElement("span");
+    textSpan.textContent = (isOwn ? "→ " : "← ") + m.text;
+    div.appendChild(textSpan);
+    attachContextMenu(div, m);
     chatDiv.appendChild(div); chatDiv.scrollTop = chatDiv.scrollHeight;
 }
-function attachDelete(div, id) {
+
+function attachContextMenu(div, msg) {
+    const showMenu = (x, y) => {
+        contextMenu.innerHTML = "";
+        const items = [
+            { text: "✏️ Изменить", action: () => editMessage(msg) },
+            { text: "📋 Копировать", action: () => copyMessage(msg) },
+            { text: "↪️ Ответить", action: () => replyToMessage(msg) },
+            { text: "➡️ Переслать", action: () => forwardMessage(msg) },
+            { text: "🗑️ Удалить", action: () => deleteMessage(msg) }
+        ];
+        items.forEach(item => {
+            const itemDiv = document.createElement("div");
+            itemDiv.textContent = item.text;
+            itemDiv.onclick = () => { contextMenu.style.display = "none"; item.action(); };
+            contextMenu.appendChild(itemDiv);
+        });
+        contextMenu.style.left = x + "px";
+        contextMenu.style.top = y + "px";
+        contextMenu.style.display = "block";
+        setTimeout(() => { document.addEventListener("click", () => contextMenu.style.display = "none", { once: true }); }, 100);
+    };
+    div.addEventListener("contextmenu", (e) => { e.preventDefault(); showMenu(e.clientX, e.clientY); });
     let timer;
-    const start = () => { timer = setTimeout(() => { if (confirm("Удалить?")) ws.send(JSON.stringify({ type: "delete", id })); }, 600); };
-    const cancel = () => clearTimeout(timer);
-    div.addEventListener("touchstart", start);
-    div.addEventListener("touchend", cancel);
-    div.addEventListener("touchmove", cancel);
-    div.addEventListener("mousedown", start);
-    div.addEventListener("mouseup", cancel);
-    div.addEventListener("mouseleave", cancel);
+    div.addEventListener("touchstart", (e) => { timer = setTimeout(() => { showMenu(e.touches[0].clientX, e.touches[0].clientY); }, 600); });
+    div.addEventListener("touchend", () => clearTimeout(timer));
+    div.addEventListener("touchmove", () => clearTimeout(timer));
 }
+
+function editMessage(msg) {
+    const newText = prompt("Редактировать сообщение:", msg.text);
+    if (newText && newText.trim()) {
+        ws.send(JSON.stringify({ type: "edit", id: msg.id, text: newText.trim() }));
+    }
+}
+function copyMessage(msg) { navigator.clipboard.writeText(msg.text); addSystem("📋 Скопировано"); }
+function replyToMessage(msg) { replyToMsg = msg; msgInput.placeholder = `↩️ Ответ ${msg.text.substring(0, 30)}...`; }
+function forwardMessage(msg) { msgInput.value = msg.text; msgInput.focus(); }
+function deleteMessage(msg) { if (confirm("Удалить?")) ws.send(JSON.stringify({ type: "delete", id: msg.id })); }
+
 function addSystem(text) {
     const div = document.createElement("div"); div.className = "system"; div.textContent = text;
     chatDiv.appendChild(div); chatDiv.scrollTop = chatDiv.scrollHeight;
 }
 function sendText() {
     if (!logged) return;
-    const text = msgInput.value.trim();
-    if (!text) return;
-    if (currentMode === "public") ws.send(JSON.stringify({ type: "chat", text }));
-    else if (currentMode === "private" && currentPrivateWith) ws.send(JSON.stringify({ type: "private_chat", target: currentPrivateWith, text }));
-    msgInput.value = "";
+    let text = msgInput.value.trim();
+    if (!text && !pendingImage) return;
+    const replyId = replyToMsg ? replyToMsg.id : null;
+    if (currentMode === "public") ws.send(JSON.stringify({ type: "chat", text, image: pendingImage, replyTo: replyId }));
+    else if (currentMode === "private" && currentPrivateWith) ws.send(JSON.stringify({ type: "private_chat", target: currentPrivateWith, text, image: pendingImage, replyTo: replyId }));
+    msgInput.value = ""; replyToMsg = null; pendingImage = null;
+    msgInput.placeholder = "Сообщение...";
 }
+let pendingImage = null;
+attachBtn.onclick = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = () => {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = () => { pendingImage = reader.result; addSystem("🖼️ Изображение прикреплено. Отправь сообщение."); };
+        reader.readAsDataURL(file);
+    };
+    input.click();
+};
 msgInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendText(); });
 sendBtn.onclick = sendText;
 
@@ -459,30 +580,17 @@ function switchToPrivate(withNick) {
 }
 backBtn.onclick = switchToPublic;
 
-// ===== МЕНЮ =====
-menuBtn.onclick = () => {
-    menuPanel.classList.toggle("open");
-    if (menuPanel.classList.contains("open")) {
-        renderUsersList();
-    }
-};
+menuBtn.onclick = () => { menuPanel.classList.toggle("open"); if (menuPanel.classList.contains("open")) renderUsersList(); };
 closeMenu.onclick = () => menuPanel.classList.remove("open");
 document.addEventListener("click", (e) => {
-    if (menuPanel.classList.contains("open") && e.target !== menuBtn && !menuPanel.contains(e.target)) {
-        menuPanel.classList.remove("open");
-    }
+    if (menuPanel.classList.contains("open") && e.target !== menuBtn && !menuPanel.contains(e.target)) menuPanel.classList.remove("open");
 });
 
 function renderUsersList() {
     let searchText = searchUser.value.toLowerCase();
     let filtered = allUsers.filter(u => u !== currentNick);
-    if (searchText) {
-        filtered = filtered.filter(u => u.toLowerCase().includes(searchText));
-    }
-    if (filtered.length === 0) {
-        usersListDiv.innerHTML = '<div style="padding: 12px; text-align: center; color: gray;">👤 Никого не найдено</div>';
-        return;
-    }
+    if (searchText) filtered = filtered.filter(u => u.toLowerCase().includes(searchText));
+    if (filtered.length === 0) { usersListDiv.innerHTML = '<div style="padding: 12px; text-align: center; color: gray;">👤 Никого не найдено</div>'; return; }
     usersListDiv.innerHTML = "";
     filtered.forEach(u => {
         const isOnline = usersOnline.includes(u);
@@ -492,13 +600,7 @@ function renderUsersList() {
     });
 }
 searchUser.addEventListener("input", renderUsersList);
-
-setInterval(() => {
-    if (usersOnline.length > 0) {
-        allUsers = [...new Set([...allUsers, ...usersOnline])];
-        if (menuPanel.classList.contains("open")) renderUsersList();
-    }
-}, 5000);
+setInterval(() => { if (usersOnline.length) { allUsers = [...new Set([...allUsers, ...usersOnline])]; if (menuPanel.classList.contains("open")) renderUsersList(); } }, 5000);
 
 let isDark = localStorage.getItem("theme") === "dark";
 if (isDark) document.body.classList.add("dark");
@@ -507,12 +609,15 @@ themeItem.onclick = () => {
     if (isDark) document.body.classList.add("dark"); else document.body.classList.remove("dark");
     localStorage.setItem("theme", isDark ? "dark" : "light");
 };
+soundItem.onclick = () => {
+    soundEnabled = !soundEnabled;
+    soundItem.innerHTML = soundEnabled ? "🔊 Звук: Вкл" : "🔇 Звук: Выкл";
+};
 
 async function callUser(targetNick) {
     if (currentCallWith === targetNick) { endCall(); return; }
     if (currentCallWith) endCall();
-    currentCallWith = targetNick;
-    updateCallIndicator();
+    currentCallWith = targetNick; updateCallIndicator();
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         pc = new RTCPeerConnection(servers);
@@ -531,11 +636,9 @@ function endCall() {
     if (currentCallWith) { addSystem(`📴 Звонок с ${currentCallWith} завершён`); currentCallWith = null; updateCallIndicator(); }
 }
 function updateCallIndicator() {
-    if (currentCallWith) {
-        callIndicator.innerHTML = `📞 В звонке: ${currentCallWith} <button onclick="endCall()">Завершить</button>`;
-        callIndicator.style.display = "block";
-        setTimeout(() => { if (!currentCallWith) callIndicator.style.display = "none"; }, 3000);
-    } else { callIndicator.style.display = "none"; }
+    if (currentCallWith) { callIndicator.innerHTML = `📞 В звонке: ${currentCallWith} <button onclick="endCall()">Завершить</button>`; callIndicator.style.display = "block";
+    setTimeout(() => { if (!currentCallWith) callIndicator.style.display = "none"; }, 3000);
+    } else callIndicator.style.display = "none";
 }
 async function handleSignal(from, signal) {
     if (!pc && signal.sdp && signal.sdp.type === "offer") {
