@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const WebSocket = require("ws");
 const fs = require("fs");
+const crypto = require("crypto");
 
 const app = express();
 const server = http.createServer(app);
@@ -11,33 +12,62 @@ app.use(express.static("public"));
 
 let history = [];
 let privateHistory = {};
-let users = new Map();
+let usersOnline = new Map();
 let rate = new Map();
+let usersDB = {};
+
+const DB_FILE = "db.json";
+const PRIVATE_FILE = "private.json";
+const USERS_FILE = "users.json";
+
+/* ===== ЗАГРУЗКА ПОЛЬЗОВАТЕЛЕЙ ===== */
+try {
+    if (fs.existsSync(USERS_FILE)) {
+        usersDB = JSON.parse(fs.readFileSync(USERS_FILE, "utf8")) || {};
+        console.log(`✅ Загружено ${Object.keys(usersDB).length} пользователей`);
+    } else {
+        console.log("📁 users.json не найден, создаю пустой...");
+        fs.writeFileSync(USERS_FILE, JSON.stringify({}, null, 2));
+        usersDB = {};
+    }
+} catch (e) {
+    console.error("Ошибка загрузки users.json:", e);
+    usersDB = {};
+}
 
 /* ===== ЗАГРУЗКА ИСТОРИИ ===== */
 try {
-    if (fs.existsSync("db.json")) {
-        history = JSON.parse(fs.readFileSync("db.json", "utf8")) || [];
+    if (fs.existsSync(DB_FILE)) {
+        history = JSON.parse(fs.readFileSync(DB_FILE, "utf8")) || [];
     }
 } catch {
     history = [];
 }
 
 try {
-    if (fs.existsSync("private.json")) {
-        privateHistory = JSON.parse(fs.readFileSync("private.json", "utf8")) || {};
+    if (fs.existsSync(PRIVATE_FILE)) {
+        privateHistory = JSON.parse(fs.readFileSync(PRIVATE_FILE, "utf8")) || {};
     }
 } catch {
     privateHistory = {};
 }
 
 /* ===== СОХРАНЕНИЕ ===== */
+function saveUsers() {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(usersDB, null, 2));
+}
+
 function savePublic() {
-    fs.writeFileSync("db.json", JSON.stringify(history.slice(-200), null, 2));
+    fs.writeFileSync(DB_FILE, JSON.stringify(history.slice(-200), null, 2));
 }
 
 function savePrivate() {
-    fs.writeFileSync("private.json", JSON.stringify(privateHistory, null, 2));
+    fs.writeFileSync(PRIVATE_FILE, JSON.stringify(privateHistory, null, 2));
+}
+
+/* ===== ХЭШИРОВАНИЕ ПАРОЛЯ (SHA-256) ===== */
+function hashPassword(password) {
+    return crypto.createHash("sha256").update(password).digest("hex");
 }
 
 /* ===== ЗАЩИТА ===== */
@@ -71,7 +101,7 @@ function broadcast(obj) {
 function sendUsers() {
     broadcast({
         type: "users",
-        users: Array.from(users.values())
+        users: Array.from(usersOnline.values())
     });
 }
 
@@ -84,8 +114,12 @@ function validNick(nick) {
     return true;
 }
 
-function nickExists(nick) {
-    for (const u of users.values()) {
+function nickExistsInDB(nick) {
+    return !!usersDB[nick];
+}
+
+function nickExistsOnline(nick) {
+    for (const u of usersOnline.values()) {
         if (u === nick) return true;
     }
     return false;
@@ -104,17 +138,6 @@ wss.on("connection", (ws) => {
         ws.isAlive = true;
     });
 
-    // Отправляем историю и список пользователей при подключении
-    ws.send(JSON.stringify({
-        type: "history",
-        data: history.slice(-200)
-    }));
-
-    ws.send(JSON.stringify({
-        type: "users",
-        users: Array.from(users.values())
-    }));
-
     ws.on("message", (raw) => {
         let msg;
         try {
@@ -123,33 +146,70 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        /* ===== ЛОГИН ===== */
-        if (msg.type === "login") {
-            if (!validNick(msg.nick)) {
-                ws.send(JSON.stringify({
-                    type: "error",
-                    text: "Ник 2-16 символов (буквы/цифры/_)"
-                }));
+        /* ===== РЕГИСТРАЦИЯ ===== */
+        if (msg.type === "register") {
+            const nick = msg.nick?.trim();
+            const password = msg.password?.trim();
+
+            if (!validNick(nick)) {
+                ws.send(JSON.stringify({ type: "error", text: "Ник 2-16 символов (буквы/цифры/_)" }));
                 return;
             }
 
-            const nick = msg.nick.trim();
+            if (!password || password.length < 3) {
+                ws.send(JSON.stringify({ type: "error", text: "Пароль минимум 3 символа" }));
+                return;
+            }
 
-            if (nickExists(nick)) {
-                ws.send(JSON.stringify({
-                    type: "error",
-                    text: "Ник занят"
-                }));
+            if (nickExistsInDB(nick)) {
+                ws.send(JSON.stringify({ type: "error", text: "Пользователь уже существует" }));
+                return;
+            }
+
+            usersDB[nick] = {
+                password: hashPassword(password),
+                created: new Date().toISOString()
+            };
+            saveUsers();
+
+            ws.send(JSON.stringify({ type: "register_success", text: "Регистрация успешна! Теперь войдите." }));
+            return;
+        }
+
+        /* ===== ЛОГИН ===== */
+        if (msg.type === "login") {
+            const nick = msg.nick?.trim();
+            const password = msg.password?.trim();
+
+            if (!validNick(nick)) {
+                ws.send(JSON.stringify({ type: "error", text: "Неверный ник или пароль" }));
+                return;
+            }
+
+            if (!password) {
+                ws.send(JSON.stringify({ type: "error", text: "Введите пароль" }));
+                return;
+            }
+
+            if (!nickExistsInDB(nick)) {
+                ws.send(JSON.stringify({ type: "error", text: "Пользователь не найден" }));
+                return;
+            }
+
+            if (usersDB[nick].password !== hashPassword(password)) {
+                ws.send(JSON.stringify({ type: "error", text: "Неверный пароль" }));
+                return;
+            }
+
+            if (nickExistsOnline(nick)) {
+                ws.send(JSON.stringify({ type: "error", text: "Этот пользователь уже в сети" }));
                 return;
             }
 
             ws.nick = nick;
-            users.set(ws, nick);
+            usersOnline.set(ws, nick);
 
-            ws.send(JSON.stringify({
-                type: "login_success",
-                nick: nick
-            }));
+            ws.send(JSON.stringify({ type: "login_success", nick: nick }));
 
             sendUsers();
 
@@ -161,12 +221,8 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // Проверка что залогинен
         if (!ws.nick) {
-            ws.send(JSON.stringify({
-                type: "error",
-                text: "Сначала логин"
-            }));
+            ws.send(JSON.stringify({ type: "error", text: "Сначала войдите" }));
             return;
         }
 
@@ -215,16 +271,14 @@ wss.on("connection", (ws) => {
             privateHistory[key] = privateHistory[key].slice(-200);
             savePrivate();
 
-            // Отправить отправителю
             ws.send(JSON.stringify({
                 type: "private_msg",
                 data: m,
                 with: targetNick
             }));
 
-            // Найти и отправить получателю
             let targetWs = null;
-            for (const [c, nick] of users.entries()) {
+            for (const [c, nick] of usersOnline.entries()) {
                 if (nick === targetNick) {
                     targetWs = c;
                     break;
@@ -242,7 +296,7 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        /* ===== ЗАПРОС ИСТОРИИ ЛИЧНЫХ СООБЩЕНИЙ ===== */
+        /* ===== ЗАПРОС ИСТОРИИ ===== */
         if (msg.type === "get_private_history") {
             const key = getPrivateKey(ws.nick, msg.with);
             ws.send(JSON.stringify({
@@ -253,7 +307,6 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        /* ===== ЗАПРОС ИСТОРИИ ОБЩЕГО ЧАТА ===== */
         if (msg.type === "get_history") {
             ws.send(JSON.stringify({
                 type: "history",
@@ -262,23 +315,18 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        /* ===== УДАЛЕНИЕ СООБЩЕНИЯ ===== */
+        /* ===== УДАЛЕНИЕ ===== */
         if (msg.type === "delete") {
             let found = false;
 
-            // Проверяем в общем чате
             const m = history.find(x => x.id === msg.id);
             if (m && m.owner === ws.nick) {
                 history = history.filter(x => x.id !== msg.id);
                 savePublic();
-                broadcast({
-                    type: "delete",
-                    id: msg.id
-                });
+                broadcast({ type: "delete", id: msg.id });
                 found = true;
             }
 
-            // Проверяем в личных чатах
             if (!found) {
                 for (const key in privateHistory) {
                     const idx = privateHistory[key].findIndex(x => x.id === msg.id);
@@ -287,25 +335,18 @@ wss.on("connection", (ws) => {
                         privateHistory[key].splice(idx, 1);
                         savePrivate();
 
-                        // Оповестить собеседника
                         const otherNick = deleted.from === ws.nick ? deleted.to : deleted.from;
                         let targetWs = null;
-                        for (const [c, nick] of users.entries()) {
+                        for (const [c, nick] of usersOnline.entries()) {
                             if (nick === otherNick) {
                                 targetWs = c;
                                 break;
                             }
                         }
                         if (targetWs && targetWs.readyState === 1) {
-                            targetWs.send(JSON.stringify({
-                                type: "delete",
-                                id: msg.id
-                            }));
+                            targetWs.send(JSON.stringify({ type: "delete", id: msg.id }));
                         }
-                        ws.send(JSON.stringify({
-                            type: "delete",
-                            id: msg.id
-                        }));
+                        ws.send(JSON.stringify({ type: "delete", id: msg.id }));
                         break;
                     }
                 }
@@ -313,10 +354,10 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        /* ===== WEBRTC СИГНАЛИНГ (ЗВОНКИ) ===== */
+        /* ===== WEBRTC ЗВОНКИ ===== */
         if (msg.type === "signal") {
             let targetWs = null;
-            for (const [c, nick] of users.entries()) {
+            for (const [c, nick] of usersOnline.entries()) {
                 if (nick === msg.target) {
                     targetWs = c;
                     break;
@@ -333,10 +374,9 @@ wss.on("connection", (ws) => {
         }
     });
 
-    /* ===== ОТКЛЮЧЕНИЕ ===== */
     ws.on("close", () => {
         if (ws.nick) {
-            users.delete(ws);
+            usersOnline.delete(ws);
             rate.delete(ws);
 
             sendUsers();
@@ -349,7 +389,7 @@ wss.on("connection", (ws) => {
     });
 });
 
-/* ===== PING PONG (ПРОВЕРКА ЖИВЫХ СОЕДИНЕНИЙ) ===== */
+/* ===== PING PONG ===== */
 setInterval(() => {
     wss.clients.forEach(ws => {
         if (!ws.isAlive) return ws.terminate();
@@ -360,5 +400,5 @@ setInterval(() => {
 
 server.listen(3000, () => {
     console.log("✅ Сервер запущен на порту 3000");
-    console.log("   Открой http://localhost:3000");
+    console.log("   http://localhost:3000");
 });
