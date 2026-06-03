@@ -26,9 +26,7 @@ function save(){
     fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
 }
 
-/* ===== CLIENTS ===== */
-let clients = new Map();
-
+/* ===== BROADCAST ===== */
 function broadcast(obj){
     const data = JSON.stringify(obj);
 
@@ -41,13 +39,15 @@ function broadcast(obj){
 
 wss.on("connection", (ws) => {
 
-    // отправляем историю
+    ws.id = Math.random().toString(36).slice(2);
+
+    // history
     ws.send(JSON.stringify({
         type:"history",
         data: history
     }));
 
-    ws.on("message", (raw) => {
+    ws.on("message", async (raw) => {
 
         let msg;
         try { msg = JSON.parse(raw.toString()); }
@@ -55,19 +55,13 @@ wss.on("connection", (ws) => {
 
         /* NICK */
         if(msg.type === "nick"){
-            ws.nick = msg.nick || "Anon";
-
-            broadcast({
-                type:"system",
-                text:`🟢 ${ws.nick} вошёл`
-            });
-
+            ws.nick = msg.nick;
+            broadcast({ type:"system", text:`🟢 ${ws.nick} вошёл` });
             return;
         }
 
         /* CHAT */
         if(msg.type === "chat"){
-
             const m = {
                 text:`${ws.nick || "Anon"}: ${msg.text}`
             };
@@ -75,20 +69,17 @@ wss.on("connection", (ws) => {
             history.push(m);
             save();
 
-            broadcast({
-                type:"msg",
-                data:m
-            });
-
+            broadcast({ type:"msg", data:m });
             return;
         }
 
-        /* CALL SIGNAL (WebRTC) */
-        if(msg.type === "call-signal"){
+        /* CALL SIGNAL */
+        if(msg.type === "signal"){
             for(const c of wss.clients){
                 if(c !== ws && c.readyState === 1){
                     c.send(JSON.stringify({
-                        type:"call-signal",
+                        type:"signal",
+                        from: ws.id,
                         data: msg.data
                     }));
                 }
@@ -96,20 +87,13 @@ wss.on("connection", (ws) => {
         }
 
         if(msg.type === "call-start"){
-            broadcast({
-                type:"system",
-                text:`📞 ${ws.nick || "Anon"} начал звонок`
-            });
+            broadcast({ type:"system", text:`📞 ${ws.nick} начал звонок` });
         }
 
         if(msg.type === "call-end"){
-            broadcast({
-                type:"system",
-                text:`📴 ${ws.nick || "Anon"} завершил звонок`
-            });
+            broadcast({ type:"system", text:`📴 ${ws.nick} завершил звонок` });
         }
     });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log("Server running"));
+server.listen(3000, () => console.log("Server running"));
