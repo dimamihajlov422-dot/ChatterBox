@@ -10,7 +10,7 @@ const wss = new WebSocket.Server({ server });
 app.use(express.static("public"));
 
 let history = [];
-let users = new Map();
+let users = new Map();   // ws -> nick
 let rate = new Map();
 
 /* ===== LOAD ===== */
@@ -27,15 +27,12 @@ function save(){
     fs.writeFileSync("db.json", JSON.stringify(history.slice(-200), null, 2));
 }
 
-/* ===== BROADCAST ===== */
-function broadcast(obj){
-    const data = JSON.stringify(obj);
-
-    for(const c of wss.clients){
-        if(c.readyState === 1){
-            c.send(data);
-        }
-    }
+/* ===== SAFE ===== */
+function escapeHtml(str){
+    return String(str)
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;");
 }
 
 /* ===== RATE LIMIT ===== */
@@ -50,15 +47,32 @@ function checkRate(ws){
     return arr.length <= 5;
 }
 
-/* ===== NICK VALIDATION ===== */
+/* ===== USERS BROADCAST ===== */
+function sendUsers(){
+    const list = Array.from(users.values());
+
+    broadcast({
+        type:"users",
+        users: list
+    });
+}
+
+/* ===== BROADCAST ===== */
+function broadcast(obj){
+    const data = JSON.stringify(obj);
+    for(const c of wss.clients){
+        if(c.readyState === 1){
+            c.send(data);
+        }
+    }
+}
+
+/* ===== VALIDATION ===== */
 function validNick(nick){
     if(typeof nick !== "string") return false;
-
     nick = nick.trim();
-
     if(nick.length < 2 || nick.length > 16) return false;
     if(!/^[a-zA-Zа-яА-Я0-9_]+$/.test(nick)) return false;
-
     return true;
 }
 
@@ -69,16 +83,22 @@ function nickExists(nick){
     return false;
 }
 
-/* ===== XSS SAFE ===== */
-function escapeHtml(str){
-    return String(str)
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;");
-}
-
 /* ===== WS ===== */
 wss.on("connection", (ws) => {
+
+    ws.isAlive = true;
+
+    ws.on("pong", ()=> ws.isAlive = true);
+
+    ws.send(JSON.stringify({
+        type:"history",
+        data: history.slice(-200)
+    }));
+
+    ws.send(JSON.stringify({
+        type:"users",
+        users: Array.from(users.values())
+    }));
 
     ws.on("message", (raw) => {
 
@@ -92,7 +112,7 @@ wss.on("connection", (ws) => {
             if(!validNick(msg.nick)){
                 ws.send(JSON.stringify({
                     type:"error",
-                    text:"Некорректный ник (2–16, буквы/цифры/_ )"
+                    text:"Ник 2–16 символов (буквы/цифры/_)"
                 }));
                 return;
             }
@@ -110,30 +130,33 @@ wss.on("connection", (ws) => {
             ws.nick = nick;
             users.set(ws, nick);
 
-            broadcast({
-                type:"users",
-                users: Array.from(users.values())
-            });
+            sendUsers();
 
             broadcast({
                 type:"system",
-                text:`🟢 ${nick} вошёл`
+                text:`🟢 ${escapeHtml(nick)} вошёл`
             });
 
             return;
         }
 
-        if(!ws.nick) return;
+        if(!ws.nick){
+            ws.send(JSON.stringify({
+                type:"error",
+                text:"Сначала логин"
+            }));
+            return;
+        }
 
         /* CHAT */
         if(msg.type === "chat"){
 
             if(!checkRate(ws)) return;
 
-            const text = escapeHtml((msg.text || "").slice(0,300));
-
             const m = {
-                text:`${ws.nick}: ${text}`
+                id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
+                text: escapeHtml(ws.nick) + ": " + escapeHtml((msg.text || "").slice(0, 300)),
+                owner: ws.nick
             };
 
             history.push(m);
@@ -144,32 +167,58 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        /* VOICE */
-        if(msg.type === "voice"){
-            if(!Array.isArray(msg.data)) return;
+        /* DELETE (SAFE OWNER CHECK) */
+        if(msg.type === "delete"){
 
-            for(const c of wss.clients){
-                if(c !== ws && c.readyState === 1){
-                    c.send(JSON.stringify({
-                        type:"voice",
-                        data: msg.data
-                    }));
-                }
-            }
+            const m = history.find(x => x.id === msg.id);
+
+            if(!m) return;
+            if(m.owner !== ws.nick) return;
+
+            history = history.filter(x => x.id !== msg.id);
+            save();
+
+            broadcast({
+                type:"delete",
+                id: msg.id
+            });
+
+            return;
+        }
+
+        /* CALL */
+        if(msg.type === "call-start"){
+            broadcast({ type:"system", text:`📞 ${escapeHtml(ws.nick)} в звонке` });
+        }
+
+        if(msg.type === "call-end"){
+            broadcast({ type:"system", text:`📴 ${escapeHtml(ws.nick)} вышел из звонка` });
         }
     });
 
     ws.on("close", () => {
 
-        users.delete(ws);
-
         if(ws.nick){
+            users.delete(ws);
+            rate.delete(ws);
+
+            sendUsers();
+
             broadcast({
                 type:"system",
-                text:`🔴 ${ws.nick} вышел`
+                text:`🔴 ${escapeHtml(ws.nick)} вышел`
             });
         }
     });
 });
 
-server.listen(3000, () => console.log("v15.1 SAFE running"));
+/* ===== PING PONG ===== */
+setInterval(() => {
+    wss.clients.forEach(ws => {
+        if(!ws.isAlive) return ws.terminate();
+        ws.isAlive = false;
+        ws.ping();
+    });
+}, 30000);
+
+server.listen(3000, () => console.log("v18 FINAL running"));
