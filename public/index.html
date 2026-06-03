@@ -3,22 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatterBox v6</title>
+<title>Chat + Call v7</title>
 
 <style>
 body{
     margin:0;
     font-family:Arial;
     background:#fff;
-    color:#000;
     height:100vh;
     display:flex;
     flex-direction:column;
-}
-
-body.dark{
-    background:#111;
-    color:#fff;
 }
 
 .top{
@@ -43,10 +37,6 @@ body.dark{
     border-radius:10px;
 }
 
-body.dark .msg{
-    background:#1e1e1e;
-}
-
 .bottom{
     display:flex;
     gap:8px;
@@ -56,17 +46,12 @@ body.dark .msg{
 
 input{
     flex:1;
-    padding:12px;
-    border-radius:10px;
-    border:1px solid #ccc;
+    padding:10px;
 }
 
 button{
-    min-width:48px;
-    min-height:48px;
-    border:none;
-    border-radius:10px;
-    font-size:18px;
+    min-width:45px;
+    min-height:45px;
 }
 </style>
 </head>
@@ -80,8 +65,7 @@ button{
     </div>
 
     <div>
-        <button onclick="toggleTheme()">🌙</button>
-        <button onclick="toggleCall()">📞</button>
+        <button onclick="startCall()">📞</button>
         <button onclick="toggleMute()">🔇</button>
     </div>
 </div>
@@ -89,7 +73,7 @@ button{
 <div id="chat"></div>
 
 <div class="bottom">
-    <input id="msg" placeholder="сообщение">
+    <input id="msg">
     <button onclick="send()">➤</button>
 </div>
 
@@ -97,40 +81,32 @@ button{
 
 let ws;
 let localStream;
-let peerConnections = {};
+let peers = {};
 let muted = false;
-let inCall = false;
 
 /* CONNECT */
 function connect(){
 
-    ws = new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
+    ws = new WebSocket(location.origin.replace("http","ws"));
 
     ws.onmessage = async (e)=>{
 
-        let d;
-        try{ d = JSON.parse(e.data); }
-        catch{return;}
+        let d = JSON.parse(e.data);
 
-        /* HISTORY */
-        if(d.type === "history"){
-            d.data.forEach(m=>{
-                addMsg(m.text);
-            });
+        if(d.type==="history"){
+            d.data.forEach(m=>add(m.text));
         }
 
-        /* MSG */
-        if(d.type === "msg"){
-            addMsg(d.data.text);
+        if(d.type==="msg"){
+            add(d.data.text);
         }
 
-        if(d.type === "system"){
-            addMsg(d.text);
+        if(d.type==="system"){
+            add(d.text);
         }
 
-        /* CALL SIGNAL */
-        if(d.type === "call-signal"){
-            handleSignal(d.data);
+        if(d.type==="signal"){
+            handleSignal(d.from, d.data);
         }
     };
 }
@@ -154,46 +130,89 @@ function setNick(){
     }));
 }
 
-/* MSG UI */
-function addMsg(t){
-    const div = document.createElement("div");
-    div.className="msg";
-    div.textContent=t;
-    chat.appendChild(div);
+/* UI */
+function add(t){
+    const d = document.createElement("div");
+    d.className="msg";
+    d.textContent=t;
+    chat.appendChild(d);
     chat.scrollTop = chat.scrollHeight;
 }
 
-/* ===== CALL (REAL WEBRTC) ===== */
+/* ===== CALL ===== */
 
-async function toggleCall(){
+async function startCall(){
 
-    inCall = !inCall;
+    localStream = await navigator.mediaDevices.getUserMedia({
+        audio:true
+    });
 
-    if(inCall){
+    ws.send(JSON.stringify({type:"call-start"}));
+}
 
-        localStream = await navigator.mediaDevices.getUserMedia({
-            audio:true
-        });
+/* PEER */
+async function createPeer(id){
 
-        ws.send(JSON.stringify({type:"call-start"}));
+    const pc = new RTCPeerConnection({
+        iceServers:[{urls:"stun:stun.l.google.com:19302"}]
+    });
 
-        addMsg("📞 звонок начат");
+    localStream.getTracks().forEach(t=>{
+        pc.addTrack(t, localStream);
+    });
 
-    } else {
+    pc.ontrack = (e)=>{
+        const audio = document.createElement("audio");
+        audio.autoplay = true;
+        audio.srcObject = e.streams[0];
+        document.body.appendChild(audio);
+    };
 
-        ws.send(JSON.stringify({type:"call-end"}));
+    pc.onicecandidate = (e)=>{
+        if(e.candidate){
+            ws.send(JSON.stringify({
+                type:"signal",
+                data:{type:"candidate", candidate:e.candidate, from:id}
+            }));
+        }
+    };
 
-        localStream.getTracks().forEach(t=>t.stop());
-        localStream = null;
+    peers[id] = pc;
+    return pc;
+}
 
-        addMsg("📴 звонок завершён");
+/* SIGNAL */
+async function handleSignal(id, data){
+
+    let pc = peers[id];
+    if(!pc) pc = await createPeer(id);
+
+    if(data.type==="candidate"){
+        try{
+            await pc.addIceCandidate(data.candidate);
+        }catch{}
+    }
+
+    if(data.type==="offer"){
+        await pc.setRemoteDescription(data.offer);
+        const ans = await pc.createAnswer();
+        await pc.setLocalDescription(ans);
+
+        ws.send(JSON.stringify({
+            type:"signal",
+            data:{type:"answer", answer:pc.localDescription, from:id}
+        }));
+    }
+
+    if(data.type==="answer"){
+        await pc.setRemoteDescription(data.answer);
     }
 }
 
 /* MUTE */
 function toggleMute(){
 
-    if(!localStream) return alert("Сначала звонок");
+    if(!localStream) return;
 
     muted = !muted;
 
@@ -201,54 +220,7 @@ function toggleMute(){
         t.enabled = !muted;
     });
 
-    addMsg(muted ? "🔇 mute" : "🎤 unmute");
-}
-
-/* ===== WEBRTC CORE ===== */
-
-async function createPeer(id){
-
-    const pc = new RTCPeerConnection({
-        iceServers:[{urls:"stun:stun.l.google.com:19302"}]
-    });
-
-    localStream.getTracks().forEach(track=>{
-        pc.addTrack(track, localStream);
-    });
-
-    pc.ontrack = (e)=>{
-        const audio = new Audio();
-        audio.srcObject = e.streams[0];
-        audio.play();
-    };
-
-    pc.onicecandidate = (e)=>{
-        if(e.candidate){
-            ws.send(JSON.stringify({
-                type:"call-signal",
-                data:e.candidate
-            }));
-        }
-    };
-
-    peerConnections[id] = pc;
-
-    return pc;
-}
-
-/* SIMPLE SIGNAL HANDLER */
-function handleSignal(data){
-    console.log("signal:", data);
-}
-
-/* ENTER */
-msg.addEventListener("keydown",(e)=>{
-    if(e.key==="Enter") send();
-});
-
-/* THEME */
-function toggleTheme(){
-    document.body.classList.toggle("dark");
+    add(muted ? "🔇 mute" : "🎤 unmute");
 }
 
 </script>
