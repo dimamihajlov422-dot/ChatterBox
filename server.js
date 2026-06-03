@@ -72,9 +72,8 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        /* VOICE DATA */
+        /* VOICE */
         if(msg.type === "voice"){
-            // просто ретрансляция аудио чанков
             for(const c of wss.clients){
                 if(c !== ws && c.readyState === 1){
                     c.send(JSON.stringify({
@@ -91,6 +90,12 @@ wss.on("connection", (ws) => {
 
         if(msg.type === "call-end"){
             broadcast({ type:"system", text:`📴 ${ws.nick} завершил звонок` });
+        }
+    });
+
+    ws.on("close", () => {
+        if(ws.nick){
+            broadcast({ type:"system", text:`🔴 ${ws.nick} вышел` });
         }
     });
 });
