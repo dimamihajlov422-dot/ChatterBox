@@ -5,12 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Мессенджер</title>
 <style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -21,28 +16,19 @@ body {
     transition: background 0.3s;
 }
 
-body.dark {
-    background: #121212;
-}
+body.dark { background: #121212; }
 
 .auth-screen {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background: #0084ff;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
     padding: 20px;
     z-index: 1000;
 }
-
-.auth-screen.hidden {
-    display: none;
-}
+.auth-screen.hidden { display: none; }
 
 .auth-card {
     background: white;
@@ -52,18 +38,8 @@ body.dark {
     max-width: 320px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.2);
 }
-
-body.dark .auth-card {
-    background: #1e1e1e;
-    color: white;
-}
-
-.auth-card h2 {
-    text-align: center;
-    margin-bottom: 24px;
-    font-size: 24px;
-}
-
+body.dark .auth-card { background: #1e1e1e; color: white; }
+.auth-card h2 { text-align: center; margin-bottom: 24px; font-size: 24px; }
 .auth-card input {
     width: 100%;
     padding: 14px;
@@ -73,13 +49,7 @@ body.dark .auth-card {
     font-size: 16px;
     outline: none;
 }
-
-body.dark .auth-card input {
-    background: #2d2d2d;
-    color: white;
-    border-color: #444;
-}
-
+body.dark .auth-card input { background: #2d2d2d; color: white; border-color: #444; }
 .auth-card button {
     width: 100%;
     padding: 14px;
@@ -92,29 +62,11 @@ body.dark .auth-card input {
     cursor: pointer;
     margin-bottom: 12px;
 }
+.auth-card .switch-btn { background: none; color: #0084ff; border: 1px solid #0084ff; }
+.error-msg { color: #f44336; text-align: center; font-size: 13px; margin-top: 8px; }
 
-.auth-card .switch-btn {
-    background: none;
-    color: #0084ff;
-    border: 1px solid #0084ff;
-}
-
-.error-msg {
-    color: #f44336;
-    text-align: center;
-    font-size: 13px;
-    margin-top: 8px;
-}
-
-.main-app {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-.main-app.hidden {
-    display: none;
-}
+.main-app { display: flex; flex-direction: column; height: 100%; }
+.main-app.hidden { display: none; }
 
 .header {
     background: #0084ff;
@@ -124,23 +76,8 @@ body.dark .auth-card input {
     gap: 12px;
     flex-shrink: 0;
 }
-
-.header .nick {
-    color: white;
-    font-weight: bold;
-    flex: 1;
-    font-size: 18px;
-}
-
-.header button {
-    background: rgba(255,255,255,0.2);
-    border: none;
-    padding: 8px 16px;
-    border-radius: 20px;
-    color: white;
-    font-size: 14px;
-    cursor: pointer;
-}
+.header .nick { color: white; font-weight: bold; flex: 1; font-size: 18px; }
+.header button { background: rgba(255,255,255,0.2); border: none; padding: 8px 16px; border-radius: 20px; color: white; font-size: 14px; cursor: pointer; }
 
 .mode-bar {
     background: #0084ff;
@@ -150,34 +87,10 @@ body.dark .auth-card input {
     align-items: center;
     flex-shrink: 0;
 }
+.mode-bar button { background: white; color: #0084ff; border: none; padding: 8px 16px; border-radius: 24px; font-weight: bold; font-size: 14px; cursor: pointer; }
+.mode-bar span { color: white; font-weight: bold; flex: 1; text-align: center; font-size: 15px; }
 
-.mode-bar button {
-    background: white;
-    color: #0084ff;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 24px;
-    font-weight: bold;
-    font-size: 14px;
-    cursor: pointer;
-}
-
-.mode-bar span {
-    color: white;
-    font-weight: bold;
-    flex: 1;
-    text-align: center;
-    font-size: 15px;
-}
-
-.chat {
-    flex: 1;
-    overflow-y: auto;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
+.chat { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 
 .message {
     max-width: 80%;
@@ -188,17 +101,8 @@ body.dark .auth-card input {
     align-self: flex-start;
     word-break: break-word;
 }
-
-body.dark .message {
-    background: #2d2d2d;
-    color: white;
-}
-
-.message.own {
-    background: #0084ff;
-    color: white;
-    align-self: flex-end;
-}
+body.dark .message { background: #2d2d2d; color: white; }
+.message.own { background: #0084ff; color: white; align-self: flex-end; }
 
 .system {
     text-align: center;
@@ -210,11 +114,7 @@ body.dark .message {
     align-self: center;
     max-width: 85%;
 }
-
-body.dark .system {
-    background: #2d2d2d;
-    color: #aaa;
-}
+body.dark .system { background: #2d2d2d; color: #aaa; }
 
 .input-bar {
     background: white;
@@ -224,12 +124,7 @@ body.dark .system {
     border-top: 1px solid #ddd;
     flex-shrink: 0;
 }
-
-body.dark .input-bar {
-    background: #1e1e1e;
-    border-top-color: #333;
-}
-
+body.dark .input-bar { background: #1e1e1e; border-top-color: #333; }
 .input-bar input {
     flex: 1;
     padding: 12px 16px;
@@ -239,13 +134,7 @@ body.dark .input-bar {
     background: #f9f9f9;
     outline: none;
 }
-
-body.dark .input-bar input {
-    background: #2d2d2d;
-    color: white;
-    border-color: #444;
-}
-
+body.dark .input-bar input { background: #2d2d2d; color: white; border-color: #444; }
 .input-bar button {
     width: 48px;
     height: 48px;
@@ -290,14 +179,8 @@ body.dark .input-bar input {
     box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     transform-origin: bottom right;
 }
-
-body.dark .menu-panel {
-    background: #1e1e1e;
-}
-
-.menu-panel.open {
-    transform: scale(1);
-}
+body.dark .menu-panel { background: #1e1e1e; }
+.menu-panel.open { transform: scale(1); }
 
 .menu-header {
     padding: 16px;
@@ -308,19 +191,9 @@ body.dark .menu-panel {
     display: flex;
     justify-content: space-between;
 }
+.menu-header button { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
 
-.menu-header button {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-}
-
-.menu-body {
-    padding: 12px;
-}
-
+.menu-body { padding: 12px; }
 .menu-item {
     padding: 12px;
     background: #f0f0f0;
@@ -330,18 +203,9 @@ body.dark .menu-panel {
     display: flex;
     gap: 10px;
 }
+body.dark .menu-item { background: #2d2d2d; color: white; }
 
-body.dark .menu-item {
-    background: #2d2d2d;
-    color: white;
-}
-
-.user-list {
-    margin-top: 12px;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
+.user-list { margin-top: 12px; max-height: 200px; overflow-y: auto; }
 .user-item {
     padding: 10px;
     background: #f0f0f0;
@@ -351,38 +215,10 @@ body.dark .menu-item {
     justify-content: space-between;
     align-items: center;
 }
-
-body.dark .user-item {
-    background: #2d2d2d;
-}
-
-.user-item .online-dot {
-    width: 8px;
-    height: 8px;
-    background: #4caf50;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 6px;
-}
-
-.user-item .offline-dot {
-    width: 8px;
-    height: 8px;
-    background: #999;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 6px;
-}
-
-.user-item button {
-    background: #4caf50;
-    border: none;
-    padding: 4px 12px;
-    border-radius: 16px;
-    color: white;
-    font-size: 12px;
-    cursor: pointer;
-}
+body.dark .user-item { background: #2d2d2d; }
+.user-item .online-dot { width: 8px; height: 8px; background: #4caf50; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.user-item .offline-dot { width: 8px; height: 8px; background: #999; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.user-item button { background: #4caf50; border: none; padding: 4px 12px; border-radius: 16px; color: white; font-size: 12px; cursor: pointer; }
 
 .call-indicator {
     position: fixed;
@@ -398,20 +234,9 @@ body.dark .user-item {
     z-index: 150;
     display: none;
 }
+.call-indicator button { background: #f44336; border: none; padding: 4px 12px; border-radius: 20px; color: white; margin-left: 12px; cursor: pointer; }
 
-.call-indicator button {
-    background: #f44336;
-    border: none;
-    padding: 4px 12px;
-    border-radius: 20px;
-    color: white;
-    margin-left: 12px;
-    cursor: pointer;
-}
-
-.hidden {
-    display: none;
-}
+.hidden { display: none; }
 </style>
 </head>
 
@@ -530,8 +355,6 @@ function connect() {
             authScreen.classList.add("hidden");
             mainApp.classList.remove("hidden");
             menuBtn.classList.remove("hidden");
-            menuBtn.onclick = () => menuPanel.classList.toggle("open");
-            closeMenu.onclick = () => menuPanel.classList.remove("open");
             document.title = "Чат: " + currentNick;
             addSystem(`✅ Вы вошли как ${currentNick}`);
             switchToPublic();
@@ -597,9 +420,14 @@ function addPrivateMessage(m) {
 }
 function attachDelete(div, id) {
     let timer;
-    div.ontouchstart = () => { timer = setTimeout(() => { if (confirm("Удалить?")) ws.send(JSON.stringify({ type: "delete", id })); }, 600); };
-    div.ontouchend = () => clearTimeout(timer);
-    div.ontouchmove = () => clearTimeout(timer);
+    const startDelete = () => { timer = setTimeout(() => { if (confirm("Удалить?")) ws.send(JSON.stringify({ type: "delete", id })); }, 600); };
+    const cancelDelete = () => clearTimeout(timer);
+    div.addEventListener("touchstart", startDelete);
+    div.addEventListener("touchend", cancelDelete);
+    div.addEventListener("touchmove", cancelDelete);
+    div.addEventListener("mousedown", startDelete);
+    div.addEventListener("mouseup", cancelDelete);
+    div.addEventListener("mouseleave", cancelDelete);
 }
 function addSystem(text) {
     const div = document.createElement("div"); div.className = "system"; div.textContent = text;
@@ -627,6 +455,19 @@ function switchToPrivate(withNick) {
     ws.send(JSON.stringify({ type: "get_private_history", with: withNick }));
 }
 backBtn.onclick = switchToPublic;
+
+// ===== МЕНЮ (РАБОТАЕТ И НА ПК, И НА ТЕЛЕФОНЕ) =====
+function toggleMenu() {
+    menuPanel.classList.toggle("open");
+}
+menuBtn.onclick = toggleMenu;
+closeMenu.onclick = () => menuPanel.classList.remove("open");
+// Закрыть при клике вне меню
+document.addEventListener("click", (e) => {
+    if (!menuPanel.contains(e.target) && e.target !== menuBtn && menuPanel.classList.contains("open")) {
+        menuPanel.classList.remove("open");
+    }
+});
 
 let usersVisible = false;
 showUsersItem.onclick = () => { usersVisible = !usersVisible; usersListDiv.classList.toggle("hidden", !usersVisible); if (usersVisible) renderUsersList(); };
