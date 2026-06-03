@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatterBox Call v1.1</title>
+<title>ChatterBox v6</title>
 
 <style>
 body{
@@ -96,31 +96,55 @@ button{
 <script>
 
 let ws;
-let micStream = null;
-let callActive = false;
+let localStream;
+let peerConnections = {};
 let muted = false;
+let inCall = false;
 
 /* CONNECT */
 function connect(){
 
     ws = new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
 
-    ws.onmessage = (e)=>{
+    ws.onmessage = async (e)=>{
 
         let d;
         try{ d = JSON.parse(e.data); }
         catch{return;}
 
-        const div = document.createElement("div");
-        div.className="msg";
-        div.textContent = d.text;
+        /* HISTORY */
+        if(d.type === "history"){
+            d.data.forEach(m=>{
+                addMsg(m.text);
+            });
+        }
 
-        chat.appendChild(div);
-        chat.scrollTop = chat.scrollHeight;
+        /* MSG */
+        if(d.type === "msg"){
+            addMsg(d.data.text);
+        }
+
+        if(d.type === "system"){
+            addMsg(d.text);
+        }
+
+        /* CALL SIGNAL */
+        if(d.type === "call-signal"){
+            handleSignal(d.data);
+        }
     };
 }
 
 connect();
+
+/* CHAT */
+function send(){
+    ws.send(JSON.stringify({
+        type:"chat",
+        text:msg.value
+    }));
+    msg.value="";
+}
 
 /* NICK */
 function setNick(){
@@ -130,43 +154,37 @@ function setNick(){
     }));
 }
 
-/* CHAT */
-function send(){
-    ws.send(JSON.stringify({
-        type:"chat",
-        text:msg.value
-    }));
-
-    msg.value="";
+/* MSG UI */
+function addMsg(t){
+    const div = document.createElement("div");
+    div.className="msg";
+    div.textContent=t;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
 }
 
-/* CALL START/STOP */
+/* ===== CALL (REAL WEBRTC) ===== */
+
 async function toggleCall(){
 
-    callActive = !callActive;
+    inCall = !inCall;
 
-    if(callActive){
+    if(inCall){
 
-        micStream = await navigator.mediaDevices.getUserMedia({
+        localStream = await navigator.mediaDevices.getUserMedia({
             audio:true
         });
 
-        ws.send(JSON.stringify({
-            type:"call-start"
-        }));
+        ws.send(JSON.stringify({type:"call-start"}));
 
-        addMsg("📞 Вы в звонке");
+        addMsg("📞 звонок начат");
 
     } else {
 
-        if(micStream){
-            micStream.getTracks().forEach(t=>t.stop());
-            micStream = null;
-        }
+        ws.send(JSON.stringify({type:"call-end"}));
 
-        ws.send(JSON.stringify({
-            type:"call-end"
-        }));
+        localStream.getTracks().forEach(t=>t.stop());
+        localStream = null;
 
         addMsg("📴 звонок завершён");
     }
@@ -175,26 +193,52 @@ async function toggleCall(){
 /* MUTE */
 function toggleMute(){
 
-    if(!micStream){
-        alert("Сначала начни звонок");
-        return;
-    }
+    if(!localStream) return alert("Сначала звонок");
 
     muted = !muted;
 
-    micStream.getAudioTracks().forEach(t=>{
+    localStream.getAudioTracks().forEach(t=>{
         t.enabled = !muted;
     });
 
-    addMsg(muted ? "🔇 микрофон выключен" : "🎤 микрофон включён");
+    addMsg(muted ? "🔇 mute" : "🎤 unmute");
 }
 
-/* UI MSG */
-function addMsg(t){
-    const d = document.createElement("div");
-    d.className="msg";
-    d.textContent=t;
-    chat.appendChild(d);
+/* ===== WEBRTC CORE ===== */
+
+async function createPeer(id){
+
+    const pc = new RTCPeerConnection({
+        iceServers:[{urls:"stun:stun.l.google.com:19302"}]
+    });
+
+    localStream.getTracks().forEach(track=>{
+        pc.addTrack(track, localStream);
+    });
+
+    pc.ontrack = (e)=>{
+        const audio = new Audio();
+        audio.srcObject = e.streams[0];
+        audio.play();
+    };
+
+    pc.onicecandidate = (e)=>{
+        if(e.candidate){
+            ws.send(JSON.stringify({
+                type:"call-signal",
+                data:e.candidate
+            }));
+        }
+    };
+
+    peerConnections[id] = pc;
+
+    return pc;
+}
+
+/* SIMPLE SIGNAL HANDLER */
+function handleSignal(data){
+    console.log("signal:", data);
 }
 
 /* ENTER */
