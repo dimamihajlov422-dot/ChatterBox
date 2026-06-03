@@ -17,8 +17,8 @@ if (!fs.existsSync("files")) fs.mkdirSync("files");
 let history = [];
 let privateHistory = {};
 let groups = {};
-let usersOnline = new Map();      // ws -> nick
-let sessions = new Map();         // token -> nick
+let usersOnline = new Map();
+let sessions = new Map();
 let rate = new Map();
 let usersDB = {};
 
@@ -115,6 +115,11 @@ function updateReaction(type, id, from, reaction, remove) {
     else target.reactions[from] = reaction;
     if (type === "public") savePublic(); else if (type === "private") savePrivate(); else if (type === "group") saveGroups();
     broadcast({ type: "reaction_update", id, from, reaction, remove });
+}
+
+// ========== ВЫДЕЛЕНИЕ ТЕГОВ ==========
+function highlightTags(text) {
+    return text.replace(/@(\w+)/g, '<span class="mention" data-nick="$1">@$1</span>');
 }
 
 // ========== WEBSOCKET ==========
@@ -218,10 +223,16 @@ wss.on("connection", (ws) => {
         // ГРУППЫ
         if (msg.type === "create_group") { const groupId = createGroup(msg.name, ws.nick); ws.send(JSON.stringify({ type: "group_created", group: groups[groupId] })); return; }
         if (msg.type === "invite_to_group") { if (addToGroup(msg.groupId, msg.nick, ws.nick)) ws.send(JSON.stringify({ type: "invite_sent", groupId: msg.groupId, nick: msg.nick })); return; }
-        if (msg.type === "group_chat") { if (!checkRate(ws)) return; sendGroupMessage(msg.groupId, ws.nick, msg); for (const member of groups[msg.groupId].members) updateLastChat(member, "group", msg.groupId, msg.text || "📷 Изображение"); return; }
+        if (msg.type === "group_chat") {
+            if (!checkRate(ws)) return;
+            sendGroupMessage(msg.groupId, ws.nick, msg);
+            for (const member of groups[msg.groupId].members) updateLastChat(member, "group", msg.groupId, msg.text || "📷 Изображение");
+            return;
+        }
         if (msg.type === "get_group_history") { if (groups[msg.groupId] && groups[msg.groupId].members.includes(ws.nick)) ws.send(JSON.stringify({ type: "group_history", groupId: msg.groupId, data: groups[msg.groupId].messages })); return; }
         if (msg.type === "get_my_groups") { ws.send(JSON.stringify({ type: "my_groups", groups: Object.values(groups).filter(g => g.members.includes(ws.nick)) })); return; }
         if (msg.type === "get_last_chats") { ws.send(JSON.stringify({ type: "last_chats", data: getLastChats(ws.nick) })); return; }
+        if (msg.type === "get_group_members") { if (groups[msg.groupId]) ws.send(JSON.stringify({ type: "group_members", groupId: msg.groupId, members: groups[msg.groupId].members })); return; }
 
         // РЕАКЦИИ
         if (msg.type === "reaction") { updateReaction(msg.chatType, msg.id, ws.nick, msg.reaction, msg.remove); return; }
@@ -309,13 +320,4 @@ setInterval(() => { wss.clients.forEach(ws => { if (!ws.isAlive) return ws.termi
 server.listen(3000, () => {
     console.log("✅ Сервер запущен на порту 3000");
     console.log("   http://localhost:3000");
-    console.log("");
-    console.log("📱 Функции:");
-    console.log("   • Регистрация и вход с запоминанием");
-    console.log("   • Общий чат, ЛС, Группы");
-    console.log("   • Геолокация, картинки, файлы");
-    console.log("   • Реакции, редактирование, удаление");
-    console.log("   • Профиль (био, возраст, телефон, аватар)");
-    console.log("   • Звонки WebRTC");
-    console.log("   • Лента последних чатов");
 });
