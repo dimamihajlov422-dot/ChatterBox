@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Chat v23</title>
+<title>Chat v26 — с личными сообщениями</title>
 
 <style>
 * {
@@ -22,7 +22,6 @@ body {
     transition: background 0.3s, color 0.3s;
 }
 
-/* ===== ТЕМЫ ===== */
 body.light {
     background: #f5f5f5;
     color: #000;
@@ -76,7 +75,46 @@ body.dark .menu-item {
     color: white;
 }
 
-/* ===== ШАПКА С ЛОГИНОМ ===== */
+/* ===== ВЕРХНИЕ КНОПКИ ===== */
+#menuBtn {
+    position: fixed;
+    top: 12px;
+    left: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0,132,255,0.95);
+    border: none;
+    color: white;
+    font-size: 24px;
+    z-index: 200;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+#dmArrow {
+    position: fixed;
+    top: 12px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0,132,255,0.95);
+    border: none;
+    color: white;
+    font-size: 20px;
+    z-index: 200;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* ===== ШАПКА ЛОГИНА ===== */
 #header {
     background: #0084ff;
     padding: 12px 16px;
@@ -110,7 +148,34 @@ body.dark .menu-item {
     opacity: 0.6;
 }
 
-/* ===== ОСНОВНОЙ ЧАТ ===== */
+/* ===== ВЕРХНЯЯ ПАНЕЛЬ РЕЖИМА ===== */
+#modeBar {
+    background: #0084ff;
+    padding: 10px 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+#backToPublic {
+    background: white;
+    color: #0084ff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#privateWithSpan {
+    flex: 1;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* ===== ЧАТ ===== */
 #chat {
     flex: 1;
     overflow-y: auto;
@@ -120,7 +185,6 @@ body.dark .menu-item {
     gap: 8px;
 }
 
-/* СООБЩЕНИЯ */
 .msg {
     max-width: 80%;
     padding: 10px 14px;
@@ -180,56 +244,7 @@ body.dark .menu-item {
     flex-shrink: 0;
 }
 
-/* ===== МЕНЮ (выезжающее слева) ===== */
-#menuBtn {
-    position: fixed;
-    top: 16px;
-    left: 16px;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: rgba(0,132,255,0.9);
-    border: none;
-    color: white;
-    font-size: 24px;
-    z-index: 200;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Стрелка ЛС (справа сверху, не налезает на меню) */
-#dmArrow {
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: rgba(0,132,255,0.9);
-    border: none;
-    color: white;
-    font-size: 20px;
-    z-index: 200;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Отступ сверху для чата, чтобы не наезжать на кнопки */
-#chat {
-    margin-top: 60px;
-}
-
-#header {
-    margin-top: 0;
-}
-
-/* Меню панель */
+/* ===== МЕНЮ ===== */
 #menuPanel {
     position: fixed;
     top: 0;
@@ -310,11 +325,7 @@ body.dark .menu-item {
     cursor: pointer;
 }
 
-.user-item button.active {
-    background: #f44336;
-}
-
-/* Индикатор звонка */
+/* ===== ИНДИКАТОР ЗВОНКА ===== */
 #callIndicator {
     position: fixed;
     bottom: 80px;
@@ -349,7 +360,7 @@ body.dark .menu-item {
 <body class="light">
 
 <button id="menuBtn">☰</button>
-<button id="dmArrow" onclick="alert('Личные сообщения скоро ✨')">💬</button>
+<button id="dmArrow" onclick="alert('Меню → Кто в сети → ЛС')">💬</button>
 
 <div id="menuPanel">
     <div id="menuHeader">
@@ -374,6 +385,11 @@ body.dark .menu-item {
     <button id="loginBtn" onclick="login()">Войти</button>
 </div>
 
+<div id="modeBar" class="hidden">
+    <button id="backToPublic" onclick="switchToPublic()">← Общий чат</button>
+    <span id="privateWithSpan"></span>
+</div>
+
 <div id="chat"></div>
 
 <div id="inputArea" class="hidden">
@@ -384,15 +400,18 @@ body.dark .menu-item {
 <div id="callIndicator"></div>
 
 <script>
-
 let ws;
 let logged = false;
 let currentNick = "";
 
-// WebRTC
+let currentMode = "public"; // public или private
+let currentPrivateWith = "";
+
 let pc = null;
 let localStream = null;
 let currentCallWith = null;
+
+let usersOnline = [];
 
 const chatDiv = document.getElementById("chat");
 const msgInput = document.getElementById("msgInput");
@@ -400,13 +419,14 @@ const sendBtn = document.getElementById("sendBtn");
 const nickInput = document.getElementById("nickInput");
 const loginBtn = document.getElementById("loginBtn");
 const inputArea = document.getElementById("inputArea");
+const header = document.getElementById("header");
+const modeBar = document.getElementById("modeBar");
+const privateWithSpan = document.getElementById("privateWithSpan");
 const menuBtn = document.getElementById("menuBtn");
 const menuPanel = document.getElementById("menuPanel");
 const closeMenu = document.getElementById("closeMenu");
 const menuUsersList = document.getElementById("menuUsersList");
 const callIndicator = document.getElementById("callIndicator");
-
-let usersOnline = [];
 
 const servers = {
     iceServers: [
@@ -416,7 +436,7 @@ const servers = {
 };
 
 /* ===== CONNECT ===== */
-function connect(){
+function connect() {
     ws = new WebSocket(
         (location.protocol === "https:" ? "wss://" : "ws://") + location.host
     );
@@ -437,91 +457,155 @@ function connect(){
         try { d = JSON.parse(e.data); }
         catch { return; }
 
-        if(d.type === "error"){
+        if (d.type === "error") {
             alert("❌ " + d.text);
-            if(d.text.includes("Ник")){
+            if (d.text.includes("Ник")) {
                 resetLogin();
             }
             return;
         }
 
-        if(d.type === "login_success"){
-            logged = true;
-            currentNick = d.nick;
-            nickInput.disabled = true;
-            loginBtn.disabled = true;
-            inputArea.classList.remove("hidden");
-            document.title = "Чат: " + currentNick;
-            nickInput.style.opacity = "0.6";
-            addSystem(`✅ Вы вошли как ${currentNick}`);
+        if (d.type === "login_success") {
+            onLoginSuccess(d.nick);
             return;
         }
 
-        if(d.type === "history"){
-            chatDiv.innerHTML = "";
-            d.data.forEach(addMessage);
+        if (d.type === "history") {
+            if (currentMode === "public") {
+                renderMessages(d.data, false);
+            }
+            return;
         }
 
-        if(d.type === "msg") addMessage(d.data);
-        if(d.type === "delete") removeMessage(d.id);
-        if(d.type === "system") addSystem(d.text);
-        if(d.type === "users") {
+        if (d.type === "msg") {
+            if (currentMode === "public") {
+                addMessageToChat(d.data, false);
+            }
+            return;
+        }
+
+        if (d.type === "system") {
+            addSystem(d.text);
+            return;
+        }
+
+        if (d.type === "users") {
             usersOnline = d.users;
             renderUsersInMenu();
+            return;
         }
-        if(d.type === "signal") handleSignal(d.from, d.signal);
+
+        if (d.type === "private_msg") {
+            if (currentMode === "private" && currentPrivateWith === d.with) {
+                addMessageToChat(d.data, true);
+            } else if (currentMode === "public") {
+                // Можно показать уведомление
+                addSystem(`💬 Новое сообщение от ${d.with} (откройте ЛС чтобы прочитать)`);
+            }
+            return;
+        }
+
+        if (d.type === "private_history") {
+            if (currentMode === "private" && currentPrivateWith === d.with) {
+                renderMessages(d.data, true);
+            }
+            return;
+        }
+
+        if (d.type === "delete") {
+            const el = document.getElementById(d.id);
+            if (el) el.remove();
+            return;
+        }
+
+        if (d.type === "signal") {
+            handleSignal(d.from, d.signal);
+            return;
+        }
     };
 }
 
 connect();
 
 /* ===== LOGIN ===== */
-function login(){
-    if(logged) return;
-    
+function login() {
+    if (logged) return;
+
     const nick = nickInput.value.trim();
-    if(!nick || nick.length < 2){
+    if (!nick || nick.length < 2) {
         alert("Ник должен быть от 2 символов");
         return;
     }
-    
-    if(ws.readyState !== 1){
+
+    if (ws.readyState !== 1) {
         alert("Подключение к серверу... попробуйте ещё раз");
         return;
     }
-    
+
     ws.send(JSON.stringify({
         type: "login",
         nick: nick
     }));
 }
 
-function resetLogin(){
+function onLoginSuccess(nick) {
+    logged = true;
+    currentNick = nick;
+    nickInput.disabled = true;
+    loginBtn.disabled = true;
+    inputArea.classList.remove("hidden");
+    header.classList.add("hidden");
+    document.title = "Чат: " + nick;
+    addSystem(`✅ Вы вошли как ${nick}`);
+    switchToPublic();
+}
+
+function resetLogin() {
     logged = false;
     currentNick = "";
     nickInput.disabled = false;
     loginBtn.disabled = false;
     inputArea.classList.add("hidden");
-    nickInput.style.opacity = "1";
+    header.classList.remove("hidden");
+    modeBar.classList.add("hidden");
     nickInput.value = "";
     document.title = "Chat";
+    currentMode = "public";
+    currentPrivateWith = "";
+    chatDiv.innerHTML = "";
 }
 
-/* ===== ADD MESSAGE ===== */
-function addMessage(m){
+/* ===== ОТОБРАЖЕНИЕ СООБЩЕНИЙ ===== */
+function renderMessages(messages, isPrivate) {
+    chatDiv.innerHTML = "";
+    messages.forEach(m => addMessageToChat(m, isPrivate));
+}
+
+function addMessageToChat(m, isPrivate) {
     const div = document.createElement("div");
     div.className = "msg";
-    if(m.owner === currentNick) div.classList.add("own");
-    div.id = m.id;
-    div.textContent = m.text;
     
+    let isOwn = false;
+    let displayText = "";
+    
+    if (isPrivate) {
+        isOwn = (m.from === currentNick);
+        displayText = (isOwn ? "→ " : "← ") + m.text;
+    } else {
+        isOwn = (m.owner === currentNick);
+        displayText = m.text;
+    }
+    
+    if (isOwn) div.classList.add("own");
+    div.id = m.id;
+    div.textContent = displayText;
+    
+    // Долгий тап для удаления
     let pressTimer;
     div.ontouchstart = () => {
         pressTimer = setTimeout(() => {
-            if(m.owner === currentNick && confirm("Удалить сообщение?")){
+            if (confirm("Удалить сообщение?")) {
                 ws.send(JSON.stringify({ type: "delete", id: m.id }));
-            } else if(m.owner !== currentNick){
-                alert("Можно удалять только свои сообщения");
             }
         }, 600);
     };
@@ -532,12 +616,7 @@ function addMessage(m){
     chatDiv.scrollTop = chatDiv.scrollHeight;
 }
 
-function removeMessage(id){
-    const el = document.getElementById(id);
-    if(el) el.remove();
-}
-
-function addSystem(text){
+function addSystem(text) {
     const div = document.createElement("div");
     div.className = "system";
     div.textContent = text;
@@ -545,36 +624,76 @@ function addSystem(text){
     chatDiv.scrollTop = chatDiv.scrollHeight;
 }
 
-/* ===== SEND TEXT ===== */
-function sendText(){
-    if(!logged){
+/* ===== ОТПРАВКА СООБЩЕНИЯ ===== */
+function sendText() {
+    if (!logged) {
         alert("Сначала войдите");
         return;
     }
-    const text = msgInput.value.trim();
-    if(!text) return;
     
-    ws.send(JSON.stringify({
-        type: "chat",
-        text: text
-    }));
+    const text = msgInput.value.trim();
+    if (!text) return;
+    
+    if (currentMode === "public") {
+        ws.send(JSON.stringify({
+            type: "chat",
+            text: text
+        }));
+    } else if (currentMode === "private" && currentPrivateWith) {
+        ws.send(JSON.stringify({
+            type: "private_chat",
+            target: currentPrivateWith,
+            text: text
+        }));
+    }
     
     msgInput.value = "";
 }
 
 msgInput.addEventListener("keydown", (e) => {
-    if(e.key === "Enter") sendText();
+    if (e.key === "Enter") sendText();
 });
 sendBtn.onclick = sendText;
 
+/* ===== ПЕРЕКЛЮЧЕНИЕ МЕЖДУ ОБЩИМ ЧАТОМ И ЛС ===== */
+function switchToPublic() {
+    currentMode = "public";
+    currentPrivateWith = "";
+    modeBar.classList.add("hidden");
+    header.classList.add("hidden");
+    chatDiv.innerHTML = "";
+    
+    // Запросить историю общего чата
+    ws.send(JSON.stringify({ type: "get_history" }));
+}
+
+function switchToPrivate(withNick) {
+    if (withNick === currentNick) {
+        addSystem("❌ Нельзя писать самому себе");
+        return;
+    }
+    
+    currentMode = "private";
+    currentPrivateWith = withNick;
+    modeBar.classList.remove("hidden");
+    privateWithSpan.textContent = `💬 ЛС с ${withNick}`;
+    chatDiv.innerHTML = "";
+    
+    // Запросить историю ЛС
+    ws.send(JSON.stringify({
+        type: "get_private_history",
+        with: withNick
+    }));
+}
+
 /* ===== WEBRTC CALL ===== */
-async function callUser(targetNick){
-    if(currentCallWith === targetNick){
+async function callUser(targetNick) {
+    if (currentCallWith === targetNick) {
         endCall();
         return;
     }
     
-    if(currentCallWith) endCall();
+    if (currentCallWith) endCall();
     currentCallWith = targetNick;
     updateCallIndicator();
     
@@ -594,7 +713,7 @@ async function callUser(targetNick){
         };
         
         pc.onicecandidate = (event) => {
-            if(event.candidate){
+            if (event.candidate) {
                 ws.send(JSON.stringify({
                     type: "signal",
                     target: targetNick,
@@ -613,46 +732,44 @@ async function callUser(targetNick){
         }));
         
         addSystem(`📞 Звоним ${targetNick}...`);
-        renderUsersInMenu();
-    } catch(e){
+    } catch(e) {
         addSystem("❌ Ошибка звонка");
         endCall();
     }
 }
 
-function endCall(){
-    if(localStream){
+function endCall() {
+    if (localStream) {
         localStream.getTracks().forEach(t => t.stop());
         localStream = null;
     }
-    if(pc){
+    if (pc) {
         pc.close();
         pc = null;
     }
-    if(currentCallWith){
+    if (currentCallWith) {
         addSystem(`📴 Звонок с ${currentCallWith} завершён`);
         currentCallWith = null;
         updateCallIndicator();
-        renderUsersInMenu();
     }
 }
 
-function updateCallIndicator(){
-    if(currentCallWith){
+function updateCallIndicator() {
+    if (currentCallWith) {
         callIndicator.innerHTML = `📞 В звонке: ${currentCallWith} <button onclick="endCall()">Завершить</button>`;
         callIndicator.style.display = "flex";
         setTimeout(() => {
-            if(!currentCallWith) callIndicator.style.display = "none";
+            if (!currentCallWith) callIndicator.style.display = "none";
         }, 3000);
     } else {
         callIndicator.style.display = "none";
     }
 }
 
-async function handleSignal(from, signal){
-    if(!pc && signal.sdp && signal.sdp.type === "offer"){
+async function handleSignal(from, signal) {
+    if (!pc && signal.sdp && signal.sdp.type === "offer") {
         const answer = confirm(`📞 ${from} звонит. Ответить?`);
-        if(!answer) return;
+        if (!answer) return;
         
         currentCallWith = from;
         updateCallIndicator();
@@ -673,7 +790,7 @@ async function handleSignal(from, signal){
             };
             
             pc.onicecandidate = (event) => {
-                if(event.candidate){
+                if (event.candidate) {
                     ws.send(JSON.stringify({
                         type: "signal",
                         target: from,
@@ -693,25 +810,24 @@ async function handleSignal(from, signal){
             }));
             
             addSystem(`📞 Разговор с ${from}`);
-            renderUsersInMenu();
-        } catch(e){
+        } catch(e) {
             endCall();
         }
         return;
     }
     
-    if(!pc) return;
-    if(signal.sdp) await pc.setRemoteDescription(signal.sdp);
-    if(signal.candidate) await pc.addIceCandidate(signal.candidate);
+    if (!pc) return;
+    if (signal.sdp) await pc.setRemoteDescription(signal.sdp);
+    if (signal.candidate) await pc.addIceCandidate(signal.candidate);
 }
 
 /* ===== МЕНЮ ===== */
 menuBtn.onclick = () => menuPanel.classList.add("open");
 closeMenu.onclick = () => menuPanel.classList.remove("open");
 
-function toggleTheme(){
+function toggleTheme() {
     const body = document.body;
-    if(body.classList.contains("light")){
+    if (body.classList.contains("light")) {
         body.classList.remove("light");
         body.classList.add("dark");
         localStorage.setItem("theme", "dark");
@@ -723,17 +839,18 @@ function toggleTheme(){
 }
 
 let usersVisible = false;
-function toggleUsersInMenu(){
+function toggleUsersInMenu() {
     usersVisible = !usersVisible;
     menuUsersList.style.display = usersVisible ? "block" : "none";
-    if(usersVisible) renderUsersInMenu();
+    if (usersVisible) renderUsersInMenu();
 }
 
-function renderUsersInMenu(){
-    if(!usersVisible) return;
+function renderUsersInMenu() {
+    if (!usersVisible) return;
     menuUsersList.innerHTML = "";
     usersOnline.forEach(u => {
-        if(u === currentNick) return;
+        if (u === currentNick) return;
+        
         const div = document.createElement("div");
         div.className = "user-item";
         
@@ -741,9 +858,11 @@ function renderUsersInMenu(){
         name.textContent = u;
         
         const btn = document.createElement("button");
-        btn.textContent = currentCallWith === u ? "В звонке" : "📞";
-        if(currentCallWith === u) btn.classList.add("active");
-        btn.onclick = () => callUser(u);
+        btn.textContent = "💬";
+        btn.onclick = () => {
+            switchToPrivate(u);
+            menuPanel.classList.remove("open");
+        };
         
         div.appendChild(name);
         div.appendChild(btn);
@@ -753,11 +872,17 @@ function renderUsersInMenu(){
 
 /* ===== INIT ===== */
 const savedTheme = localStorage.getItem("theme");
-if(savedTheme === "dark"){
+if (savedTheme === "dark") {
     document.body.classList.remove("light");
     document.body.classList.add("dark");
 }
 
+// Клик вне меню — закрыть
+document.body.addEventListener("click", (e) => {
+    if (!menuPanel.contains(e.target) && e.target !== menuBtn) {
+        menuPanel.classList.remove("open");
+    }
+});
 </script>
 
 </body>
