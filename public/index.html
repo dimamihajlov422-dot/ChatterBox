@@ -3,166 +3,171 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chat v10</title>
+<title>Chat v15.1 SAFE</title>
 
 <style>
 body{
     margin:0;
     font-family:Arial;
-    background:#fff;
+    display:flex;
     height:100vh;
+}
+
+#users{
+    width:130px;
+    border-right:1px solid #ccc;
+    overflow:auto;
+    padding:5px;
+}
+
+.user{
+    padding:6px;
+    background:#eee;
+    margin-bottom:5px;
+    border-radius:6px;
+}
+
+#chatWrap{
+    flex:1;
     display:flex;
     flex-direction:column;
-}
-
-body.dark{
-    background:#111;
-    color:#fff;
-}
-
-.top{
-    display:flex;
-    justify-content:space-between;
-    padding:10px;
-    border-bottom:1px solid #ccc;
 }
 
 #chat{
     flex:1;
     overflow:auto;
     padding:10px;
-    display:flex;
-    flex-direction:column;
-    gap:8px;
 }
 
 .msg{
     background:#eee;
-    padding:10px;
-    border-radius:10px;
+    margin:5px 0;
+    padding:8px;
+    border-radius:6px;
+    word-break:break-word;
 }
 
-body.dark .msg{
-    background:#1e1e1e;
-}
-
-.bottom{
+#top{
+    padding:5px;
+    border-bottom:1px solid #ccc;
     display:flex;
-    gap:8px;
-    padding:10px;
-    border-top:1px solid #ccc;
+    gap:5px;
 }
 
-input{
-    flex:1;
-    padding:10px;
-}
-
-button{
-    min-width:45px;
-    min-height:45px;
-    border-radius:8px;
-    border:none;
-    cursor:pointer;
-}
-
-/* ===== COLORS ===== */
-.call-on{
-    background:#00c853 !important; /* зелёный */
-    color:white;
-}
-
-.call-off{
-  background:#333 !important;
-    color:white;
-}
-
-.mute-on{
-    background:#d50000 !important; /* красный */
-    color:white;
+input,button{
+    padding:6px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="top">
-    <div>
-        <input id="nick" placeholder="ник">
-        <button onclick="setNick()">OK</button>
-    </div>
+<div id="users"></div>
 
-    <div>
-        <button id="callBtn" class="call-off" onclick="toggleCall()">📞</button>
-        <button id="muteBtn" onclick="toggleMute()">🔇</button>
-        <button onclick="toggleTheme()">🌙</button>
-    </div>
+<div id="chatWrap">
+
+<div id="top">
+    <input id="nickInput" placeholder="ник">
+    <button id="loginBtn" onclick="login()">login</button>
 </div>
 
 <div id="chat"></div>
 
-<div class="bottom">
+<div>
     <input id="msg">
     <button onclick="send()">➤</button>
 </div>
 
+</div>
+
 <script>
 
+const chat = document.getElementById("chat");
+const users = document.getElementById("users");
+const msg = document.getElementById("msg");
+const nickInput = document.getElementById("nickInput");
+const loginBtn = document.getElementById("loginBtn");
+
 let ws;
-let stream;
-let muted = false;
-let inCall = false;
+let logged = false;
+let audioCtx;
 
 /* CONNECT */
 function connect(){
 
-    ws = new WebSocket(location.origin.replace("http","ws"));
+    ws = new WebSocket(
+        location.protocol === "https:"
+        ? "wss://" + location.host
+        : "ws://" + location.host
+    );
 
-    ws.onmessage = async (e)=>{
+    ws.onerror = (e)=>console.log("ws error", e);
+
+    ws.onclose = ()=>setTimeout(connect, 1000);
+
+    ws.onmessage = (e)=>{
 
         let d;
         try{ d = JSON.parse(e.data); }
         catch{return;}
 
-        if(d.type==="history"){
+        if(d.type === "error"){
+            alert("❌ " + d.text);
+
+            logged = false;
+            nickInput.disabled = false;
+            loginBtn.disabled = false;
+            return;
+        }
+
+        if(d.type === "history"){
+            chat.innerHTML = "";
             d.data.forEach(m=>add(m.text));
         }
 
-        if(d.type==="msg"){
-            add(d.data.text);
-        }
+        if(d.type === "msg") add(d.data.text);
+        if(d.type === "system") add(d.text);
 
-        if(d.type==="system"){
-            add(d.text);
-        }
+        if(d.type === "users") renderUsers(d.users);
 
-        if(d.type==="voice"){
-            play(d.data);
-        }
-
-        if(d.type==="call-state"){
-            updateCallUI(d.active);
-        }
+        if(d.type === "voice") play(d.data);
     };
 }
 
 connect();
 
+/* LOGIN */
+function login(){
+
+    if(logged) return;
+
+    const nick = nickInput.value.trim();
+    if(!nick) return;
+
+    ws.send(JSON.stringify({
+        type:"login",
+        nick
+    }));
+
+    logged = true;
+
+    nickInput.disabled = true;
+    loginBtn.disabled = true;
+
+    document.title = "Вы: " + nick;
+}
+
 /* CHAT */
 function send(){
+
+    if(ws.readyState !== 1) return;
+
     ws.send(JSON.stringify({
         type:"chat",
         text:msg.value
     }));
-    msg.value="";
-}
 
-/* NICK */
-function setNick(){
-    ws.send(JSON.stringify({
-        type:"nick",
-        nick:nick.value
-    }));
+    msg.value = "";
 }
 
 /* UI */
@@ -171,92 +176,28 @@ function add(t){
     d.className="msg";
     d.textContent=t;
     chat.appendChild(d);
-    chat.scrollTop=chat.scrollHeight;
+    chat.scrollTop = chat.scrollHeight;
 }
 
-/* ===== CALL ===== */
-async function toggleCall(){
-
-    inCall = !inCall;
-
-    if(inCall){
-
-        stream = await navigator.mediaDevices.getUserMedia({audio:true});
-
-        const ctx = new AudioContext();
-        const source = ctx.createMediaStreamSource(stream);
-        const processor = ctx.createScriptProcessor(2048,1,1);
-
-        source.connect(processor);
-        processor.connect(ctx.destination);
-
-        processor.onaudioprocess = (e)=>{
-
-            if(muted) return;
-
-            const data = e.inputBuffer.getChannelData(0);
-
-            ws.send(JSON.stringify({
-                type:"voice",
-                data:Array.from(data)
-            }));
-        };
-
-        ws.send(JSON.stringify({type:"call-start"}));
-
-        updateCallUI(true);
-        add("📞 звонок начат");
-
-    } else {
-
-        stream.getTracks().forEach(t=>t.stop());
-        stream = null;
-
-        ws.send(JSON.stringify({type:"call-end"}));
-
-        updateCallUI(false);
-        add("📴 звонок завершён");
-    }
+/* USERS */
+function renderUsers(list){
+    users.innerHTML="";
+    list.forEach(u=>{
+        const d=document.createElement("div");
+        d.className="user";
+        d.textContent=u;
+        users.appendChild(d);
+    });
 }
 
-/* ===== CALL UI ===== */
-function updateCallUI(active){
-
-    const btn = document.getElementById("callBtn");
-
-    if(active){
-        btn.classList.add("call-on");
-        btn.classList.remove("call-off");
-    } else {
-        btn.classList.remove("call-on");
-        btn.classList.add("call-off");
-    }
-}
-
-/* ===== MUTE ===== */
-function toggleMute(){
-
-    muted = !muted;
-
-    const btn = document.getElementById("muteBtn");
-
-    if(muted){
-        btn.classList.add("mute-on");
-    } else {
-        btn.classList.remove("mute-on");
-    }
-
-    add(muted ? "🔇 mute" : "🎤 unmute");
-}
-
-/* ===== VOICE PLAY ===== */
-let audioCtx;
-
+/* VOICE SAFE */
 function play(data){
 
     if(!audioCtx){
         audioCtx = new AudioContext();
     }
+
+    audioCtx.resume().catch(()=>{});
 
     const buffer = audioCtx.createBuffer(1, data.length, audioCtx.sampleRate);
     buffer.copyToChannel(new Float32Array(data),0);
@@ -271,11 +212,6 @@ function play(data){
 msg.addEventListener("keydown",(e)=>{
     if(e.key==="Enter") send();
 });
-
-/* THEME */
-function toggleTheme(){
-    document.body.classList.toggle("dark");
-}
 
 </script>
 
