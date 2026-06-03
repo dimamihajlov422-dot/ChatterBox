@@ -157,7 +157,7 @@ body.dark .input-bar input { background: #2d2d2d; color: white; border-color: #4
     position: fixed;
     bottom: 140px;
     right: 16px;
-    width: 260px;
+    width: 280px;
     background: white;
     border-radius: 20px;
     display: none;
@@ -187,7 +187,23 @@ body.dark .menu-panel { background: #1e1e1e; }
     gap: 10px;
 }
 body.dark .menu-item { background: #2d2d2d; color: white; }
-.user-list { margin-top: 12px; max-height: 200px; overflow-y: auto; }
+.search-box {
+    padding: 8px;
+    margin-bottom: 12px;
+    background: #f0f0f0;
+    border-radius: 12px;
+}
+.search-box input {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    outline: none;
+}
+body.dark .search-box { background: #2d2d2d; }
+body.dark .search-box input { background: #1e1e1e; color: white; }
+.user-list { max-height: 250px; overflow-y: auto; }
 .user-item {
     padding: 10px;
     background: #f0f0f0;
@@ -258,8 +274,10 @@ body.dark .user-item { background: #2d2d2d; }
     </div>
     <div class="menu-body">
         <div class="menu-item" id="themeItem">🌓 Сменить тему</div>
-        <div class="menu-item" id="showUsersItem">👥 Пользователи</div>
-        <div id="usersList" class="user-list hidden"></div>
+        <div class="search-box">
+            <input type="text" id="searchUser" placeholder="🔍 Поиск пользователя...">
+        </div>
+        <div id="usersList" class="user-list"></div>
     </div>
 </div>
 
@@ -287,8 +305,8 @@ const menuBtn = document.getElementById("menuBtn");
 const menuPanel = document.getElementById("menuPanel");
 const closeMenu = document.getElementById("closeMenu");
 const themeItem = document.getElementById("themeItem");
-const showUsersItem = document.getElementById("showUsersItem");
 const usersListDiv = document.getElementById("usersList");
+const searchUser = document.getElementById("searchUser");
 const callIndicator = document.getElementById("callIndicator");
 
 let ws;
@@ -297,6 +315,7 @@ let currentNick = "";
 let currentMode = "public";
 let currentPrivateWith = "";
 let usersOnline = [];
+let allUsers = [];
 let isLoginMode = true;
 let pc = null;
 let localStream = null;
@@ -344,7 +363,11 @@ function connect() {
         if (d.type === "history" && currentMode === "public") { renderMessages(d.data); return; }
         if (d.type === "msg" && currentMode === "public") { addMessage(d.data); return; }
         if (d.type === "system") { addSystem(d.text); return; }
-        if (d.type === "users") { usersOnline = d.users; renderUsersList(); }
+        if (d.type === "users") { 
+            usersOnline = d.users; 
+            allUsers = [...new Set([...allUsers, ...usersOnline])];
+            renderUsersList();
+        }
         if (d.type === "private_msg") {
             if (currentMode === "private" && currentPrivateWith === d.with) addPrivateMessage(d.data);
             else addSystem(`💬 Новое сообщение от ${d.with}`);
@@ -437,7 +460,12 @@ function switchToPrivate(withNick) {
 backBtn.onclick = switchToPublic;
 
 // ===== МЕНЮ =====
-menuBtn.onclick = () => menuPanel.classList.toggle("open");
+menuBtn.onclick = () => {
+    menuPanel.classList.toggle("open");
+    if (menuPanel.classList.contains("open")) {
+        renderUsersList();
+    }
+};
 closeMenu.onclick = () => menuPanel.classList.remove("open");
 document.addEventListener("click", (e) => {
     if (menuPanel.classList.contains("open") && e.target !== menuBtn && !menuPanel.contains(e.target)) {
@@ -445,26 +473,31 @@ document.addEventListener("click", (e) => {
     }
 });
 
-let usersVisible = false;
-showUsersItem.onclick = () => { usersVisible = !usersVisible; usersListDiv.classList.toggle("hidden", !usersVisible); if (usersVisible) renderUsersList(); };
 function renderUsersList() {
-    if (!usersVisible) return;
+    let searchText = searchUser.value.toLowerCase();
+    let filtered = allUsers.filter(u => u !== currentNick);
+    if (searchText) {
+        filtered = filtered.filter(u => u.toLowerCase().includes(searchText));
+    }
+    if (filtered.length === 0) {
+        usersListDiv.innerHTML = '<div style="padding: 12px; text-align: center; color: gray;">👤 Никого не найдено</div>';
+        return;
+    }
     usersListDiv.innerHTML = "";
-    const allUsers = JSON.parse(localStorage.getItem("allUsers") || "[]");
-    const uniqueUsers = [...new Set([...allUsers, ...usersOnline])];
-    uniqueUsers.forEach(u => {
-        if (u === currentNick) return;
+    filtered.forEach(u => {
         const isOnline = usersOnline.includes(u);
         const div = document.createElement("div"); div.className = "user-item";
         div.innerHTML = `<div><span class="${isOnline ? 'online-dot' : 'offline-dot'}"></span> ${u} ${isOnline ? '🟢' : '⚫'}</div><button onclick="switchToPrivate('${u}'); menuPanel.classList.remove('open');">💬</button>`;
         usersListDiv.appendChild(div);
     });
 }
+searchUser.addEventListener("input", renderUsersList);
+
 setInterval(() => {
-    const current = JSON.parse(localStorage.getItem("allUsers") || "[]");
-    const updated = [...new Set([...current, ...usersOnline])];
-    localStorage.setItem("allUsers", JSON.stringify(updated));
-    if (usersVisible) renderUsersList();
+    if (usersOnline.length > 0) {
+        allUsers = [...new Set([...allUsers, ...usersOnline])];
+        if (menuPanel.classList.contains("open")) renderUsersList();
+    }
 }, 5000);
 
 let isDark = localStorage.getItem("theme") === "dark";
