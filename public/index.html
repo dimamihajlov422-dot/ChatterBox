@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chat v15.1 SAFE</title>
+<title>Chat v18 FINAL</title>
 
 <style>
 body{
@@ -13,8 +13,8 @@ body{
     height:100vh;
 }
 
-#users{
-    width:130px;
+#left{
+    width:140px;
     border-right:1px solid #ccc;
     overflow:auto;
     padding:5px;
@@ -23,11 +23,11 @@ body{
 .user{
     padding:6px;
     background:#eee;
-    margin-bottom:5px;
+    margin:4px;
     border-radius:6px;
 }
 
-#chatWrap{
+#right{
     flex:1;
     display:flex;
     flex-direction:column;
@@ -41,7 +41,7 @@ body{
 
 .msg{
     background:#eee;
-    margin:5px 0;
+    margin:5px;
     padding:8px;
     border-radius:6px;
     word-break:break-word;
@@ -54,164 +54,224 @@ body{
     gap:5px;
 }
 
+#bottom{
+    padding:5px;
+    display:flex;
+    gap:5px;
+}
+
 input,button{
-    padding:6px;
+    padding:8px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="users"></div>
+<div id="left"></div>
 
-<div id="chatWrap">
+<div id="right">
 
 <div id="top">
-    <input id="nickInput" placeholder="ник">
+    <input id="nick" placeholder="ник (2-16 символов)">
     <button id="loginBtn" onclick="login()">login</button>
 </div>
 
 <div id="chat"></div>
 
-<div>
-    <input id="msg">
+<div id="bottom">
+    <input id="msg" placeholder="сообщение" style="flex:1">
     <button onclick="send()">➤</button>
+    <button id="callBtn" onclick="toggleCall()">📞</button>
 </div>
 
 </div>
 
 <script>
 
-const chat = document.getElementById("chat");
-const users = document.getElementById("users");
-const msg = document.getElementById("msg");
-const nickInput = document.getElementById("nickInput");
-const loginBtn = document.getElementById("loginBtn");
-
 let ws;
 let logged = false;
-let audioCtx;
+let callActive = false;
 
-/* CONNECT */
+const chat = document.getElementById("chat");
+const left = document.getElementById("left");
+const msg = document.getElementById("msg");
+const nick = document.getElementById("nick");
+const loginBtn = document.getElementById("loginBtn");
+const callBtn = document.getElementById("callBtn");
+
+/* ===== CONNECT SAFE + RECONNECT ===== */
 function connect(){
 
     ws = new WebSocket(
-        location.protocol === "https:"
-        ? "wss://" + location.host
-        : "ws://" + location.host
+        (location.protocol === "https:" ? "wss://" : "ws://") + location.host
     );
 
-    ws.onerror = (e)=>console.log("ws error", e);
+    ws.onerror = (e) => console.log("ws error", e);
 
-    ws.onclose = ()=>setTimeout(connect, 1000);
+    ws.onclose = () => setTimeout(connect, 1000);
 
-    ws.onmessage = (e)=>{
+    ws.onmessage = (e) => {
 
         let d;
-        try{ d = JSON.parse(e.data); }
-        catch{return;}
+        try { d = JSON.parse(e.data); }
+        catch { return; }
 
         if(d.type === "error"){
             alert("❌ " + d.text);
-
-            logged = false;
-            nickInput.disabled = false;
-            loginBtn.disabled = false;
+            if(d.text.includes("логин") || d.text.includes("Ник")){
+                logged = false;
+                nick.disabled = false;
+                loginBtn.disabled = false;
+            }
             return;
         }
 
         if(d.type === "history"){
             chat.innerHTML = "";
-            d.data.forEach(m=>add(m.text));
+            d.data.forEach(add);
         }
 
-        if(d.type === "msg") add(d.data.text);
-        if(d.type === "system") add(d.text);
+        if(d.type === "msg") add(d.data);
+        if(d.type === "delete") remove(d.id);
 
         if(d.type === "users") renderUsers(d.users);
-
-        if(d.type === "voice") play(d.data);
+        if(d.type === "system") system(d.text);
     };
 }
 
 connect();
 
-/* LOGIN */
+/* ===== LOGIN ===== */
 function login(){
 
     if(logged) return;
 
-    const nick = nickInput.value.trim();
-    if(!nick) return;
+    const nickVal = nick.value.trim();
+    if(!nickVal) return;
 
     ws.send(JSON.stringify({
-        type:"login",
-        nick
+        type: "login",
+        nick: nickVal
     }));
 
     logged = true;
-
-    nickInput.disabled = true;
+    nick.disabled = true;
     loginBtn.disabled = true;
 
-    document.title = "Вы: " + nick;
+    document.title = "Чат: " + nickVal;
 }
 
-/* CHAT */
+/* ===== SEND ===== */
 function send(){
+
+    if(!logged){
+        alert("Сначала залогинься");
+        return;
+    }
 
     if(ws.readyState !== 1) return;
 
+    if(!msg.value.trim()) return;
+
     ws.send(JSON.stringify({
-        type:"chat",
-        text:msg.value
+        type: "chat",
+        text: msg.value
     }));
 
     msg.value = "";
 }
 
-/* UI */
-function add(t){
-    const d=document.createElement("div");
-    d.className="msg";
-    d.textContent=t;
+/* ===== ADD MESSAGE ===== */
+function add(m){
+
+    const div = document.createElement("div");
+    div.className = "msg";
+    div.id = m.id;
+    div.textContent = m.text;
+
+    /* DELETE ONLY OWN MESSAGES (right click) */
+    div.oncontextmenu = (e) => {
+        e.preventDefault();
+        if(confirm("Удалить сообщение?")){
+            ws.send(JSON.stringify({
+                type: "delete",
+                id: m.id
+            }));
+        }
+    };
+
+    /* LONG TAP FOR MOBILE */
+    let pressTimer;
+    div.ontouchstart = () => {
+        pressTimer = setTimeout(() => {
+            if(confirm("Удалить сообщение?")){
+                ws.send(JSON.stringify({
+                    type: "delete",
+                    id: m.id
+                }));
+            }
+        }, 600);
+    };
+    div.ontouchend = () => clearTimeout(pressTimer);
+
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+/* ===== REMOVE MESSAGE ===== */
+function remove(id){
+    const el = document.getElementById(id);
+    if(el) el.remove();
+}
+
+/* ===== USERS ===== */
+function renderUsers(list){
+    left.innerHTML = "";
+    list.forEach(u => {
+        const d = document.createElement("div");
+        d.className = "user";
+        d.textContent = u;
+        left.appendChild(d);
+    });
+}
+
+/* ===== SYSTEM MESSAGE ===== */
+function system(t){
+    const d = document.createElement("div");
+    d.style.opacity = "0.7";
+    d.style.fontSize = "12px";
+    d.style.margin = "5px";
+    d.textContent = t;
     chat.appendChild(d);
     chat.scrollTop = chat.scrollHeight;
 }
 
-/* USERS */
-function renderUsers(list){
-    users.innerHTML="";
-    list.forEach(u=>{
-        const d=document.createElement("div");
-        d.className="user";
-        d.textContent=u;
-        users.appendChild(d);
-    });
-}
+/* ===== CALL TOGGLE ===== */
+function toggleCall(){
 
-/* VOICE SAFE */
-function play(data){
-
-    if(!audioCtx){
-        audioCtx = new AudioContext();
+    if(!logged){
+        alert("Сначала залогинься");
+        return;
     }
 
-    audioCtx.resume().catch(()=>{});
+    callActive = !callActive;
 
-    const buffer = audioCtx.createBuffer(1, data.length, audioCtx.sampleRate);
-    buffer.copyToChannel(new Float32Array(data),0);
+    ws.send(JSON.stringify({
+        type: callActive ? "call-start" : "call-end"
+    }));
 
-    const src = audioCtx.createBufferSource();
-    src.buffer = buffer;
-    src.connect(audioCtx.destination);
-    src.start();
+    callBtn.style.background = callActive ? "#4caf50" : "";
+    callBtn.textContent = callActive ? "📞 (в звонке)" : "📞";
 }
 
-/* ENTER */
-msg.addEventListener("keydown",(e)=>{
-    if(e.key==="Enter") send();
+/* ===== ENTER TO SEND ===== */
+msg.addEventListener("keydown", (e) => {
+    if(e.key === "Enter") send();
 });
+
+/* ===== AUTO-FOCUS NICK IF NOT LOGGED ===== */
+if(!logged) nick.focus();
 
 </script>
 
