@@ -20,7 +20,7 @@ const DB_FILE = "db.json";
 const PRIVATE_FILE = "private.json";
 const USERS_FILE = "users.json";
 
-// ========== ЗАГРУЗКА ==========
+// ========== ЗАГРУЗКА ПОЛЬЗОВАТЕЛЕЙ ==========
 try {
     if (fs.existsSync(USERS_FILE)) {
         usersDB = JSON.parse(fs.readFileSync(USERS_FILE, "utf8")) || {};
@@ -33,6 +33,7 @@ try {
     usersDB = {};
 }
 
+// ========== ЗАГРУЗКА ИСТОРИИ ОБЩЕГО ЧАТА ==========
 try {
     if (fs.existsSync(DB_FILE)) {
         history = JSON.parse(fs.readFileSync(DB_FILE, "utf8")) || [];
@@ -42,6 +43,7 @@ try {
     history = [];
 }
 
+// ========== ЗАГРУЗКА ИСТОРИИ ЛИЧНЫХ СООБЩЕНИЙ ==========
 try {
     if (fs.existsSync(PRIVATE_FILE)) {
         privateHistory = JSON.parse(fs.readFileSync(PRIVATE_FILE, "utf8")) || {};
@@ -64,12 +66,12 @@ function savePrivate() {
     fs.writeFileSync(PRIVATE_FILE, JSON.stringify(privateHistory, null, 2));
 }
 
-// ========== ХЭШИРОВАНИЕ ==========
+// ========== ХЭШИРОВАНИЕ ПАРОЛЯ ==========
 function hashPassword(password) {
     return crypto.createHash("sha256").update(password).digest("hex");
 }
 
-// ========== ЗАЩИТА XSS ==========
+// ========== ЗАЩИТА ОТ XSS ==========
 function escapeHtml(str) {
     if (!str) return "";
     return String(str)
@@ -88,7 +90,7 @@ function checkRate(ws) {
     return arr.length <= 10;
 }
 
-// ========== РАССЫЛКА ==========
+// ========== РАССЫЛКА ВСЕМ ==========
 function broadcast(obj) {
     const data = JSON.stringify(obj);
     for (const c of wss.clients) {
@@ -105,7 +107,7 @@ function sendUsers() {
     });
 }
 
-// ========== ВАЛИДАЦИЯ ==========
+// ========== ВАЛИДАЦИЯ НИКА ==========
 function validNick(nick) {
     if (typeof nick !== "string") return false;
     nick = nick.trim();
@@ -125,8 +127,15 @@ function nickExistsOnline(nick) {
     return false;
 }
 
+// ========== КЛЮЧ ДЛЯ ЛИЧНЫХ СООБЩЕНИЙ ==========
 function getPrivateKey(user1, user2) {
     return [user1, user2].sort().join("_");
+}
+
+// ========== ФОРМАТИРОВАНИЕ ВРЕМЕНИ ==========
+function formatTime(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 }
 
 // ========== WEBSOCKET ==========
@@ -140,7 +149,7 @@ wss.on("connection", (ws) => {
     // Отправляем начальные данные
     ws.send(JSON.stringify({
         type: "history",
-        data: history.slice(-500)
+        data: history.slice(-500).map(m => ({ ...m, timeFormatted: formatTime(m.time) }))
     }));
 
     ws.send(JSON.stringify({
@@ -178,7 +187,12 @@ wss.on("connection", (ws) => {
 
             usersDB[nick] = {
                 password: hashPassword(password),
-                created: new Date().toISOString()
+                created: new Date().toISOString(),
+                profile: {
+                    bio: "",
+                    age: "",
+                    avatar: null
+                }
             };
             saveUsers();
 
@@ -221,7 +235,8 @@ wss.on("connection", (ws) => {
 
             ws.send(JSON.stringify({
                 type: "login_success",
-                nick: nick
+                nick: nick,
+                profile: usersDB[nick].profile || {}
             }));
 
             sendUsers();
@@ -231,6 +246,57 @@ wss.on("connection", (ws) => {
                 text: `🟢 ${escapeHtml(nick)} вошёл`
             });
 
+            return;
+        }
+
+        // ===== ПОЛУЧИТЬ ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ =====
+        if (msg.type === "get_profile") {
+            const targetNick = msg.nick;
+            if (usersDB[targetNick]) {
+                ws.send(JSON.stringify({
+                    type: "profile_data",
+                    nick: targetNick,
+                    profile: usersDB[targetNick].profile || {}
+                }));
+            }
+            return;
+        }
+
+        // ===== ОБНОВИТЬ ПРОФИЛЬ =====
+        if (msg.type === "update_profile") {
+            if (!usersDB[ws.nick]) usersDB[ws.nick] = {};
+            if (!usersDB[ws.nick].profile) usersDB[ws.nick].profile = {};
+            
+            if (msg.bio !== undefined) usersDB[ws.nick].profile.bio = escapeHtml(msg.bio.slice(0, 200));
+            if (msg.age !== undefined) usersDB[ws.nick].profile.age = escapeHtml(msg.age.slice(0, 3));
+            if (msg.avatar !== undefined) usersDB[ws.nick].profile.avatar = msg.avatar;
+            
+            saveUsers();
+            
+            ws.send(JSON.stringify({
+                type: "profile_updated",
+                profile: usersDB[ws.nick].profile
+            }));
+            return;
+        }
+
+        // ===== ПЕЧАТАЕТ =====
+        if (msg.type === "typing") {
+            const targetNick = msg.to;
+            let targetWs = null;
+            for (const [c, nick] of usersOnline.entries()) {
+                if (nick === targetNick) {
+                    targetWs = c;
+                    break;
+                }
+            }
+            if (targetWs && targetWs.readyState === 1) {
+                targetWs.send(JSON.stringify({
+                    type: "typing",
+                    from: ws.nick,
+                    isTyping: msg.isTyping
+                }));
+            }
             return;
         }
 
@@ -250,7 +316,8 @@ wss.on("connection", (ws) => {
                 image: msg.image || null,
                 replyTo: msg.replyTo || null,
                 owner: ws.nick,
-                time: Date.now()
+                time: Date.now(),
+                timeFormatted: formatTime(Date.now())
             };
 
             history.push(m);
@@ -283,7 +350,8 @@ wss.on("connection", (ws) => {
                 image: msg.image || null,
                 replyTo: msg.replyTo || null,
                 owner: ws.nick,
-                time: Date.now()
+                time: Date.now(),
+                timeFormatted: formatTime(Date.now())
             };
 
             privateHistory[key].push(m);
@@ -427,21 +495,23 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // ===== ЗАПРОС ИСТОРИИ =====
+        // ===== ЗАПРОС ИСТОРИИ ЛИЧНЫХ СООБЩЕНИЙ =====
         if (msg.type === "get_private_history") {
             const key = getPrivateKey(ws.nick, msg.with);
+            const data = (privateHistory[key] || []).map(m => ({ ...m, timeFormatted: formatTime(m.time) }));
             ws.send(JSON.stringify({
                 type: "private_history",
                 with: msg.with,
-                data: privateHistory[key] || []
+                data: data
             }));
             return;
         }
 
+        // ===== ЗАПРОС ИСТОРИИ ОБЩЕГО ЧАТА =====
         if (msg.type === "get_history") {
             ws.send(JSON.stringify({
                 type: "history",
-                data: history.slice(-500)
+                data: history.slice(-500).map(m => ({ ...m, timeFormatted: formatTime(m.time) }))
             }));
             return;
         }
@@ -494,5 +564,18 @@ setInterval(() => {
 server.listen(3000, () => {
     console.log("✅ Сервер запущен на порту 3000");
     console.log("   http://localhost:3000");
-    console.log("   Поддерживаются: картинки, редактирование, ответы, ЛС, звонки");
+    console.log("");
+    console.log("📱 Поддерживаются функции:");
+    console.log("   • Регистрация и вход");
+    console.log("   • Общий чат");
+    console.log("   • Личные сообщения");
+    console.log("   • Отправка картинок");
+    console.log("   • Редактирование сообщений");
+    console.log("   • Удаление сообщений");
+    console.log("   • Ответ на сообщение");
+    console.log("   • Профиль пользователя (био, возраст, аватар)");
+    console.log("   • Статус «печатает...»");
+    console.log("   • WebRTC звонки");
+    console.log("   • Тёмная тема");
+    console.log("   • Поиск пользователей");
 });
