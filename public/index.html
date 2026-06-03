@@ -146,7 +146,6 @@ body.dark .message { background: #2d2d2d; color: white; }
     gap: 8px;
     border-top: 1px solid #ddd;
     flex-shrink: 0;
-    flex-wrap: wrap;
 }
 body.dark .input-bar { background: #1e1e1e; border-top-color: #333; }
 .input-bar input {
@@ -157,6 +156,7 @@ body.dark .input-bar { background: #1e1e1e; border-top-color: #333; }
     font-size: 16px;
     background: #f9f9f9;
     outline: none;
+    order: 2;
 }
 body.dark .input-bar input { background: #2d2d2d; color: white; border-color: #444; }
 .input-bar button {
@@ -170,7 +170,10 @@ body.dark .input-bar input { background: #2d2d2d; color: white; border-color: #4
     cursor: pointer;
     flex-shrink: 0;
 }
-#attachBtn, #fileBtn, #locationBtn { background: #6c757d; }
+#sendBtn { order: 1; background: #0084ff; }
+#attachBtn { order: 3; background: #6c757d; }
+#fileBtn { order: 4; background: #6c757d; }
+#locationBtn { order: 5; background: #6c757d; }
 .menu-btn {
     position: fixed;
     bottom: 80px;
@@ -421,10 +424,10 @@ body.dark .profile-screen { background: #121212; color: white; }
     <div class="chat" id="chat"><div id="typingIndicator" class="typing-indicator hidden"></div></div>
     <div class="input-bar" id="inputBar">
         <input type="text" id="msgInput" placeholder="Сообщение...">
+        <button id="sendBtn">➤</button>
         <button id="attachBtn">📎</button>
         <button id="fileBtn">📁</button>
         <button id="locationBtn">📍</button>
-        <button id="sendBtn">➤</button>
     </div>
 </div>
 
@@ -455,6 +458,7 @@ body.dark .profile-screen { background: #121212; color: white; }
         <div class="profile-field" style="text-align: center;"><div class="profile-avatar" id="avatarPicker"><span id="avatarEmoji">👤</span><img id="avatarImg" style="display: none;"></div></div>
         <div class="profile-field"><label>О себе</label><textarea id="profileBio" rows="3" placeholder="Расскажите о себе..."></textarea></div>
         <div class="profile-field"><label>Возраст</label><input type="number" id="profileAge" placeholder="Например: 25"></div>
+        <div class="profile-field"><label>Телефон</label><input type="tel" id="profilePhone" placeholder="+7 XXX XXX XX XX"></div>
         <button class="profile-save" id="saveProfile">Сохранить</button>
     </div>
 </div>
@@ -511,6 +515,7 @@ const avatarEmoji = document.getElementById("avatarEmoji");
 const avatarImg = document.getElementById("avatarImg");
 const profileBio = document.getElementById("profileBio");
 const profileAge = document.getElementById("profileAge");
+const profilePhone = document.getElementById("profilePhone");
 const saveProfile = document.getElementById("saveProfile");
 
 let ws = null;
@@ -532,7 +537,6 @@ let typingTimer = null;
 let unreadCounts = {};
 let currentReactionMsg = null;
 
-// WebRTC
 let pc = null;
 let localStream = null;
 let currentCallWith = null;
@@ -554,6 +558,7 @@ function connect() {
             if (d.token && rememberMe.checked) localStorage.setItem("chat_token", d.token);
             if (d.groups) myGroups = d.groups;
             if (d.lastChats) myLastChats = d.lastChats;
+            if (d.profile) updateProfileUI(d.profile, false);
             addSystem(`✅ Вы вошли как ${currentNick}`);
             renderLastChatsList();
             renderGroupsList();
@@ -710,6 +715,8 @@ function getPrivateKey(u1, u2) { return [u1, u2].sort().join("_"); }
 function openModal(src) { modalImg.src = src; modal.classList.add("open"); }
 modalClose.onclick = () => modal.classList.remove("open");
 modal.onclick = (e) => { if (e.target === modal) modal.classList.remove("open"); };
+
+// КОНТЕКСТНОЕ МЕНЮ (работает на Android)
 function attachContextMenu(div, msg, chatType, chatId) {
     const showMenu = (x, y) => {
         contextMenu.innerHTML = "";
@@ -728,10 +735,20 @@ function attachContextMenu(div, msg, chatType, chatId) {
         if (top + 200 > window.innerHeight) top = y - 210;
         contextMenu.style.left = left + "px"; contextMenu.style.top = top + "px"; contextMenu.style.display = "block";
         const closeMenu = () => { contextMenu.style.display = "none"; document.removeEventListener("click", closeMenu); document.removeEventListener("touchstart", closeMenu); };
-        setTimeout(() => { document.addEventListener("click", closeMenu); document.addEventListener("touchstart", closeMenu); }, 50);
+        setTimeout(() => { document.addEventListener("click", closeMenu); document.addEventListener("touchstart", closeMenu); }, 100);
     };
+    // ПКМ
     div.addEventListener("contextmenu", (e) => { e.preventDefault(); showMenu(e.clientX, e.clientY); });
-    let timer; div.addEventListener("touchstart", (e) => { timer = setTimeout(() => { const touch = e.touches[0]; showMenu(touch.clientX, touch.clientY); }, 600); }); div.addEventListener("touchend", () => clearTimeout(timer)); div.addEventListener("touchmove", () => clearTimeout(timer));
+    // Долгий тап на Android/iOS
+    let timer;
+    div.addEventListener("touchstart", (e) => {
+        timer = setTimeout(() => {
+            const touch = e.touches[0];
+            showMenu(touch.clientX, touch.clientY);
+        }, 600);
+    });
+    div.addEventListener("touchend", () => clearTimeout(timer));
+    div.addEventListener("touchmove", () => clearTimeout(timer));
 }
 function showReactionPicker(x, y, msg, chatType, chatId) { currentReactionMsg = { id: msg.id, chatType }; reactionPicker.style.left = x + "px"; reactionPicker.style.top = (y - 50) + "px"; reactionPicker.style.display = "flex"; setTimeout(() => { document.addEventListener("click", () => reactionPicker.style.display = "none", { once: true }); }, 100); }
 document.querySelectorAll("#reactionPicker span").forEach(el => { el.onclick = () => { if (currentReactionMsg) ws.send(JSON.stringify({ type: "reaction", chatType: currentReactionMsg.chatType, id: currentReactionMsg.id, reaction: el.textContent })); reactionPicker.style.display = "none"; }; });
@@ -798,22 +815,24 @@ function renderUsersList() {
     if (searchText) filtered = filtered.filter(u => u.toLowerCase().includes(searchText));
     if (filtered.length === 0) { usersListDiv.innerHTML = '<div style="padding: 12px; text-align: center; color: gray;">👤 Никого не найдено</div>'; return; }
     usersListDiv.innerHTML = "";
-    filtered.forEach(u => { const isOnline = usersOnline.includes(u); const unread = getUnreadCount(`private_${u}`); const div = document.createElement("div"); div.className = "user-item"; div.innerHTML = `<div><span class="${isOnline ? 'online-dot' : 'offline-dot'}"></span> ${u} ${isOnline ? '🟢' : '⚫'}</div><div><button onclick="switchToPrivate('${u}'); menuPanel.classList.remove('open');">💬</button><button onclick="viewProfile('${u}')">👤</button>${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}</div>`; usersListDiv.appendChild(div); });
+    filtered.forEach(u => { const isOnline = usersOnline.includes(u); const unread = getUnreadCount(`private_${u}`); const div = document.createElement("div"); div.className = "user-item"; div.innerHTML = `<div><span class="${isOnline ? 'online-dot' : 'offline-dot'}"></span> ${u} ${isOnline ? '🟢' : '⚫'}</div><div><button onclick="switchToPrivate('${u}'); menuPanel.classList.remove('open');">💬</button><button onclick="viewProfile('${u}')">👤</button><button onclick="callUser('${u}')">📞</button>${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}</div>`; usersListDiv.appendChild(div); });
 }
 function viewProfile(nick) { profileScreen.classList.add("open"); if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "get_profile", nick })); }
 searchUser.addEventListener("input", renderUsersList);
 setInterval(() => { if (usersOnline.length) { allUsers = [...new Set([...allUsers, ...usersOnline])]; if (menuPanel.classList.contains("open")) renderUsersList(); } }, 5000);
 currentNickSpan.onclick = () => viewProfile(currentNick);
 closeProfile.onclick = () => profileScreen.classList.remove("open");
-saveProfile.onclick = () => { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "update_profile", bio: profileBio.value, age: profileAge.value })); profileScreen.classList.remove("open"); };
+saveProfile.onclick = () => { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "update_profile", bio: profileBio.value, age: profileAge.value, phone: profilePhone.value })); profileScreen.classList.remove("open"); };
 function updateProfileUI(profile, isOther = false) {
     if (profile.avatar) { avatarImg.src = profile.avatar; avatarImg.style.display = "block"; avatarEmoji.style.display = "none"; }
     else { avatarEmoji.style.display = "block"; avatarImg.style.display = "none"; }
-    profileBio.value = profile.bio || ""; profileAge.value = profile.age || "";
+    profileBio.value = profile.bio || "";
+    profileAge.value = profile.age || "";
+    profilePhone.value = profile.phone || "";
 }
 avatarPicker.onclick = () => { const input = document.createElement("input"); input.type = "file"; input.accept = "image/*"; input.onchange = () => { const file = input.files[0]; const reader = new FileReader(); reader.onload = () => { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "update_profile", avatar: reader.result })); }; reader.readAsDataURL(file); }; input.click(); };
 
-// ТЕМА И ЗВУК
+// ТЕМА
 let isDark = localStorage.getItem("theme") === "dark";
 if (isDark) document.body.classList.add("dark");
 themeItem.onclick = () => { isDark = !isDark; if (isDark) document.body.classList.add("dark"); else document.body.classList.remove("dark"); localStorage.setItem("theme", isDark ? "dark" : "light"); };
@@ -821,6 +840,7 @@ soundItem.onclick = () => { soundEnabled = !soundEnabled; soundItem.innerHTML = 
 
 // ========== WEBRTC ЗВОНКИ ==========
 async function callUser(targetNick) {
+    if (!logged) { addSystem("❌ Сначала войдите"); return; }
     if (currentCallWith === targetNick) { endCall(); return; }
     if (currentCallWith) endCall();
     currentCallWith = targetNick;
