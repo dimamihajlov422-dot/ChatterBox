@@ -1,6 +1,7 @@
 const express = require("express");
 const http = require("http");
 const WebSocket = require("ws");
+const fs = require("fs");
 
 const app = express();
 const server = http.createServer(app);
@@ -8,12 +9,30 @@ const wss = new WebSocket.Server({ server });
 
 app.use(express.static("public"));
 
-let clients = new Set();
+const DB_FILE = "db.json";
+
+/* ===== MEMORY ===== */
+let history = [];
+
+try {
+    if (fs.existsSync(DB_FILE)) {
+        history = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+    }
+} catch {
+    history = [];
+}
+
+function save(){
+    fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2));
+}
+
+/* ===== CLIENTS ===== */
+let clients = new Map();
 
 function broadcast(obj){
     const data = JSON.stringify(obj);
 
-    for(const c of clients){
+    for(const c of wss.clients){
         if(c.readyState === 1){
             c.send(data);
         }
@@ -22,7 +41,11 @@ function broadcast(obj){
 
 wss.on("connection", (ws) => {
 
-    clients.add(ws);
+    // отправляем историю
+    ws.send(JSON.stringify({
+        type:"history",
+        data: history
+    }));
 
     ws.on("message", (raw) => {
 
@@ -30,7 +53,7 @@ wss.on("connection", (ws) => {
         try { msg = JSON.parse(raw.toString()); }
         catch { return; }
 
-        // NICK
+        /* NICK */
         if(msg.type === "nick"){
             ws.nick = msg.nick || "Anon";
 
@@ -42,42 +65,47 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // CHAT
+        /* CHAT */
         if(msg.type === "chat"){
+
+            const m = {
+                text:`${ws.nick || "Anon"}: ${msg.text}`
+            };
+
+            history.push(m);
+            save();
+
             broadcast({
                 type:"msg",
-                text:`${ws.nick || "Anon"}: ${msg.text}`
+                data:m
             });
+
             return;
         }
 
-        // CALL START
+        /* CALL SIGNAL (WebRTC) */
+        if(msg.type === "call-signal"){
+            for(const c of wss.clients){
+                if(c !== ws && c.readyState === 1){
+                    c.send(JSON.stringify({
+                        type:"call-signal",
+                        data: msg.data
+                    }));
+                }
+            }
+        }
+
         if(msg.type === "call-start"){
             broadcast({
                 type:"system",
                 text:`📞 ${ws.nick || "Anon"} начал звонок`
             });
-            return;
         }
 
-        // CALL END
         if(msg.type === "call-end"){
             broadcast({
                 type:"system",
                 text:`📴 ${ws.nick || "Anon"} завершил звонок`
-            });
-            return;
-        }
-
-    });
-
-    ws.on("close", () => {
-        clients.delete(ws);
-
-        if(ws.nick){
-            broadcast({
-                type:"system",
-                text:`🔴 ${ws.nick} вышел`
             });
         }
     });
