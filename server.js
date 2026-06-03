@@ -41,13 +41,12 @@ wss.on("connection", (ws) => {
 
     ws.id = Math.random().toString(36).slice(2);
 
-    // history
     ws.send(JSON.stringify({
         type:"history",
         data: history
     }));
 
-    ws.on("message", async (raw) => {
+    ws.on("message", (raw) => {
 
         let msg;
         try { msg = JSON.parse(raw.toString()); }
@@ -73,13 +72,13 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        /* CALL SIGNAL */
-        if(msg.type === "signal"){
+        /* VOICE DATA */
+        if(msg.type === "voice"){
+            // просто ретрансляция аудио чанков
             for(const c of wss.clients){
                 if(c !== ws && c.readyState === 1){
                     c.send(JSON.stringify({
-                        type:"signal",
-                        from: ws.id,
+                        type:"voice",
                         data: msg.data
                     }));
                 }
