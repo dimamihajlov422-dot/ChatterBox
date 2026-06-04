@@ -42,7 +42,6 @@ function loadData() {
             fs.writeFileSync(USERS_FILE, JSON.stringify({}, null, 2));
         }
     } catch (e) { usersDB = {}; }
-
     try {
         if (fs.existsSync(DB_FILE)) {
             history = JSON.parse(fs.readFileSync(DB_FILE, "utf8")) || [];
@@ -52,7 +51,6 @@ function loadData() {
             fs.writeFileSync(DB_FILE, JSON.stringify([], null, 2));
         }
     } catch (e) { history = []; }
-
     try {
         if (fs.existsSync(PRIVATE_FILE)) {
             privateHistory = JSON.parse(fs.readFileSync(PRIVATE_FILE, "utf8")) || {};
@@ -62,7 +60,6 @@ function loadData() {
             fs.writeFileSync(PRIVATE_FILE, JSON.stringify({}, null, 2));
         }
     } catch (e) { privateHistory = {}; }
-
     try {
         if (fs.existsSync(GROUPS_FILE)) {
             groups = JSON.parse(fs.readFileSync(GROUPS_FILE, "utf8")) || {};
@@ -146,7 +143,7 @@ function sendGroupMessage(groupId, from, msgData) {
     if (groups[groupId].isChannel && groups[groupId].creator !== from && !isDima(from)) return;
     const m = {
         id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
-        from, text: escapeHtml((msgData.text || "").slice(0, 500)), image: msgData.image || null, file: msgData.file || null, music: msgData.music || null, voice: msgData.voice || null, location: msgData.location || null,
+        from, text: escapeHtml((msgData.text || "").slice(0, 500)), image: msgData.image || null, video: msgData.video || null, file: msgData.file || null, music: msgData.music || null, voice: msgData.voice || null, location: msgData.location || null,
         replyTo: msgData.replyTo || null, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {}
     };
     groups[groupId].messages.push(m);
@@ -279,9 +276,9 @@ wss.on("connection", (ws) => {
 
         if (msg.type === "chat") {
             if (!checkRate(ws)) return;
-            const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, file: msg.file || null, music: msg.music || null, voice: msg.voice || null, location: msg.location || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
+            const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, video: msg.video || null, file: msg.file || null, music: msg.music || null, voice: msg.voice || null, location: msg.location || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
             history.push(m); history = history.slice(-500); savePublic();
-            updateLastChat(ws.nick, "public", "public", m.text || "📷 Изображение");
+            updateLastChat(ws.nick, "public", "public", m.text || "📷 Вложение");
             broadcast({ type: "msg", data: m });
             return;
         }
@@ -290,10 +287,10 @@ wss.on("connection", (ws) => {
             if (!checkRate(ws)) return;
             const key = getPrivateKey(ws.nick, msg.target);
             if (!privateHistory[key]) privateHistory[key] = [];
-            const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), from: ws.nick, to: msg.target, text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, file: msg.file || null, music: msg.music || null, voice: msg.voice || null, location: msg.location || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
+            const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), from: ws.nick, to: msg.target, text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, video: msg.video || null, file: msg.file || null, music: msg.music || null, voice: msg.voice || null, location: msg.location || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
             privateHistory[key].push(m); privateHistory[key] = privateHistory[key].slice(-500); savePrivate();
-            updateLastChat(ws.nick, "private", msg.target, m.text || "📷 Изображение");
-            updateLastChat(msg.target, "private", ws.nick, m.text || "📷 Изображение");
+            updateLastChat(ws.nick, "private", msg.target, m.text || "📷 Вложение");
+            updateLastChat(msg.target, "private", ws.nick, m.text || "📷 Вложение");
             ws.send(JSON.stringify({ type: "private_msg", data: m, with: msg.target }));
             let targetWs = null; for (const [c, nick] of usersOnline.entries()) if (nick === msg.target) { targetWs = c; break; }
             if (targetWs && targetWs.readyState === 1) targetWs.send(JSON.stringify({ type: "private_msg", data: m, with: ws.nick }));
@@ -304,7 +301,7 @@ wss.on("connection", (ws) => {
         if (msg.type === "create_channel") { const groupId = createChannel(msg.name, ws.nick); ws.send(JSON.stringify({ type: "group_created", group: groups[groupId] })); return; }
         if (msg.type === "invite_to_group") { if (addToGroup(msg.groupId, msg.nick, ws.nick)) ws.send(JSON.stringify({ type: "invite_sent", groupId: msg.groupId, nick: msg.nick })); return; }
         if (msg.type === "remove_from_group") { if (removeFromGroup(msg.groupId, msg.nick, ws.nick)) ws.send(JSON.stringify({ type: "remove_sent", groupId: msg.groupId, nick: msg.nick })); return; }
-        if (msg.type === "group_chat") { if (!checkRate(ws)) return; sendGroupMessage(msg.groupId, ws.nick, msg); for (const member of groups[msg.groupId].members) updateLastChat(member, "group", msg.groupId, msg.text || "📷 Изображение"); return; }
+        if (msg.type === "group_chat") { if (!checkRate(ws)) return; sendGroupMessage(msg.groupId, ws.nick, msg); for (const member of groups[msg.groupId].members) updateLastChat(member, "group", msg.groupId, msg.text || "📷 Вложение"); return; }
         if (msg.type === "get_group_history") { if (groups[msg.groupId] && groups[msg.groupId].members.includes(ws.nick)) ws.send(JSON.stringify({ type: "group_history", groupId: msg.groupId, data: groups[msg.groupId].messages })); return; }
         if (msg.type === "get_my_groups") { ws.send(JSON.stringify({ type: "my_groups", groups: Object.values(groups).filter(g => g.members.includes(ws.nick)) })); return; }
         if (msg.type === "get_last_chats") { ws.send(JSON.stringify({ type: "last_chats", data: getLastChats(ws.nick) })); return; }
