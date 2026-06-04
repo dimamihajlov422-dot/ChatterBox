@@ -1,15 +1,16 @@
 {
+<<<<<<< HEAD
   "name": "chatterbox",
   "version": "1.0.0",
   "description": "",
+=======
+  "name": "chatterbox-v2",
+  "version": "2.0.0",
+>>>>>>> cf1d28b (Локальные изменения перед pull)
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "express": "^4.19.2",
     "ws": "^8.18.0"
