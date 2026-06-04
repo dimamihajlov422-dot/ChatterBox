@@ -1,9 +1,14 @@
-users.json 
-db.json 
-private.json 
-groups.json 
-files/ 
-music/ 
-stickers/ 
-voice/ 
-node_modules/ 
+# Данные (не коммитить!)
+users.json
+db.json
+private.json
+groups.json
+
+# Папки с файлами
+files/
+music/
+voice/
+stickers/
+
+# Node modules
+node_modules/
