@@ -15,59 +15,177 @@ body {
     transition: background 0.3s;
 }
 body.dark { background: #121212; }
+body.dark .header { background: #00c853; }
+body.dark .top-bar { background: #00c853; }
+body.dark .mode-bar { background: #00c853; }
+body.dark .menu-header { background: #00c853; }
+body.dark .auth-screen { background: #00c853; }
+body.dark .message.own { background: #00c853; }
+body.dark .message .author { color: #00c853; }
+body.dark .call-indicator { background: #00c853; }
+body.dark .status-selector span.active { background: #00c853; }
+body.dark .group-item .edit-group { background: #00c853; }
+body.dark #sendBtn { background: #00c853; }
 
-/* ========== ТЁМНАЯ ТЕМА — ЗЕЛЁНАЯ ========== */
-body.dark .header { background: #1b5e20; }
-body.dark .top-bar { background: #1b5e20; }
-body.dark .mode-bar { background: #1b5e20; }
-body.dark .menu-header { background: #1b5e20; }
-body.dark .auth-screen { background: #1b5e20; }
-body.dark .message.own { background: #2e7d32; }
-body.dark .message .author { color: #66bb6a; }
-body.dark .call-indicator { background: #2e7d32; }
-body.dark .status-selector span.active { background: #2e7d32; color: white; }
-body.dark .group-item .edit-group { background: #2e7d32; color: white; }
-body.dark #sendBtn { background: #2e7d32; }
-body.dark .message.own .author { color: #c8e6c9; }
-body.dark .message.own .msg-text { color: white; }
-body.dark .auth-card button { background: #2e7d32; }
-body.dark .auth-card .switch-btn { color: #66bb6a; border-color: #66bb6a; background: none; }
-body.dark .menu-item { background: #2d2d2d; color: white; border-bottom: 1px solid #444; }
-body.dark .chat-item { background: #2d2d2d; color: white; border-bottom: 1px solid #444; }
-body.dark .user-item { background: #2d2d2d; color: white; border-bottom: 1px solid #444; }
-body.dark .group-item { background: #2d2d2d; color: white; border-bottom: 1px solid #444; }
-body.dark .group-create { background: #2d2d2d; }
-body.dark .section-title { color: #66bb6a; }
-body.dark .attach-panel { background: #2d2d2d; }
-body.dark .message-menu { background: #2d2d2d; color: white; }
-body.dark .status-selector { background: #2d2d2d; }
+.auth-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #0084ff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    z-index: 1000;
+}
+.auth-screen.hidden { display: none; }
+.auth-card {
+    background: white;
+    border-radius: 24px;
+    padding: 32px 24px;
+    width: 100%;
+    max-width: 320px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+body.dark .auth-card { background: #1e1e1e; color: white; }
+.auth-card h2 { text-align: center; margin-bottom: 24px; font-size: 24px; }
+.auth-card input {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 12px;
+    border: 1px solid #ddd;
+    border-radius: 28px;
+    font-size: 16px;
+    outline: none;
+}
+body.dark .auth-card input { background: #2d2d2d; color: white; border-color: #444; }
+.auth-card button {
+    width: 100%;
+    padding: 14px;
+    background: #0084ff;
+    color: white;
+    border: none;
+    border-radius: 28px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 12px;
+}
+body.dark .auth-card button { background: #00c853; }
+.auth-card .switch-btn { background: none; color: #0084ff; border: 1px solid #0084ff; }
+body.dark .auth-card .switch-btn { color: #00c853; border-color: #00c853; background: none; }
+.auth-card .remember { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 14px; }
+.error-msg { color: #f44336; text-align: center; font-size: 13px; margin-top: 8px; }
 
-/* ========== СВЕТЛАЯ ТЕМА ========== */
-.header { background: #0084ff; padding: 12px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-.menu-btn { background: rgba(255,255,255,0.2); border: none; width: 40px; height: 40px; border-radius: 20px; color: white; font-size: 20px; cursor: pointer; flex-shrink: 0; }
+.main-app { display: flex; flex-direction: column; height: 100%; }
+.main-app.hidden { display: none; }
+
+.header {
+    background: #0084ff;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+.menu-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
 .header .nick { color: white; font-weight: bold; flex: 1; font-size: 18px; cursor: pointer; }
 .header .nick .star { color: gold; margin-left: 5px; font-size: 16px; }
 .header button { background: rgba(255,255,255,0.2); border: none; padding: 8px 16px; border-radius: 20px; color: white; font-size: 14px; cursor: pointer; flex-shrink: 0; }
-.online-count { background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; font-size: 12px; color: white; flex-shrink: 0; }
+.online-count {
+    background: rgba(255,255,255,0.2);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    color: white;
+    flex-shrink: 0;
+}
 
-.top-bar { background: #0084ff; padding: 8px 12px; display: flex; gap: 8px; flex-shrink: 0; }
-.top-bar input { flex: 1; padding: 8px 12px; border: none; border-radius: 20px; font-size: 14px; outline: none; }
-.top-bar button { background: white; color: #0084ff; border: none; padding: 8px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
+.top-bar {
+    background: #0084ff;
+    padding: 8px 12px;
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.top-bar input {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    outline: none;
+}
+.top-bar button {
+    background: white;
+    color: #0084ff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    flex-shrink: 0;
+}
 
-.mode-bar { background: #0084ff; padding: 10px 12px; display: flex; gap: 10px; align-items: center; flex-shrink: 0; overflow-x: auto; }
+.mode-bar {
+    background: #0084ff;
+    padding: 10px 12px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-shrink: 0;
+    overflow-x: auto;
+}
 .mode-bar button { background: white; color: #0084ff; border: none; padding: 8px 16px; border-radius: 24px; font-weight: bold; font-size: 14px; cursor: pointer; flex-shrink: 0; }
 .mode-bar span { color: white; font-weight: bold; flex: 1; text-align: center; font-size: 15px; }
 
-.chat { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-.message { max-width: 80%; padding: 8px 12px; border-radius: 18px; font-size: 15px; background: #e4e6eb; align-self: flex-start; word-break: break-word; position: relative; }
+.chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.message {
+    max-width: 80%;
+    padding: 8px 12px;
+    border-radius: 18px;
+    font-size: 15px;
+    background: #e4e6eb;
+    align-self: flex-start;
+    word-break: break-word;
+    position: relative;
+}
 .message.swipe-left { transform: translateX(-20px); background: #ffeb3b; }
 body.dark .message { background: #2d2d2d; color: white; }
 .message.own { background: #0084ff; color: white; align-self: flex-end; }
 .message.own .author { color: rgba(255,255,255,0.8); }
-.message .author { font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #0084ff; cursor: pointer; }
-.message .mention { background: rgba(0,132,255,0.2); border-radius: 12px; padding: 2px 6px; cursor: pointer; display: inline-block; }
+.message .author {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: #0084ff;
+    cursor: pointer;
+}
+.message .mention {
+    background: rgba(0,132,255,0.2);
+    border-radius: 12px;
+    padding: 2px 6px;
+    cursor: pointer;
+    display: inline-block;
+}
 .message img, .message video { max-width: 100%; border-radius: 12px; margin-top: 5px; cursor: pointer; max-height: 200px; object-fit: cover; }
-.message .voice-note { display: flex; align-items: center; gap: 8px; margin-top: 5px; padding: 6px 12px; background: rgba(0,0,0,0.08); border-radius: 20px; cursor: pointer; width: fit-content; }
+.message .voice-note { display: flex; align-items: center; gap: 8px; margin-top: 5px; padding: 6px; background: rgba(0,0,0,0.05); border-radius: 20px; cursor: pointer; }
 .message .location { display: flex; align-items: center; gap: 8px; margin-top: 5px; padding: 6px; background: rgba(0,0,0,0.05); border-radius: 8px; cursor: pointer; }
 .message .file-attach { display: flex; align-items: center; gap: 8px; margin-top: 5px; padding: 6px; background: rgba(0,0,0,0.05); border-radius: 8px; cursor: pointer; }
 .message .music-attach { display: flex; align-items: center; gap: 8px; margin-top: 5px; padding: 6px; background: rgba(0,0,0,0.05); border-radius: 8px; cursor: pointer; }
@@ -76,72 +194,313 @@ body.dark .message { background: #2d2d2d; color: white; }
 .message .reactions { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
 .message .reaction { font-size: 14px; cursor: pointer; padding: 2px 6px; background: rgba(0,0,0,0.05); border-radius: 16px; }
 .typing-indicator { font-size: 12px; color: #666; padding: 5px 12px; font-style: italic; }
-.system { text-align: center; font-size: 11px; color: #666; background: #e0e0e0; padding: 6px 12px; border-radius: 16px; align-self: center; max-width: 85%; }
+.system {
+    text-align: center;
+    font-size: 11px;
+    color: #666;
+    background: #e0e0e0;
+    padding: 6px 12px;
+    border-radius: 16px;
+    align-self: center;
+    max-width: 85%;
+}
 
-.input-bar { background: white; padding: 10px 12px; display: flex; gap: 8px; border-top: 1px solid #ddd; flex-shrink: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.input-bar {
+    background: white;
+    padding: 10px 12px;
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid #ddd;
+    flex-shrink: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
 body.dark .input-bar { background: #1e1e1e; border-top-color: #333; }
-.input-bar input { flex: 1; min-width: 150px; padding: 12px 16px; border: 1px solid #ddd; border-radius: 28px; font-size: 16px; background: #f9f9f9; outline: none; }
+.input-bar input {
+    flex: 1;
+    min-width: 150px;
+    padding: 12px 16px;
+    border: 1px solid #ddd;
+    border-radius: 28px;
+    font-size: 16px;
+    background: #f9f9f9;
+    outline: none;
+}
 body.dark .input-bar input { background: #2d2d2d; color: white; border-color: #444; }
-.input-bar button { width: 44px; height: 44px; border-radius: 50%; background: #0084ff; border: none; color: white; font-size: 18px; cursor: pointer; flex-shrink: 0; }
+.input-bar button {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #0084ff;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
 #sendBtn { background: #0084ff; }
 #attachBtn { background: #6c757d; }
 
-.attach-panel { position: fixed; bottom: 80px; left: 16px; right: 16px; background: white; border-radius: 28px; padding: 12px; display: none; gap: 16px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; z-index: 250; }
+.attach-panel {
+    position: fixed;
+    bottom: 80px;
+    left: 16px;
+    right: 16px;
+    background: white;
+    border-radius: 28px;
+    padding: 12px;
+    display: none;
+    gap: 16px;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    z-index: 250;
+}
 body.dark .attach-panel { background: #2d2d2d; }
 .attach-panel.open { display: flex; }
-.attach-item { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; }
+.attach-item {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
 .attach-item span:first-child { font-size: 28px; }
 .attach-item span:last-child { font-size: 11px; }
 
-.message-menu { position: fixed; background: white; border-radius: 16px; padding: 8px; display: none; gap: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 1000; flex-direction: column; min-width: 140px; }
+.message-menu {
+    position: fixed;
+    background: white;
+    border-radius: 16px;
+    padding: 8px;
+    display: none;
+    gap: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    z-index: 1000;
+    flex-direction: column;
+    min-width: 140px;
+}
 body.dark .message-menu { background: #2d2d2d; }
-.message-menu span { padding: 10px 16px; cursor: pointer; font-size: 16px; border-radius: 12px; display: flex; align-items: center; gap: 10px; }
+.message-menu span {
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 .message-menu span:active { background: rgba(0,0,0,0.1); }
 
-.menu-panel { position: fixed; top: 60px; left: 0; width: 280px; background: white; border-radius: 20px; display: none; z-index: 300; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-height: calc(100vh - 70px); overflow-y: auto; }
+.menu-panel {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    width: 280px;
+    background: white;
+    border-radius: 20px;
+    display: none;
+    z-index: 300;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    max-height: calc(100vh - 70px);
+    overflow-y: auto;
+}
+body.dark .menu-panel { background: #1e1e1e; }
 .menu-panel.open { display: block; }
-.menu-header { padding: 16px; background: #0084ff; color: white; font-weight: bold; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; position: sticky; top: 0; }
+.menu-header {
+    padding: 16px;
+    background: #0084ff;
+    color: white;
+    font-weight: bold;
+    border-radius: 20px 20px 0 0;
+    display: flex;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+}
 .menu-header button { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
 .menu-body { padding: 12px; }
-.menu-item { padding: 12px; background: #f0f0f0; border-radius: 12px; margin-bottom: 8px; cursor: pointer; display: flex; gap: 10px; }
+.menu-item {
+    padding: 12px;
+    background: #f0f0f0;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    display: flex;
+    gap: 10px;
+}
+body.dark .menu-item { background: #2d2d2d; color: white; }
 .section-title { font-weight: bold; padding: 8px; margin-top: 8px; color: #0084ff; }
 .user-list { max-height: 250px; overflow-y: auto; }
-.user-item { padding: 10px; background: #f0f0f0; margin-bottom: 8px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; position: relative; }
-.user-item .status-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 6px; }
+.user-item {
+    padding: 10px;
+    background: #f0f0f0;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
+.user-item .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    display: inline-block;
+    margin-right: 6px;
+}
 .user-item .status-online { background: #4caf50; }
 .user-item .status-offline { background: #999; }
 .user-item .status-away { background: #ff9800; }
 .user-item .star { color: gold; margin-left: 5px; }
-.user-item .unread-badge { background: #f44336; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: flex; align-items: center; justify-content: center; position: absolute; right: 70px; top: -5px; }
+.user-item .unread-badge {
+    background: #f44336;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    right: 70px;
+    top: -5px;
+}
 .user-item button { background: #4caf50; border: none; padding: 4px 12px; border-radius: 16px; color: white; font-size: 12px; cursor: pointer; margin-left: 4px; }
-.chat-item, .group-item { padding: 10px; background: #f0f0f0; margin-bottom: 8px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+.group-item {
+    padding: 10px;
+    background: #f0f0f0;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
 .group-item .edit-group { background: #0084ff; padding: 2px 8px; border-radius: 12px; font-size: 10px; margin-left: 8px; cursor: pointer; }
-.group-create { padding: 12px; background: #f0f0f0; border-radius: 12px; margin-bottom: 8px; }
+.group-create {
+    padding: 12px;
+    background: #f0f0f0;
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
 .group-create input { width: 60%; padding: 8px; border-radius: 20px; border: none; margin-right: 8px; }
-.group-info { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.group-avatar { width: 40px; height: 40px; border-radius: 8px; background: #ccc; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; flex-shrink: 0; }
+.group-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.group-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
 .group-avatar img { width: 100%; height: 100%; border-radius: 8px; object-fit: cover; }
-.status-selector { display: flex; gap: 8px; padding: 8px; background: #f0f0f0; border-radius: 20px; margin-bottom: 8px; }
-.status-selector span { cursor: pointer; padding: 4px 12px; border-radius: 16px; font-size: 12px; }
+.status-selector {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    background: #f0f0f0;
+    border-radius: 20px;
+    margin-bottom: 8px;
+}
+.status-selector span {
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+}
 .status-selector span.active { background: #0084ff; color: white; }
-.call-indicator { position: fixed; bottom: 140px; left: 16px; right: 16px; background: #4caf50; color: white; padding: 12px; border-radius: 28px; text-align: center; z-index: 150; display: none; }
+.call-indicator {
+    position: fixed;
+    bottom: 140px;
+    left: 16px;
+    right: 16px;
+    background: #4caf50;
+    color: white;
+    padding: 12px;
+    border-radius: 28px;
+    text-align: center;
+    z-index: 150;
+    display: none;
+}
 .call-indicator button { background: #f44336; border: none; padding: 4px 12px; border-radius: 20px; color: white; margin-left: 12px; cursor: pointer; }
-.modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 2000; }
+.modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
 .modal.open { display: flex; }
 .modal img { max-width: 90%; max-height: 90%; border-radius: 12px; }
 .modal .close { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; cursor: pointer; }
-.profile-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 1500; display: none; flex-direction: column; overflow-y: auto; }
+.profile-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: white;
+    z-index: 1500;
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+}
 body.dark .profile-screen { background: #121212; color: white; }
 .profile-screen.open { display: flex; }
-.profile-header { background: #0084ff; padding: 20px; color: white; display: flex; align-items: center; gap: 16px; }
+.profile-header {
+    background: #0084ff;
+    padding: 20px;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
 .profile-header button { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-.profile-avatar { width: 80px; height: 80px; border-radius: 8px; background: #ccc; display: flex; align-items: center; justify-content: center; font-size: 40px; overflow: hidden; cursor: pointer; }
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    background: #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    overflow: hidden;
+    cursor: pointer;
+}
 .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .profile-body { padding: 20px; }
 .profile-field { margin-bottom: 20px; }
 .profile-field label { display: block; font-weight: bold; margin-bottom: 8px; }
-.profile-field input, .profile-field textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; font-size: 16px; }
-.profile-save { background: #0084ff; color: white; border: none; padding: 14px; border-radius: 28px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; }
+.profile-field input, .profile-field textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    font-size: 16px;
+}
+.profile-save {
+    background: #0084ff;
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 28px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
 .hidden { display: none; }
 </style>
 </head>
@@ -466,7 +825,7 @@ function addMessage(m) {
     if (m.video) { const video = document.createElement("video"); video.src = m.video; video.controls = true; video.style.maxWidth = "200px"; video.style.borderRadius = "12px"; div.appendChild(video); }
     if (m.file) { const fileDiv = document.createElement("div"); fileDiv.className = "file-attach"; fileDiv.innerHTML = `📎 ${m.file.name}`; fileDiv.onclick = () => window.open(m.file.url); div.appendChild(fileDiv); }
     if (m.music) { const musicDiv = document.createElement("div"); musicDiv.className = "music-attach"; musicDiv.innerHTML = `🎵 ${m.music.name} ▶️`; musicDiv.onclick = () => { const audio = new Audio(m.music.url); audio.play(); }; div.appendChild(musicDiv); }
-    if (m.voice) { const voiceDiv = document.createElement("div"); voiceDiv.className = "voice-note"; voiceDiv.innerHTML = `🎙️ Голосовое сообщение ▶️`; voiceDiv.onclick = () => { const audio = new Audio(m.voice); audio.play(); }; div.appendChild(voiceDiv); }
+    if (m.voice) { const voiceDiv = document.createElement("div"); voiceDiv.className = "voice-note"; voiceDiv.innerHTML = `🎙️ Голосовое ▶️`; voiceDiv.onclick = () => { const audio = new Audio(m.voice); audio.play(); }; div.appendChild(voiceDiv); }
     if (m.location) { const locDiv = document.createElement("div"); locDiv.className = "location"; locDiv.innerHTML = "📍 Геолокация"; locDiv.onclick = () => window.open(`https://maps.google.com/?q=${m.location.lat},${m.location.lng}`); div.appendChild(locDiv); }
     const textSpan = document.createElement("span"); textSpan.className = "msg-text"; textSpan.innerHTML = formatTextWithTags(m.text || ""); div.appendChild(textSpan);
     const timeSpan = document.createElement("div"); timeSpan.className = "time"; timeSpan.textContent = m.timeFormatted || ""; div.appendChild(timeSpan);
@@ -492,7 +851,7 @@ function addPrivateMessage(m) {
     if (m.video) { const video = document.createElement("video"); video.src = m.video; video.controls = true; video.style.maxWidth = "200px"; video.style.borderRadius = "12px"; div.appendChild(video); }
     if (m.file) { const fileDiv = document.createElement("div"); fileDiv.className = "file-attach"; fileDiv.innerHTML = `📎 ${m.file.name}`; fileDiv.onclick = () => window.open(m.file.url); div.appendChild(fileDiv); }
     if (m.music) { const musicDiv = document.createElement("div"); musicDiv.className = "music-attach"; musicDiv.innerHTML = `🎵 ${m.music.name} ▶️`; musicDiv.onclick = () => { const audio = new Audio(m.music.url); audio.play(); }; div.appendChild(musicDiv); }
-    if (m.voice) { const voiceDiv = document.createElement("div"); voiceDiv.className = "voice-note"; voiceDiv.innerHTML = `🎙️ Голосовое сообщение ▶️`; voiceDiv.onclick = () => { const audio = new Audio(m.voice); audio.play(); }; div.appendChild(voiceDiv); }
+    if (m.voice) { const voiceDiv = document.createElement("div"); voiceDiv.className = "voice-note"; voiceDiv.innerHTML = `🎙️ Голосовое ▶️`; voiceDiv.onclick = () => { const audio = new Audio(m.voice); audio.play(); }; div.appendChild(voiceDiv); }
     if (m.location) { const locDiv = document.createElement("div"); locDiv.className = "location"; locDiv.innerHTML = "📍 Геолокация"; locDiv.onclick = () => window.open(`https://maps.google.com/?q=${m.location.lat},${m.location.lng}`); div.appendChild(locDiv); }
     const textSpan = document.createElement("span"); textSpan.className = "msg-text"; textSpan.innerHTML = (isOwn ? "→ " : "← ") + formatTextWithTags(m.text || ""); div.appendChild(textSpan);
     const timeSpan = document.createElement("div"); timeSpan.className = "time"; timeSpan.textContent = m.timeFormatted || ""; div.appendChild(timeSpan);
@@ -518,7 +877,7 @@ function addGroupMessage(m) {
     if (m.video) { const video = document.createElement("video"); video.src = m.video; video.controls = true; video.style.maxWidth = "200px"; video.style.borderRadius = "12px"; div.appendChild(video); }
     if (m.file) { const fileDiv = document.createElement("div"); fileDiv.className = "file-attach"; fileDiv.innerHTML = `📎 ${m.file.name}`; fileDiv.onclick = () => window.open(m.file.url); div.appendChild(fileDiv); }
     if (m.music) { const musicDiv = document.createElement("div"); musicDiv.className = "music-attach"; musicDiv.innerHTML = `🎵 ${m.music.name} ▶️`; musicDiv.onclick = () => { const audio = new Audio(m.music.url); audio.play(); }; div.appendChild(musicDiv); }
-    if (m.voice) { const voiceDiv = document.createElement("div"); voiceDiv.className = "voice-note"; voiceDiv.innerHTML = `🎙️ Голосовое сообщение ▶️`; voiceDiv.onclick = () => { const audio = new Audio(m.voice); audio.play(); }; div.appendChild(voiceDiv); }
+    if (m.voice) { const voiceDiv = document.createElement("div"); voiceDiv.className = "voice-note"; voiceDiv.innerHTML = `🎙️ Голосовое ▶️`; voiceDiv.onclick = () => { const audio = new Audio(m.voice); audio.play(); }; div.appendChild(voiceDiv); }
     if (m.location) { const locDiv = document.createElement("div"); locDiv.className = "location"; locDiv.innerHTML = "📍 Геолокация"; locDiv.onclick = () => window.open(`https://maps.google.com/?q=${m.location.lat},${m.location.lng}`); div.appendChild(locDiv); }
     const textSpan = document.createElement("span"); textSpan.className = "msg-text"; textSpan.innerHTML = formatTextWithTags(m.text || ""); div.appendChild(textSpan);
     const timeSpan = document.createElement("div"); timeSpan.className = "time"; timeSpan.textContent = m.timeFormatted || ""; div.appendChild(timeSpan);
@@ -619,16 +978,15 @@ function forwardMessage(msg) { msgInput.value = msg.text || ""; msgInput.focus()
 function deleteMessage(msg, chatType, chatId) { if (confirm("Удалить сообщение?")) { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "delete", id: msg.id })); } }
 function addSystem(text) { const div = document.createElement("div"); div.className = "system"; div.textContent = text; chatDiv.appendChild(div); chatDiv.scrollTop = chatDiv.scrollHeight; }
 
-// ГОЛОСОВЫЕ СООБЩЕНИЯ (исправлено для телефона)
+// ГОЛОСОВЫЕ СООБЩЕНИЯ
 async function startRecording() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
-        mediaRecorder = new MediaRecorder(stream, { mimeType });
+        mediaRecorder = new MediaRecorder(stream);
         audioChunks = [];
         mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
         mediaRecorder.onstop = () => {
-            const blob = new Blob(audioChunks, { type: mimeType });
+            const blob = new Blob(audioChunks, { type: "audio/webm" });
             const reader = new FileReader();
             reader.onload = () => {
                 ws.send(JSON.stringify({ type: "upload_voice", data: reader.result.split(",")[1] }));
@@ -636,12 +994,14 @@ async function startRecording() {
             };
             reader.readAsDataURL(blob);
             stream.getTracks().forEach(t => t.stop());
-            document.getElementById("attachVoice").querySelector("span:first-child").textContent = "🎙️";
+            voiceBtn.textContent = "🎙️";
+            voiceBtn.classList.remove("voice-recording");
             isRecording = false;
         };
         mediaRecorder.start();
         isRecording = true;
-        document.getElementById("attachVoice").querySelector("span:first-child").textContent = "⏹️";
+        voiceBtn.textContent = "⏹️";
+        voiceBtn.classList.add("voice-recording");
         setTimeout(() => { if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop(); }, 30000);
     } catch(e) { addSystem("❌ Нет доступа к микрофону"); }
 }
@@ -668,8 +1028,7 @@ document.getElementById("attachMusic").onclick = () => {
     input.onchange = () => { const file = input.files[0]; const reader = new FileReader(); reader.onload = () => { ws.send(JSON.stringify({ type: "upload_music", filename: file.name, data: reader.result.split(",")[1] })); }; reader.readAsDataURL(file); };
     input.click();
 };
-const voiceAttach = document.getElementById("attachVoice");
-voiceAttach.onclick = () => {
+document.getElementById("attachVoice").onclick = () => {
     attachPanel.classList.remove("open");
     if (isRecording) stopRecording(); else startRecording();
 };
