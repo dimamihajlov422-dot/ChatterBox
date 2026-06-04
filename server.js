@@ -19,15 +19,9 @@ if (!fs.existsSync("music")) fs.mkdirSync("music");
 let history = [];
 let privateHistory = {};
 let groups = {};
-<<<<<<< HEAD
-let usersOnline = new Map();      // ws -> nick
-let userStatus = new Map();       // nick -> { status, lastSeen }
-let sessions = new Map();         // token -> nick
-=======
 let usersOnline = new Map();
 let userStatus = new Map();
 let sessions = new Map();
->>>>>>> cf1d28b (Локальные изменения перед pull)
 let rate = new Map();
 let usersDB = {};
 
@@ -36,19 +30,6 @@ const PRIVATE_FILE = "private.json";
 const GROUPS_FILE = "groups.json";
 const USERS_FILE = "users.json";
 
-<<<<<<< HEAD
-// Загрузка
-try { usersDB = JSON.parse(fs.readFileSync(USERS_FILE, "utf8")) || {}; } catch { usersDB = {}; }
-try { history = JSON.parse(fs.readFileSync(DB_FILE, "utf8")) || []; } catch { history = []; }
-try { privateHistory = JSON.parse(fs.readFileSync(PRIVATE_FILE, "utf8")) || {}; } catch { privateHistory = {}; }
-try { groups = JSON.parse(fs.readFileSync(GROUPS_FILE, "utf8")) || {}; } catch { groups = {}; }
-
-function saveUsers() { fs.writeFileSync(USERS_FILE, JSON.stringify(usersDB, null, 2)); }
-function savePublic() { fs.writeFileSync(DB_FILE, JSON.stringify(history.slice(-500), null, 2)); }
-function savePrivate() { fs.writeFileSync(PRIVATE_FILE, JSON.stringify(privateHistory, null, 2)); }
-function saveGroups() { fs.writeFileSync(GROUPS_FILE, JSON.stringify(groups, null, 2)); }
-=======
-// ========== ЗАГРУЗКА С ВОССТАНОВЛЕНИЕМ ==========
 function loadData() {
     try {
         if (fs.existsSync(USERS_FILE)) {
@@ -57,26 +38,18 @@ function loadData() {
         } else {
             usersDB = {};
             fs.writeFileSync(USERS_FILE, JSON.stringify({}, null, 2));
-            console.log("📁 Создан users.json");
         }
-    } catch (e) {
-        console.error("❌ Ошибка загрузки users.json:", e);
-        usersDB = {};
-    }
+    } catch (e) { usersDB = {}; }
 
     try {
         if (fs.existsSync(DB_FILE)) {
             history = JSON.parse(fs.readFileSync(DB_FILE, "utf8")) || [];
-            console.log(`✅ Загружено ${history.length} сообщений из общего чата`);
+            console.log(`✅ Загружено ${history.length} сообщений`);
         } else {
             history = [];
             fs.writeFileSync(DB_FILE, JSON.stringify([], null, 2));
-            console.log("📁 Создан db.json");
         }
-    } catch (e) {
-        console.error("❌ Ошибка загрузки db.json:", e);
-        history = [];
-    }
+    } catch (e) { history = []; }
 
     try {
         if (fs.existsSync(PRIVATE_FILE)) {
@@ -85,53 +58,26 @@ function loadData() {
         } else {
             privateHistory = {};
             fs.writeFileSync(PRIVATE_FILE, JSON.stringify({}, null, 2));
-            console.log("📁 Создан private.json");
         }
-    } catch (e) {
-        console.error("❌ Ошибка загрузки private.json:", e);
-        privateHistory = {};
-    }
+    } catch (e) { privateHistory = {}; }
 
     try {
         if (fs.existsSync(GROUPS_FILE)) {
             groups = JSON.parse(fs.readFileSync(GROUPS_FILE, "utf8")) || {};
-            console.log(`✅ Загружено ${Object.keys(groups).length} групп/каналов`);
+            console.log(`✅ Загружено ${Object.keys(groups).length} групп`);
         } else {
             groups = {};
             fs.writeFileSync(GROUPS_FILE, JSON.stringify({}, null, 2));
-            console.log("📁 Создан groups.json");
         }
-    } catch (e) {
-        console.error("❌ Ошибка загрузки groups.json:", e);
-        groups = {};
-    }
+    } catch (e) { groups = {}; }
 }
 
-// ========== СОХРАНЕНИЕ ==========
-function saveUsers() {
-    try {
-        fs.writeFileSync(USERS_FILE, JSON.stringify(usersDB, null, 2));
-    } catch (e) { console.error("❌ Ошибка сохранения users.json:", e); }
-}
-function savePublic() {
-    try {
-        fs.writeFileSync(DB_FILE, JSON.stringify(history.slice(-500), null, 2));
-    } catch (e) { console.error("❌ Ошибка сохранения db.json:", e); }
-}
-function savePrivate() {
-    try {
-        fs.writeFileSync(PRIVATE_FILE, JSON.stringify(privateHistory, null, 2));
-    } catch (e) { console.error("❌ Ошибка сохранения private.json:", e); }
-}
-function saveGroups() {
-    try {
-        fs.writeFileSync(GROUPS_FILE, JSON.stringify(groups, null, 2));
-    } catch (e) { console.error("❌ Ошибка сохранения groups.json:", e); }
-}
-
-// Загружаем данные при старте
 loadData();
->>>>>>> cf1d28b (Локальные изменения перед pull)
+
+function saveUsers() { try { fs.writeFileSync(USERS_FILE, JSON.stringify(usersDB, null, 2)); } catch (e) {} }
+function savePublic() { try { fs.writeFileSync(DB_FILE, JSON.stringify(history.slice(-500), null, 2)); } catch (e) {} }
+function savePrivate() { try { fs.writeFileSync(PRIVATE_FILE, JSON.stringify(privateHistory, null, 2)); } catch (e) {} }
+function saveGroups() { try { fs.writeFileSync(GROUPS_FILE, JSON.stringify(groups, null, 2)); } catch (e) {} }
 
 function hashPassword(password) { return crypto.createHash("sha256").update(password).digest("hex"); }
 function generateToken() { return crypto.randomBytes(32).toString("hex"); }
@@ -426,9 +372,4 @@ setInterval(() => {
 server.listen(3000, () => {
     console.log("✅ Сервер запущен на порту 3000");
     console.log("   http://localhost:3000");
-<<<<<<< HEAD
 });
-=======
-    console.log("   Данные сохраняются в JSON файлы");
-});
->>>>>>> cf1d28b (Локальные изменения перед pull)
