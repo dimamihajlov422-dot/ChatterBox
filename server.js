@@ -11,14 +11,17 @@ const wss = new WebSocket.Server({ server });
 
 app.use(express.static("public"));
 app.use("/files", express.static("files"));
+app.use("/music", express.static("music"));
 
 if (!fs.existsSync("files")) fs.mkdirSync("files");
+if (!fs.existsSync("music")) fs.mkdirSync("music");
 
 let history = [];
 let privateHistory = {};
 let groups = {};
-let usersOnline = new Map();
-let sessions = new Map();
+let usersOnline = new Map();      // ws -> nick
+let userStatus = new Map();       // nick -> { status, lastSeen }
+let sessions = new Map();         // token -> nick
 let rate = new Map();
 let usersDB = {};
 
@@ -27,6 +30,7 @@ const PRIVATE_FILE = "private.json";
 const GROUPS_FILE = "groups.json";
 const USERS_FILE = "users.json";
 
+// Загрузка
 try { usersDB = JSON.parse(fs.readFileSync(USERS_FILE, "utf8")) || {}; } catch { usersDB = {}; }
 try { history = JSON.parse(fs.readFileSync(DB_FILE, "utf8")) || []; } catch { history = []; }
 try { privateHistory = JSON.parse(fs.readFileSync(PRIVATE_FILE, "utf8")) || {}; } catch { privateHistory = {}; }
@@ -39,21 +43,24 @@ function saveGroups() { fs.writeFileSync(GROUPS_FILE, JSON.stringify(groups, nul
 
 function hashPassword(password) { return crypto.createHash("sha256").update(password).digest("hex"); }
 function generateToken() { return crypto.randomBytes(32).toString("hex"); }
-
 function formatTime(timestamp) { const date = new Date(timestamp); date.setHours(date.getHours() + 3); return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }); }
-
 function escapeHtml(str) { if (!str) return ""; return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 function checkRate(ws) { const now = Date.now(); if (!rate.has(ws)) rate.set(ws, []); const arr = rate.get(ws).filter(t => now - t < 1000); arr.push(now); rate.set(ws, arr); return arr.length <= 10; }
 function broadcast(obj) { const data = JSON.stringify(obj); for (const c of wss.clients) if (c.readyState === 1) c.send(data); }
-function sendUsers() { broadcast({ type: "users", users: Array.from(usersOnline.values()) }); }
+function sendUsers() { broadcast({ type: "users", users: Array.from(usersOnline.values()), statuses: Object.fromEntries(userStatus) }); }
 function validNick(nick) { nick = nick?.trim(); if (!nick || nick.length < 2 || nick.length > 16) return false; return /^[a-zA-Zа-яА-Я0-9_]+$/.test(nick); }
 function nickExistsInDB(nick) { return !!usersDB[nick]; }
-function nickExistsOnline(nick) { for (const u of usersOnline.values()) if (u === nick) return true; return false; }
 function getPrivateKey(u1, u2) { return [u1, u2].sort().join("_"); }
 
 function createGroup(name, creator) {
     const id = Date.now().toString() + "-" + Math.random().toString(36).substr(2, 6);
-    groups[id] = { id, name: escapeHtml(name), creator, members: [creator], messages: [], avatar: null, createdAt: Date.now() };
+    groups[id] = { id, name: escapeHtml(name), creator, members: [creator], messages: [], avatar: null, isChannel: false, createdAt: Date.now() };
+    saveGroups();
+    return id;
+}
+function createChannel(name, creator) {
+    const id = Date.now().toString() + "-" + Math.random().toString(36).substr(2, 6);
+    groups[id] = { id, name: escapeHtml(name), creator, members: [creator], messages: [], avatar: null, isChannel: true, createdAt: Date.now() };
     saveGroups();
     return id;
 }
@@ -68,32 +75,12 @@ function addToGroup(groupId, nick, adder) {
     }
     return true;
 }
-function removeFromGroup(groupId, nick, remover) {
-    if (!groups[groupId] || groups[groupId].creator !== remover) return false;
-    groups[groupId].members = groups[groupId].members.filter(m => m !== nick);
-    saveGroups();
-    for (const member of groups[groupId].members) {
-        let targetWs = null;
-        for (const [c, n] of usersOnline.entries()) if (n === member) { targetWs = c; break; }
-        if (targetWs && targetWs.readyState === 1) targetWs.send(JSON.stringify({ type: "group_update", group: groups[groupId] }));
-    }
-    return true;
-}
-function updateGroupAvatar(groupId, avatar) {
-    if (!groups[groupId]) return;
-    groups[groupId].avatar = avatar;
-    saveGroups();
-    for (const member of groups[groupId].members) {
-        let targetWs = null;
-        for (const [c, n] of usersOnline.entries()) if (n === member) { targetWs = c; break; }
-        if (targetWs && targetWs.readyState === 1) targetWs.send(JSON.stringify({ type: "group_update", group: groups[groupId] }));
-    }
-}
 function sendGroupMessage(groupId, from, msgData) {
     if (!groups[groupId]) return;
+    if (groups[groupId].isChannel && groups[groupId].creator !== from) return;
     const m = {
         id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
-        from, text: escapeHtml((msgData.text || "").slice(0, 500)), image: msgData.image || null, file: msgData.file || null, location: msgData.location || null,
+        from, text: escapeHtml((msgData.text || "").slice(0, 500)), image: msgData.image || null, file: msgData.file || null, music: msgData.music || null, location: msgData.location || null,
         replyTo: msgData.replyTo || null, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {}
     };
     groups[groupId].messages.push(m);
@@ -140,8 +127,9 @@ wss.on("connection", (ws) => {
         if (msg.type === "auto_login") {
             const token = msg.token;
             const nick = sessions.get(token);
-            if (nick && usersDB[nick] && !nickExistsOnline(nick)) {
+            if (nick && usersDB[nick]) {
                 ws.nick = nick; usersOnline.set(ws, nick);
+                userStatus.set(nick, { status: "online", lastSeen: Date.now() });
                 ws.send(JSON.stringify({ type: "login_success", nick: nick, profile: usersDB[nick].profile || {}, groups: Object.values(groups).filter(g => g.members.includes(nick)), lastChats: getLastChats(nick) }));
                 sendUsers(); broadcast({ type: "system", text: `🟢 ${escapeHtml(nick)} вошёл` });
             } else ws.send(JSON.stringify({ type: "error", text: "Сессия устарела" }));
@@ -165,8 +153,8 @@ wss.on("connection", (ws) => {
             if (!password) { ws.send(JSON.stringify({ type: "error", text: "Введите пароль" })); return; }
             if (!nickExistsInDB(nick)) { ws.send(JSON.stringify({ type: "error", text: "Пользователь не найден" })); return; }
             if (usersDB[nick].password !== hashPassword(password)) { ws.send(JSON.stringify({ type: "error", text: "Неверный пароль" })); return; }
-            if (nickExistsOnline(nick)) { ws.send(JSON.stringify({ type: "error", text: "Уже в сети" })); return; }
             ws.nick = nick; usersOnline.set(ws, nick);
+            userStatus.set(nick, { status: "online", lastSeen: Date.now() });
             let token = null; if (remember) { token = generateToken(); sessions.set(token, nick); }
             ws.send(JSON.stringify({ type: "login_success", nick: nick, profile: usersDB[nick].profile || {}, token: token, groups: Object.values(groups).filter(g => g.members.includes(nick)), lastChats: getLastChats(nick) }));
             sendUsers(); broadcast({ type: "system", text: `🟢 ${escapeHtml(nick)} вошёл` });
@@ -174,6 +162,12 @@ wss.on("connection", (ws) => {
         }
 
         if (!ws.nick) { ws.send(JSON.stringify({ type: "error", text: "Сначала войдите" })); return; }
+
+        if (msg.type === "update_status") {
+            userStatus.set(ws.nick, { status: msg.status, lastSeen: Date.now() });
+            sendUsers();
+            return;
+        }
 
         if (msg.type === "get_profile") {
             if (usersDB[msg.nick]) ws.send(JSON.stringify({ type: "profile_data", nick: msg.nick, profile: usersDB[msg.nick].profile || {} }));
@@ -191,7 +185,15 @@ wss.on("connection", (ws) => {
         }
 
         if (msg.type === "update_group_avatar") {
-            updateGroupAvatar(msg.groupId, msg.avatar);
+            if (groups[msg.groupId]) {
+                groups[msg.groupId].avatar = msg.avatar;
+                saveGroups();
+                for (const member of groups[msg.groupId].members) {
+                    let targetWs = null;
+                    for (const [c, n] of usersOnline.entries()) if (n === member) { targetWs = c; break; }
+                    if (targetWs && targetWs.readyState === 1) targetWs.send(JSON.stringify({ type: "group_update", group: groups[msg.groupId] }));
+                }
+            }
             return;
         }
 
@@ -204,7 +206,7 @@ wss.on("connection", (ws) => {
 
         if (msg.type === "chat") {
             if (!checkRate(ws)) return;
-            const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, file: msg.file || null, location: msg.location || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
+            const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, file: msg.file || null, music: msg.music || null, location: msg.location || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
             history.push(m); history = history.slice(-500); savePublic();
             updateLastChat(ws.nick, "public", "public", m.text || "📷 Изображение");
             broadcast({ type: "msg", data: m });
@@ -215,7 +217,7 @@ wss.on("connection", (ws) => {
             if (!checkRate(ws)) return;
             const key = getPrivateKey(ws.nick, msg.target);
             if (!privateHistory[key]) privateHistory[key] = [];
-            const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), from: ws.nick, to: msg.target, text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, file: msg.file || null, location: msg.location || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
+            const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), from: ws.nick, to: msg.target, text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, file: msg.file || null, music: msg.music || null, location: msg.location || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
             privateHistory[key].push(m); privateHistory[key] = privateHistory[key].slice(-500); savePrivate();
             updateLastChat(ws.nick, "private", msg.target, m.text || "📷 Изображение");
             updateLastChat(msg.target, "private", ws.nick, m.text || "📷 Изображение");
@@ -226,8 +228,8 @@ wss.on("connection", (ws) => {
         }
 
         if (msg.type === "create_group") { const groupId = createGroup(msg.name, ws.nick); ws.send(JSON.stringify({ type: "group_created", group: groups[groupId] })); return; }
+        if (msg.type === "create_channel") { const groupId = createChannel(msg.name, ws.nick); ws.send(JSON.stringify({ type: "group_created", group: groups[groupId] })); return; }
         if (msg.type === "invite_to_group") { if (addToGroup(msg.groupId, msg.nick, ws.nick)) ws.send(JSON.stringify({ type: "invite_sent", groupId: msg.groupId, nick: msg.nick })); return; }
-        if (msg.type === "remove_from_group") { if (removeFromGroup(msg.groupId, msg.nick, ws.nick)) ws.send(JSON.stringify({ type: "remove_sent", groupId: msg.groupId, nick: msg.nick })); return; }
         if (msg.type === "group_chat") { if (!checkRate(ws)) return; sendGroupMessage(msg.groupId, ws.nick, msg); for (const member of groups[msg.groupId].members) updateLastChat(member, "group", msg.groupId, msg.text || "📷 Изображение"); return; }
         if (msg.type === "get_group_history") { if (groups[msg.groupId] && groups[msg.groupId].members.includes(ws.nick)) ws.send(JSON.stringify({ type: "group_history", groupId: msg.groupId, data: groups[msg.groupId].messages })); return; }
         if (msg.type === "get_my_groups") { ws.send(JSON.stringify({ type: "my_groups", groups: Object.values(groups).filter(g => g.members.includes(ws.nick)) })); return; }
@@ -294,6 +296,14 @@ wss.on("connection", (ws) => {
             return;
         }
 
+        if (msg.type === "upload_music") {
+            const filename = Date.now() + "_" + ws.nick + "_" + msg.filename;
+            const filepath = path.join("music", filename);
+            fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
+            ws.send(JSON.stringify({ type: "music_uploaded", url: `/music/${filename}`, filename: msg.filename }));
+            return;
+        }
+
         if (msg.type === "signal") {
             let targetWs = null;
             for (const [c, nick] of usersOnline.entries()) if (nick === msg.target) { targetWs = c; break; }
@@ -303,11 +313,23 @@ wss.on("connection", (ws) => {
     });
 
     ws.on("close", () => {
-        if (ws.nick) { usersOnline.delete(ws); rate.delete(ws); sendUsers(); broadcast({ type: "system", text: `🔴 ${escapeHtml(ws.nick)} вышел` }); }
+        if (ws.nick) {
+            usersOnline.delete(ws);
+            userStatus.set(ws.nick, { status: "offline", lastSeen: Date.now() });
+            sendUsers();
+            broadcast({ type: "system", text: `🔴 ${escapeHtml(ws.nick)} вышел` });
+        }
+        rate.delete(ws);
     });
 });
 
-setInterval(() => { wss.clients.forEach(ws => { if (!ws.isAlive) return ws.terminate(); ws.isAlive = false; ws.ping(); }); }, 30000);
+setInterval(() => {
+    wss.clients.forEach(ws => {
+        if (!ws.isAlive) return ws.terminate();
+        ws.isAlive = false;
+        ws.ping();
+    });
+}, 30000);
 
 server.listen(3000, () => {
     console.log("✅ Сервер запущен на порту 3000");
