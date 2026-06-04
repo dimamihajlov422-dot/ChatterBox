@@ -15,8 +15,18 @@ body {
     transition: background 0.3s;
 }
 body.dark { background: #121212; }
+body.dark .header { background: #00c853; }
+body.dark .top-bar { background: #00c853; }
+body.dark .mode-bar { background: #00c853; }
+body.dark .menu-header { background: #00c853; }
+body.dark .auth-screen { background: #00c853; }
+body.dark .message.own { background: #00c853; }
+body.dark .message .author { color: #00c853; }
+body.dark .call-indicator { background: #00c853; }
+body.dark .status-selector span.active { background: #00c853; }
+body.dark .group-item .edit-group { background: #00c853; }
+body.dark #sendBtn { background: #00c853; }
 
-/* ========== АВТОРИЗАЦИЯ ========== */
 .auth-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -60,15 +70,15 @@ body.dark .auth-card input { background: #2d2d2d; color: white; border-color: #4
     cursor: pointer;
     margin-bottom: 12px;
 }
+body.dark .auth-card button { background: #00c853; }
 .auth-card .switch-btn { background: none; color: #0084ff; border: 1px solid #0084ff; }
+body.dark .auth-card .switch-btn { color: #00c853; border-color: #00c853; background: none; }
 .auth-card .remember { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 14px; }
 .error-msg { color: #f44336; text-align: center; font-size: 13px; margin-top: 8px; }
 
-/* ========== ОСНОВНОЙ ИНТЕРФЕЙС ========== */
 .main-app { display: flex; flex-direction: column; height: 100%; }
 .main-app.hidden { display: none; }
 
-/* ========== ШАПКА С МЕНЮ НАВЕРХУ ========== */
 .header {
     background: #0084ff;
     padding: 12px 16px;
@@ -86,18 +96,20 @@ body.dark .auth-card input { background: #2d2d2d; color: white; border-color: #4
     color: white;
     font-size: 20px;
     cursor: pointer;
+    flex-shrink: 0;
 }
 .header .nick { color: white; font-weight: bold; flex: 1; font-size: 18px; cursor: pointer; }
-.header button { background: rgba(255,255,255,0.2); border: none; padding: 8px 16px; border-radius: 20px; color: white; font-size: 14px; cursor: pointer; }
+.header .nick .star { color: gold; margin-left: 5px; font-size: 16px; }
+.header button { background: rgba(255,255,255,0.2); border: none; padding: 8px 16px; border-radius: 20px; color: white; font-size: 14px; cursor: pointer; flex-shrink: 0; }
 .online-count {
     background: rgba(255,255,255,0.2);
     padding: 4px 10px;
     border-radius: 20px;
     font-size: 12px;
     color: white;
+    flex-shrink: 0;
 }
 
-/* ========== ВЕРХНЯЯ ПАНЕЛЬ ========== */
 .top-bar {
     background: #0084ff;
     padding: 8px 12px;
@@ -121,9 +133,9 @@ body.dark .auth-card input { background: #2d2d2d; color: white; border-color: #4
     border-radius: 20px;
     font-weight: bold;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
-/* ========== ПАНЕЛЬ РЕЖИМА ========== */
 .mode-bar {
     background: #0084ff;
     padding: 10px 12px;
@@ -131,11 +143,11 @@ body.dark .auth-card input { background: #2d2d2d; color: white; border-color: #4
     gap: 10px;
     align-items: center;
     flex-shrink: 0;
+    overflow-x: auto;
 }
-.mode-bar button { background: white; color: #0084ff; border: none; padding: 8px 16px; border-radius: 24px; font-weight: bold; font-size: 14px; cursor: pointer; }
+.mode-bar button { background: white; color: #0084ff; border: none; padding: 8px 16px; border-radius: 24px; font-weight: bold; font-size: 14px; cursor: pointer; flex-shrink: 0; }
 .mode-bar span { color: white; font-weight: bold; flex: 1; text-align: center; font-size: 15px; }
 
-/* ========== ЧАТ ========== */
 .chat {
     flex: 1;
     overflow-y: auto;
@@ -153,11 +165,11 @@ body.dark .auth-card input { background: #2d2d2d; color: white; border-color: #4
     align-self: flex-start;
     word-break: break-word;
     position: relative;
-    transition: transform 0.2s;
 }
 .message.swipe-left { transform: translateX(-20px); background: #ffeb3b; }
 body.dark .message { background: #2d2d2d; color: white; }
 .message.own { background: #0084ff; color: white; align-self: flex-end; }
+.message.own .author { color: rgba(255,255,255,0.8); }
 .message .author {
     font-size: 12px;
     font-weight: bold;
@@ -165,7 +177,6 @@ body.dark .message { background: #2d2d2d; color: white; }
     color: #0084ff;
     cursor: pointer;
 }
-.message.own .author { color: rgba(255,255,255,0.8); }
 .message .mention {
     background: rgba(0,132,255,0.2);
     border-radius: 12px;
@@ -173,7 +184,8 @@ body.dark .message { background: #2d2d2d; color: white; }
     cursor: pointer;
     display: inline-block;
 }
-.message img { max-width: 100%; border-radius: 12px; margin-top: 5px; cursor: pointer; max-height: 200px; object-fit: cover; }
+.message img, .message video { max-width: 100%; border-radius: 12px; margin-top: 5px; cursor: pointer; max-height: 200px; object-fit: cover; }
+.message .voice-note { display: flex; align-items: center; gap: 8px; margin-top: 5px; padding: 6px; background: rgba(0,0,0,0.05); border-radius: 20px; cursor: pointer; }
 .message .location { display: flex; align-items: center; gap: 8px; margin-top: 5px; padding: 6px; background: rgba(0,0,0,0.05); border-radius: 8px; cursor: pointer; }
 .message .file-attach { display: flex; align-items: center; gap: 8px; margin-top: 5px; padding: 6px; background: rgba(0,0,0,0.05); border-radius: 8px; cursor: pointer; }
 .message .music-attach { display: flex; align-items: center; gap: 8px; margin-top: 5px; padding: 6px; background: rgba(0,0,0,0.05); border-radius: 8px; cursor: pointer; }
@@ -193,7 +205,6 @@ body.dark .message { background: #2d2d2d; color: white; }
     max-width: 85%;
 }
 
-/* ========== ПАНЕЛЬ ВВОДА ========== */
 .input-bar {
     background: white;
     padding: 10px 12px;
@@ -201,10 +212,13 @@ body.dark .message { background: #2d2d2d; color: white; }
     gap: 8px;
     border-top: 1px solid #ddd;
     flex-shrink: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 body.dark .input-bar { background: #1e1e1e; border-top-color: #333; }
 .input-bar input {
     flex: 1;
+    min-width: 150px;
     padding: 12px 16px;
     border: 1px solid #ddd;
     border-radius: 28px;
@@ -226,7 +240,6 @@ body.dark .input-bar input { background: #2d2d2d; color: white; border-color: #4
 }
 #sendBtn { background: #0084ff; }
 #attachBtn { background: #6c757d; }
-#musicBtn { background: #6c757d; }
 
 .attach-panel {
     position: fixed;
@@ -238,18 +251,20 @@ body.dark .input-bar input { background: #2d2d2d; color: white; border-color: #4
     padding: 12px;
     display: none;
     gap: 16px;
-    justify-content: space-around;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
     z-index: 250;
 }
 body.dark .attach-panel { background: #2d2d2d; }
 .attach-panel.open { display: flex; }
 .attach-item {
-    display: flex;
+    display: inline-flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
     cursor: pointer;
+    flex-shrink: 0;
 }
 .attach-item span:first-child { font-size: 28px; }
 .attach-item span:last-child { font-size: 11px; }
@@ -338,6 +353,7 @@ body.dark .menu-item { background: #2d2d2d; color: white; }
 .user-item .status-online { background: #4caf50; }
 .user-item .status-offline { background: #999; }
 .user-item .status-away { background: #ff9800; }
+.user-item .star { color: gold; margin-left: 5px; }
 .user-item .unread-badge {
     background: #f44336;
     color: white;
@@ -363,6 +379,7 @@ body.dark .menu-item { background: #2d2d2d; color: white; }
     align-items: center;
     cursor: pointer;
 }
+.group-item .edit-group { background: #0084ff; padding: 2px 8px; border-radius: 12px; font-size: 10px; margin-left: 8px; cursor: pointer; }
 .group-create {
     padding: 12px;
     background: #f0f0f0;
@@ -374,6 +391,7 @@ body.dark .menu-item { background: #2d2d2d; color: white; }
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-wrap: wrap;
 }
 .group-avatar {
     width: 40px;
@@ -385,6 +403,7 @@ body.dark .menu-item { background: #2d2d2d; color: white; }
     justify-content: center;
     font-size: 20px;
     cursor: pointer;
+    flex-shrink: 0;
 }
 .group-avatar img { width: 100%; height: 100%; border-radius: 8px; object-fit: cover; }
 .status-selector {
@@ -516,6 +535,7 @@ body.dark .profile-screen { background: #121212; color: white; }
         <div class="group-info hidden" id="groupInfo">
             <div class="group-avatar" id="groupAvatar">👥</div>
             <span id="modeTitle"></span>
+            <span class="edit-group" id="editGroupBtn" style="display: none;">✏️</span>
         </div>
         <button id="inviteBtn" class="hidden">➕</button>
     </div>
@@ -523,14 +543,15 @@ body.dark .profile-screen { background: #121212; color: white; }
     <div class="input-bar" id="inputBar">
         <input type="text" id="msgInput" placeholder="Сообщение...">
         <button id="sendBtn">➤</button>
-        <button id="musicBtn">🎵</button>
         <button id="attachBtn">📎</button>
     </div>
 </div>
 
 <div class="attach-panel" id="attachPanel">
     <div class="attach-item" id="attachPhoto"><span>🖼️</span><span>Фото</span></div>
-    <div class="attach-item" id="attachFile"><span>📁</span><span>Файл</span></div>
+    <div class="attach-item" id="attachVideo"><span>🎥</span><span>Видео</span></div>
+    <div class="attach-item" id="attachMusic"><span>🎵</span><span>Музыка</span></div>
+    <div class="attach-item" id="attachVoice"><span>🎙️</span><span>Голос</span></div>
     <div class="attach-item" id="attachLocation"><span>📍</span><span>Гео</span></div>
 </div>
 
@@ -598,6 +619,7 @@ const modeBar = document.getElementById("modeBar");
 const modeTitle = document.getElementById("modeTitle");
 const groupInfo = document.getElementById("groupInfo");
 const groupAvatar = document.getElementById("groupAvatar");
+const editGroupBtn = document.getElementById("editGroupBtn");
 const backBtn = document.getElementById("backBtn");
 const inviteBtn = document.getElementById("inviteBtn");
 const chatDiv = document.getElementById("chat");
@@ -605,7 +627,6 @@ const typingIndicator = document.getElementById("typingIndicator");
 const inputBar = document.getElementById("inputBar");
 const msgInput = document.getElementById("msgInput");
 const sendBtn = document.getElementById("sendBtn");
-const musicBtn = document.getElementById("musicBtn");
 const attachBtn = document.getElementById("attachBtn");
 const attachPanel = document.getElementById("attachPanel");
 const menuBtn = document.getElementById("menuBtn");
@@ -652,17 +673,22 @@ let isLoginMode = true;
 let soundEnabled = true;
 let replyToMsg = null;
 let pendingImage = null;
+let pendingVideo = null;
 let pendingFile = null;
 let pendingMusic = null;
 let typingTimer = null;
 let unreadCounts = {};
 let currentMsgTarget = null;
-let swipeStartX = 0;
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
 
 let pc = null;
 let localStream = null;
 let currentCallWith = null;
 const servers = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }] };
+
+function isDima() { return currentNick === "Дима"; }
 
 function connect() {
     ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host);
@@ -674,7 +700,8 @@ function connect() {
         if (d.type === "error") { if (!authScreen.classList.contains("hidden")) authError.textContent = d.text; else alert("❌ " + d.text); return; }
         if (d.type === "register_success") { authError.style.color = "#4caf50"; authError.textContent = d.text; setTimeout(() => { isLoginMode = true; authTitle.textContent = "Вход"; authActionBtn.textContent = "Войти"; authSwitchBtn.textContent = "Нет аккаунта? Регистрация"; authError.textContent = ""; authPassword.value = ""; }, 1500); return; }
         if (d.type === "login_success") {
-            logged = true; currentNick = d.nick; currentNickSpan.textContent = currentNick;
+            logged = true; currentNick = d.nick; 
+            currentNickSpan.innerHTML = currentNick + (isDima() ? '<span class="star">⭐</span>' : '');
             authScreen.classList.add("hidden"); mainApp.classList.remove("hidden");
             document.title = "Чат: " + currentNick;
             if (d.token && rememberMe.checked) localStorage.setItem("chat_token", d.token);
@@ -706,6 +733,7 @@ function connect() {
         if (d.type === "group_update") { myGroups = myGroups.map(g => g.id === d.group.id ? d.group : g); if (!myGroups.find(g => g.id === d.group.id)) myGroups.push(d.group); renderGroupsList(); if (currentGroupId === d.group.id) { currentGroup = d.group; updateGroupUI(); } }
         if (d.type === "group_created") { myGroups.push(d.group); renderGroupsList(); addSystem(`✅ ${d.group.isChannel ? "Канал" : "Группа"} "${d.group.name}" создан${d.group.isChannel ? "а" : "а"}`); }
         if (d.type === "group_info") { currentGroup = d.group; updateGroupUI(); }
+        if (d.type === "group_name_updated") { if (currentGroupId === d.groupId && currentGroup) { currentGroup.name = d.newName; updateGroupUI(); } renderGroupsList(); }
         if (d.type === "my_groups") { myGroups = d.groups; renderGroupsList(); }
         if (d.type === "last_chats") { myLastChats = d.data; renderLastChatsList(); }
         if (d.type === "delete") { const el = document.getElementById(d.id); if (el) el.remove(); }
@@ -715,13 +743,16 @@ function connect() {
         if (d.type === "reaction_update") { updateReactionUI(d.id, d.from, d.reaction, d.remove); }
         if (d.type === "search_results") { renderSearchResults(d.results); }
         if (d.type === "signal") handleSignal(d.from, d.signal);
+        if (d.type === "voice_uploaded") { addSystem("🎙️ Голосовое готово к отправке"); pendingVoice = d.url; sendText(); }
+        if (d.type === "music_uploaded") { addSystem("🎵 Музыка загружена"); pendingMusic = { url: d.url, name: d.filename }; sendText(); }
+        if (d.type === "file_uploaded") { addSystem("📁 Файл загружен"); pendingFile = { url: d.url, name: d.filename }; sendText(); }
     };
 }
 connect();
 
-function updateOnlineCount() {
-    onlineCount.textContent = usersOnline.length;
-}
+let pendingVoice = null;
+
+function updateOnlineCount() { onlineCount.textContent = usersOnline.length; }
 
 function tryAutoLogin() { const token = localStorage.getItem("chat_token"); if (token && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "auto_login", token })); }
 function setAuthMode(login) { isLoginMode = login; authTitle.textContent = login ? "Вход" : "Регистрация"; authActionBtn.textContent = login ? "Войти" : "Зарегистрироваться"; authSwitchBtn.textContent = login ? "Нет аккаунта? Регистрация" : "Уже есть аккаунт? Вход"; authError.textContent = ""; }
@@ -751,7 +782,6 @@ function hideTyping() { typingIndicator.classList.add("hidden"); }
 function sendTyping(isTyping) { if (currentMode === "private" && currentPrivateWith && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "typing", to: currentPrivateWith, isTyping })); }
 msgInput.addEventListener("input", () => { if (typingTimer) clearTimeout(typingTimer); sendTyping(true); typingTimer = setTimeout(() => sendTyping(false), 1000); });
 
-// СТАТУСЫ
 document.querySelectorAll("#statusSelector span").forEach(el => {
     el.onclick = () => {
         document.querySelectorAll("#statusSelector span").forEach(s => s.classList.remove("active"));
@@ -792,8 +822,10 @@ function addMessage(m) {
     const authorSpan = document.createElement("div"); authorSpan.className = "author"; authorSpan.textContent = m.owner; authorSpan.onclick = () => viewProfile(m.owner); div.appendChild(authorSpan);
     if (m.replyTo) { const replyDiv = document.createElement("div"); replyDiv.className = "reply-header"; replyDiv.textContent = `↩️ Ответ на: ${(m.replyTo.text || "").substring(0, 50)}`; div.appendChild(replyDiv); }
     if (m.image) { const img = document.createElement("img"); img.src = m.image; img.onclick = () => openModal(m.image); div.appendChild(img); }
+    if (m.video) { const video = document.createElement("video"); video.src = m.video; video.controls = true; video.style.maxWidth = "200px"; video.style.borderRadius = "12px"; div.appendChild(video); }
     if (m.file) { const fileDiv = document.createElement("div"); fileDiv.className = "file-attach"; fileDiv.innerHTML = `📎 ${m.file.name}`; fileDiv.onclick = () => window.open(m.file.url); div.appendChild(fileDiv); }
     if (m.music) { const musicDiv = document.createElement("div"); musicDiv.className = "music-attach"; musicDiv.innerHTML = `🎵 ${m.music.name} ▶️`; musicDiv.onclick = () => { const audio = new Audio(m.music.url); audio.play(); }; div.appendChild(musicDiv); }
+    if (m.voice) { const voiceDiv = document.createElement("div"); voiceDiv.className = "voice-note"; voiceDiv.innerHTML = `🎙️ Голосовое ▶️`; voiceDiv.onclick = () => { const audio = new Audio(m.voice); audio.play(); }; div.appendChild(voiceDiv); }
     if (m.location) { const locDiv = document.createElement("div"); locDiv.className = "location"; locDiv.innerHTML = "📍 Геолокация"; locDiv.onclick = () => window.open(`https://maps.google.com/?q=${m.location.lat},${m.location.lng}`); div.appendChild(locDiv); }
     const textSpan = document.createElement("span"); textSpan.className = "msg-text"; textSpan.innerHTML = formatTextWithTags(m.text || ""); div.appendChild(textSpan);
     const timeSpan = document.createElement("div"); timeSpan.className = "time"; timeSpan.textContent = m.timeFormatted || ""; div.appendChild(timeSpan);
@@ -816,8 +848,10 @@ function addPrivateMessage(m) {
     const authorSpan = document.createElement("div"); authorSpan.className = "author"; authorSpan.textContent = m.from; authorSpan.onclick = () => viewProfile(m.from); div.appendChild(authorSpan);
     if (m.replyTo) { const replyDiv = document.createElement("div"); replyDiv.className = "reply-header"; replyDiv.textContent = `↩️ Ответ на: ${(m.replyTo.text || "").substring(0, 50)}`; div.appendChild(replyDiv); }
     if (m.image) { const img = document.createElement("img"); img.src = m.image; img.onclick = () => openModal(m.image); div.appendChild(img); }
+    if (m.video) { const video = document.createElement("video"); video.src = m.video; video.controls = true; video.style.maxWidth = "200px"; video.style.borderRadius = "12px"; div.appendChild(video); }
     if (m.file) { const fileDiv = document.createElement("div"); fileDiv.className = "file-attach"; fileDiv.innerHTML = `📎 ${m.file.name}`; fileDiv.onclick = () => window.open(m.file.url); div.appendChild(fileDiv); }
     if (m.music) { const musicDiv = document.createElement("div"); musicDiv.className = "music-attach"; musicDiv.innerHTML = `🎵 ${m.music.name} ▶️`; musicDiv.onclick = () => { const audio = new Audio(m.music.url); audio.play(); }; div.appendChild(musicDiv); }
+    if (m.voice) { const voiceDiv = document.createElement("div"); voiceDiv.className = "voice-note"; voiceDiv.innerHTML = `🎙️ Голосовое ▶️`; voiceDiv.onclick = () => { const audio = new Audio(m.voice); audio.play(); }; div.appendChild(voiceDiv); }
     if (m.location) { const locDiv = document.createElement("div"); locDiv.className = "location"; locDiv.innerHTML = "📍 Геолокация"; locDiv.onclick = () => window.open(`https://maps.google.com/?q=${m.location.lat},${m.location.lng}`); div.appendChild(locDiv); }
     const textSpan = document.createElement("span"); textSpan.className = "msg-text"; textSpan.innerHTML = (isOwn ? "→ " : "← ") + formatTextWithTags(m.text || ""); div.appendChild(textSpan);
     const timeSpan = document.createElement("div"); timeSpan.className = "time"; timeSpan.textContent = m.timeFormatted || ""; div.appendChild(timeSpan);
@@ -840,8 +874,10 @@ function addGroupMessage(m) {
     const authorSpan = document.createElement("div"); authorSpan.className = "author"; authorSpan.textContent = m.from; authorSpan.onclick = () => viewProfile(m.from); div.appendChild(authorSpan);
     if (m.replyTo) { const replyDiv = document.createElement("div"); replyDiv.className = "reply-header"; replyDiv.textContent = `↩️ Ответ на: ${(m.replyTo.text || "").substring(0, 50)}`; div.appendChild(replyDiv); }
     if (m.image) { const img = document.createElement("img"); img.src = m.image; img.onclick = () => openModal(m.image); div.appendChild(img); }
+    if (m.video) { const video = document.createElement("video"); video.src = m.video; video.controls = true; video.style.maxWidth = "200px"; video.style.borderRadius = "12px"; div.appendChild(video); }
     if (m.file) { const fileDiv = document.createElement("div"); fileDiv.className = "file-attach"; fileDiv.innerHTML = `📎 ${m.file.name}`; fileDiv.onclick = () => window.open(m.file.url); div.appendChild(fileDiv); }
     if (m.music) { const musicDiv = document.createElement("div"); musicDiv.className = "music-attach"; musicDiv.innerHTML = `🎵 ${m.music.name} ▶️`; musicDiv.onclick = () => { const audio = new Audio(m.music.url); audio.play(); }; div.appendChild(musicDiv); }
+    if (m.voice) { const voiceDiv = document.createElement("div"); voiceDiv.className = "voice-note"; voiceDiv.innerHTML = `🎙️ Голосовое ▶️`; voiceDiv.onclick = () => { const audio = new Audio(m.voice); audio.play(); }; div.appendChild(voiceDiv); }
     if (m.location) { const locDiv = document.createElement("div"); locDiv.className = "location"; locDiv.innerHTML = "📍 Геолокация"; locDiv.onclick = () => window.open(`https://maps.google.com/?q=${m.location.lat},${m.location.lng}`); div.appendChild(locDiv); }
     const textSpan = document.createElement("span"); textSpan.className = "msg-text"; textSpan.innerHTML = formatTextWithTags(m.text || ""); div.appendChild(textSpan);
     const timeSpan = document.createElement("div"); timeSpan.className = "time"; timeSpan.textContent = m.timeFormatted || ""; div.appendChild(timeSpan);
@@ -856,7 +892,6 @@ function addGroupMessage(m) {
     chatDiv.appendChild(div); chatDiv.scrollTop = chatDiv.scrollHeight;
 }
 
-// СВАЙП ДЛЯ ОТВЕТА
 function attachSwipeReply(div, msg) {
     let startX = 0;
     div.addEventListener("touchstart", (e) => { startX = e.touches[0].clientX; });
@@ -891,7 +926,12 @@ function attachMessageMenu(div, msg, chatType, chatId) {
     };
     div.addEventListener("contextmenu", (e) => { e.preventDefault(); showMenu(e.clientX, e.clientY); });
     let timer;
-    div.addEventListener("touchstart", (e) => { timer = setTimeout(() => { const touch = e.touches[0]; showMenu(touch.clientX, touch.clientY); }, 600); });
+    div.addEventListener("touchstart", (e) => {
+        timer = setTimeout(() => {
+            const touch = e.touches[0];
+            showMenu(touch.clientX, touch.clientY);
+        }, 600);
+    });
     div.addEventListener("touchend", () => clearTimeout(timer));
     div.addEventListener("touchmove", () => clearTimeout(timer));
 }
@@ -938,33 +978,59 @@ function forwardMessage(msg) { msgInput.value = msg.text || ""; msgInput.focus()
 function deleteMessage(msg, chatType, chatId) { if (confirm("Удалить сообщение?")) { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "delete", id: msg.id })); } }
 function addSystem(text) { const div = document.createElement("div"); div.className = "system"; div.textContent = text; chatDiv.appendChild(div); chatDiv.scrollTop = chatDiv.scrollHeight; }
 
-// МУЗЫКА
-musicBtn.onclick = () => {
-    const input = document.createElement("input"); input.type = "file"; input.accept = "audio/*";
-    input.onchange = () => {
-        const file = input.files[0];
-        const reader = new FileReader();
-        reader.onload = () => {
-            ws.send(JSON.stringify({ type: "upload_music", filename: file.name, data: reader.result.split(",")[1] }));
-            addSystem("🎵 Музыка загружается...");
+// ГОЛОСОВЫЕ СООБЩЕНИЯ
+async function startRecording() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(audioChunks, { type: "audio/webm" });
+            const reader = new FileReader();
+            reader.onload = () => {
+                ws.send(JSON.stringify({ type: "upload_voice", data: reader.result.split(",")[1] }));
+                addSystem("🎙️ Отправка голосового...");
+            };
+            reader.readAsDataURL(blob);
+            stream.getTracks().forEach(t => t.stop());
+            voiceBtn.textContent = "🎙️";
+            voiceBtn.classList.remove("voice-recording");
+            isRecording = false;
         };
-        reader.readAsDataURL(file);
-    };
-    input.click();
-};
+        mediaRecorder.start();
+        isRecording = true;
+        voiceBtn.textContent = "⏹️";
+        voiceBtn.classList.add("voice-recording");
+        setTimeout(() => { if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop(); }, 30000);
+    } catch(e) { addSystem("❌ Нет доступа к микрофону"); }
+}
+function stopRecording() { if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop(); }
 
+// ПАНЕЛЬ ВЛОЖЕНИЙ
 attachBtn.onclick = () => attachPanel.classList.toggle("open");
+
 document.getElementById("attachPhoto").onclick = () => {
     attachPanel.classList.remove("open");
     const input = document.createElement("input"); input.type = "file"; input.accept = "image/*";
-    input.onchange = () => { const file = input.files[0]; if (file && file.size > 5 * 1024 * 1024) { addSystem("❌ Файл слишком большой (макс 5MB)"); return; } const reader = new FileReader(); reader.onload = () => { pendingImage = reader.result; addSystem("🖼️ Изображение прикреплено"); }; reader.readAsDataURL(file); };
+    input.onchange = () => { const file = input.files[0]; if (file && file.size > 5 * 1024 * 1024) { addSystem("❌ Файл слишком большой (макс 5MB)"); return; } const reader = new FileReader(); reader.onload = () => { pendingImage = reader.result; sendText(); }; reader.readAsDataURL(file); };
     input.click();
 };
-document.getElementById("attachFile").onclick = () => {
+document.getElementById("attachVideo").onclick = () => {
     attachPanel.classList.remove("open");
-    const input = document.createElement("input"); input.type = "file";
-    input.onchange = () => { const file = input.files[0]; if (file && file.size > 10 * 1024 * 1024) { addSystem("❌ Файл слишком большой (макс 10MB)"); return; } const reader = new FileReader(); reader.onload = () => { ws.send(JSON.stringify({ type: "upload_file", filename: file.name, data: reader.result.split(",")[1] })); addSystem("📁 Файл загружается..."); }; reader.readAsDataURL(file); };
+    const input = document.createElement("input"); input.type = "file"; input.accept = "video/*";
+    input.onchange = () => { const file = input.files[0]; if (file && file.size > 10 * 1024 * 1024) { addSystem("❌ Видео слишком большое (макс 10MB)"); return; } const reader = new FileReader(); reader.onload = () => { pendingVideo = reader.result; sendText(); }; reader.readAsDataURL(file); };
     input.click();
+};
+document.getElementById("attachMusic").onclick = () => {
+    attachPanel.classList.remove("open");
+    const input = document.createElement("input"); input.type = "file"; input.accept = "audio/*";
+    input.onchange = () => { const file = input.files[0]; const reader = new FileReader(); reader.onload = () => { ws.send(JSON.stringify({ type: "upload_music", filename: file.name, data: reader.result.split(",")[1] })); }; reader.readAsDataURL(file); };
+    input.click();
+};
+document.getElementById("attachVoice").onclick = () => {
+    attachPanel.classList.remove("open");
+    if (isRecording) stopRecording(); else startRecording();
 };
 document.getElementById("attachLocation").onclick = () => {
     attachPanel.classList.remove("open");
@@ -981,28 +1047,31 @@ function sendLocation(lat, lng) {
 function sendText() {
     if (!logged || !ws || ws.readyState !== 1) { addSystem("❌ Нет соединения с сервером"); return; }
     let text = msgInput.value.trim();
-    if (!text && !pendingImage && !pendingFile && !pendingMusic) return;
+    if (!text && !pendingImage && !pendingVideo && !pendingFile && !pendingMusic && !pendingVoice) return;
     const replyId = replyToMsg ? replyToMsg.id : null; const replyText = replyToMsg ? replyToMsg.text : null;
-    if (currentMode === "public") ws.send(JSON.stringify({ type: "chat", text, image: pendingImage, file: pendingFile, music: pendingMusic, replyTo: replyId ? { id: replyId, text: replyText } : null }));
-    else if (currentMode === "private" && currentPrivateWith) ws.send(JSON.stringify({ type: "private_chat", target: currentPrivateWith, text, image: pendingImage, file: pendingFile, music: pendingMusic, replyTo: replyId ? { id: replyId, text: replyText } : null }));
-    else if (currentMode === "group" && currentGroupId) ws.send(JSON.stringify({ type: "group_chat", groupId: currentGroupId, text, image: pendingImage, file: pendingFile, music: pendingMusic, replyTo: replyId ? { id: replyId, text: replyText } : null }));
-    msgInput.value = ""; replyToMsg = null; pendingImage = null; pendingFile = null; pendingMusic = null; msgInput.placeholder = "Сообщение...";
+    if (currentMode === "public") ws.send(JSON.stringify({ type: "chat", text, image: pendingImage, video: pendingVideo, file: pendingFile, music: pendingMusic, voice: pendingVoice, replyTo: replyId ? { id: replyId, text: replyText } : null }));
+    else if (currentMode === "private" && currentPrivateWith) ws.send(JSON.stringify({ type: "private_chat", target: currentPrivateWith, text, image: pendingImage, video: pendingVideo, file: pendingFile, music: pendingMusic, voice: pendingVoice, replyTo: replyId ? { id: replyId, text: replyText } : null }));
+    else if (currentMode === "group" && currentGroupId) ws.send(JSON.stringify({ type: "group_chat", groupId: currentGroupId, text, image: pendingImage, video: pendingVideo, file: pendingFile, music: pendingMusic, voice: pendingVoice, replyTo: replyId ? { id: replyId, text: replyText } : null }));
+    msgInput.value = ""; replyToMsg = null; pendingImage = null; pendingVideo = null; pendingFile = null; pendingMusic = null; pendingVoice = null; msgInput.placeholder = "Сообщение...";
 }
 msgInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendText(); });
 sendBtn.onclick = sendText;
-window.addEventListener("load", () => { if (msgInput) msgInput.focus(); });
 
 chatDiv.addEventListener("click", (e) => {
     const mention = e.target.closest(".mention");
     if (mention) { const nick = mention.dataset.nick; if (nick) viewProfile(nick); }
 });
 
-function switchToPublic() { currentMode = "public"; currentPrivateWith = null; currentGroupId = null; modeBar.classList.remove("hidden"); groupInfo.classList.add("hidden"); inviteBtn.classList.add("hidden"); backBtn.classList.remove("hidden"); chatDiv.innerHTML = ""; if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "get_history" })); }
+function switchToPublic() { currentMode = "public"; currentPrivateWith = null; currentGroupId = null; modeBar.classList.add("hidden"); groupInfo.classList.add("hidden"); inviteBtn.classList.add("hidden"); backBtn.classList.remove("hidden"); chatDiv.innerHTML = ""; if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "get_history" })); }
 function switchToPrivate(withNick) { if (withNick === currentNick) { addSystem("❌ Нельзя писать себе"); return; } currentMode = "private"; currentPrivateWith = withNick; currentGroupId = null; modeBar.classList.remove("hidden"); groupInfo.classList.add("hidden"); inviteBtn.classList.add("hidden"); backBtn.classList.remove("hidden"); modeTitle.textContent = `💬 ЛС с ${withNick}`; chatDiv.innerHTML = ""; if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "get_private_history", with: withNick })); clearUnread(`private_${withNick}`); }
 function switchToGroup(groupId) { currentMode = "group"; currentGroupId = groupId; currentPrivateWith = null; modeBar.classList.remove("hidden"); groupInfo.classList.remove("hidden"); inviteBtn.classList.remove("hidden"); backBtn.classList.add("hidden"); modeTitle.textContent = `👥 ${currentGroup ? currentGroup.name : "Группа"}`; chatDiv.innerHTML = ""; if (ws && ws.readyState === 1) { ws.send(JSON.stringify({ type: "get_group_history", groupId })); ws.send(JSON.stringify({ type: "get_group_info", groupId })); } clearUnread(`group_${groupId}`); }
 function updateGroupUI() {
-    if (currentGroup) { modeTitle.textContent = currentGroup.name; if (currentGroup.avatar) { groupAvatar.innerHTML = `<img src="${currentGroup.avatar}">`; } else { groupAvatar.innerHTML = currentGroup.isChannel ? "📢" : "👥"; } }
+    if (currentGroup) { modeTitle.textContent = currentGroup.name; if (currentGroup.avatar) { groupAvatar.innerHTML = `<img src="${currentGroup.avatar}">`; } else { groupAvatar.innerHTML = currentGroup.isChannel ? "📢" : "👥"; } editGroupBtn.style.display = (currentGroup.creator === currentNick || isDima()) ? "inline-block" : "none"; }
 }
+editGroupBtn.onclick = () => {
+    const newName = prompt("Новое название группы:", currentGroup?.name);
+    if (newName && newName.trim() && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "update_group_name", groupId: currentGroupId, newName: newName.trim() }));
+};
 groupAvatar.onclick = () => {
     const input = document.createElement("input"); input.type = "file"; input.accept = "image/*";
     input.onchange = () => { const file = input.files[0]; const reader = new FileReader(); reader.onload = () => { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "update_group_avatar", groupId: currentGroupId, avatar: reader.result })); }; reader.readAsDataURL(file); };
@@ -1026,7 +1095,7 @@ function renderUsersList() {
     if (searchText) filtered = filtered.filter(u => u.toLowerCase().includes(searchText));
     if (filtered.length === 0) { usersListDiv.innerHTML = '<div style="padding: 12px; text-align: center; color: gray;">👤 Никого не найдено</div>'; return; }
     usersListDiv.innerHTML = "";
-    filtered.forEach(u => { const isOnline = usersOnline.includes(u); const status = userStatuses[u] || { status: "offline" }; let statusClass = "status-offline"; if (status.status === "online") statusClass = "status-online"; else if (status.status === "away") statusClass = "status-away"; const unread = getUnreadCount(`private_${u}`); const div = document.createElement("div"); div.className = "user-item"; div.innerHTML = `<div><span class="status-dot ${statusClass}"></span> ${u}</div><div><button onclick="switchToPrivate('${u}'); menuPanel.classList.remove('open');">💬</button><button onclick="viewProfile('${u}')">👤</button><button onclick="callUser('${u}')">📞</button>${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}</div>`; usersListDiv.appendChild(div); });
+    filtered.forEach(u => { const isOnline = usersOnline.includes(u); const status = userStatuses[u] || { status: "offline" }; let statusClass = "status-offline"; if (status.status === "online") statusClass = "status-online"; else if (status.status === "away") statusClass = "status-away"; const unread = getUnreadCount(`private_${u}`); const star = (u === "Дима") ? '<span class="star">⭐</span>' : ''; const div = document.createElement("div"); div.className = "user-item"; div.innerHTML = `<div><span class="status-dot ${statusClass}"></span> ${u}${star}</div><div><button onclick="switchToPrivate('${u}'); menuPanel.classList.remove('open');">💬</button><button onclick="viewProfile('${u}')">👤</button><button onclick="callUser('${u}')">📞</button>${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}</div>`; usersListDiv.appendChild(div); });
 }
 function viewProfile(nick) { profileScreen.classList.add("open"); if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "get_profile", nick })); }
 searchUser.addEventListener("input", renderUsersList);
@@ -1084,8 +1153,15 @@ async function handleSignal(from, signal) {
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             pc = new RTCPeerConnection(servers);
             localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-            pc.ontrack = (event) => { const audio = new Audio(); audio.srcObject = event.streams[0]; audio.play(); addSystem(`🔊 Говорим с ${from}`); };
-            pc.onicecandidate = (event) => { if (event.candidate) { ws.send(JSON.stringify({ type: "signal", target: from, signal: { candidate: event.candidate } })); } };
+            pc.ontrack = (event) => {
+                const audio = new Audio();
+                audio.srcObject = event.streams[0];
+                audio.play();
+                addSystem(`🔊 Говорим с ${from}`);
+            };
+            pc.onicecandidate = (event) => {
+                if (event.candidate) { ws.send(JSON.stringify({ type: "signal", target: from, signal: { candidate: event.candidate } })); }
+            };
             await pc.setRemoteDescription(signal.sdp);
             const answerSdp = await pc.createAnswer();
             await pc.setLocalDescription(answerSdp);

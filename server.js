@@ -12,9 +12,11 @@ const wss = new WebSocket.Server({ server });
 app.use(express.static("public"));
 app.use("/files", express.static("files"));
 app.use("/music", express.static("music"));
+app.use("/voice", express.static("voice"));
 
 if (!fs.existsSync("files")) fs.mkdirSync("files");
 if (!fs.existsSync("music")) fs.mkdirSync("music");
+if (!fs.existsSync("voice")) fs.mkdirSync("voice");
 
 let history = [];
 let privateHistory = {};
@@ -89,6 +91,7 @@ function sendUsers() { broadcast({ type: "users", users: Array.from(usersOnline.
 function validNick(nick) { nick = nick?.trim(); if (!nick || nick.length < 2 || nick.length > 16) return false; return /^[a-zA-Zа-яА-Я0-9_]+$/.test(nick); }
 function nickExistsInDB(nick) { return !!usersDB[nick]; }
 function getPrivateKey(u1, u2) { return [u1, u2].sort().join("_"); }
+function isDima(nick) { return nick === "Дима"; }
 
 function createGroup(name, creator) {
     const id = Date.now().toString() + "-" + Math.random().toString(36).substr(2, 6);
@@ -102,6 +105,18 @@ function createChannel(name, creator) {
     saveGroups();
     return id;
 }
+function updateGroupName(groupId, newName, requester) {
+    if (!groups[groupId]) return false;
+    if (groups[groupId].creator !== requester && !isDima(requester)) return false;
+    groups[groupId].name = escapeHtml(newName);
+    saveGroups();
+    for (const member of groups[groupId].members) {
+        let targetWs = null;
+        for (const [c, n] of usersOnline.entries()) if (n === member) { targetWs = c; break; }
+        if (targetWs && targetWs.readyState === 1) targetWs.send(JSON.stringify({ type: "group_update", group: groups[groupId] }));
+    }
+    return true;
+}
 function addToGroup(groupId, nick, adder) {
     if (!groups[groupId] || groups[groupId].members.includes(nick)) return false;
     groups[groupId].members.push(nick);
@@ -113,12 +128,25 @@ function addToGroup(groupId, nick, adder) {
     }
     return true;
 }
+function removeFromGroup(groupId, nick, remover) {
+    if (!groups[groupId]) return false;
+    if (groups[groupId].creator !== remover && !isDima(remover)) return false;
+    if (nick === groups[groupId].creator && !isDima(remover)) return false;
+    groups[groupId].members = groups[groupId].members.filter(m => m !== nick);
+    saveGroups();
+    for (const member of groups[groupId].members) {
+        let targetWs = null;
+        for (const [c, n] of usersOnline.entries()) if (n === member) { targetWs = c; break; }
+        if (targetWs && targetWs.readyState === 1) targetWs.send(JSON.stringify({ type: "group_update", group: groups[groupId] }));
+    }
+    return true;
+}
 function sendGroupMessage(groupId, from, msgData) {
     if (!groups[groupId]) return;
-    if (groups[groupId].isChannel && groups[groupId].creator !== from) return;
+    if (groups[groupId].isChannel && groups[groupId].creator !== from && !isDima(from)) return;
     const m = {
         id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
-        from, text: escapeHtml((msgData.text || "").slice(0, 500)), image: msgData.image || null, file: msgData.file || null, music: msgData.music || null, location: msgData.location || null,
+        from, text: escapeHtml((msgData.text || "").slice(0, 500)), image: msgData.image || null, file: msgData.file || null, music: msgData.music || null, voice: msgData.voice || null, location: msgData.location || null,
         replyTo: msgData.replyTo || null, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {}
     };
     groups[groupId].messages.push(m);
@@ -235,6 +263,13 @@ wss.on("connection", (ws) => {
             return;
         }
 
+        if (msg.type === "update_group_name") {
+            if (updateGroupName(msg.groupId, msg.newName, ws.nick)) {
+                ws.send(JSON.stringify({ type: "group_name_updated", groupId: msg.groupId, newName: msg.newName }));
+            }
+            return;
+        }
+
         if (msg.type === "typing") {
             let targetWs = null;
             for (const [c, nick] of usersOnline.entries()) if (nick === msg.to) { targetWs = c; break; }
@@ -244,7 +279,7 @@ wss.on("connection", (ws) => {
 
         if (msg.type === "chat") {
             if (!checkRate(ws)) return;
-            const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, file: msg.file || null, music: msg.music || null, location: msg.location || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
+            const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, file: msg.file || null, music: msg.music || null, voice: msg.voice || null, location: msg.location || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
             history.push(m); history = history.slice(-500); savePublic();
             updateLastChat(ws.nick, "public", "public", m.text || "📷 Изображение");
             broadcast({ type: "msg", data: m });
@@ -255,7 +290,7 @@ wss.on("connection", (ws) => {
             if (!checkRate(ws)) return;
             const key = getPrivateKey(ws.nick, msg.target);
             if (!privateHistory[key]) privateHistory[key] = [];
-            const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), from: ws.nick, to: msg.target, text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, file: msg.file || null, music: msg.music || null, location: msg.location || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
+            const m = { id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), from: ws.nick, to: msg.target, text: escapeHtml((msg.text || "").slice(0, 500)), image: msg.image || null, file: msg.file || null, music: msg.music || null, voice: msg.voice || null, location: msg.location || null, replyTo: msg.replyTo || null, owner: ws.nick, time: Date.now(), timeFormatted: formatTime(Date.now()), reactions: {} };
             privateHistory[key].push(m); privateHistory[key] = privateHistory[key].slice(-500); savePrivate();
             updateLastChat(ws.nick, "private", msg.target, m.text || "📷 Изображение");
             updateLastChat(msg.target, "private", ws.nick, m.text || "📷 Изображение");
@@ -268,6 +303,7 @@ wss.on("connection", (ws) => {
         if (msg.type === "create_group") { const groupId = createGroup(msg.name, ws.nick); ws.send(JSON.stringify({ type: "group_created", group: groups[groupId] })); return; }
         if (msg.type === "create_channel") { const groupId = createChannel(msg.name, ws.nick); ws.send(JSON.stringify({ type: "group_created", group: groups[groupId] })); return; }
         if (msg.type === "invite_to_group") { if (addToGroup(msg.groupId, msg.nick, ws.nick)) ws.send(JSON.stringify({ type: "invite_sent", groupId: msg.groupId, nick: msg.nick })); return; }
+        if (msg.type === "remove_from_group") { if (removeFromGroup(msg.groupId, msg.nick, ws.nick)) ws.send(JSON.stringify({ type: "remove_sent", groupId: msg.groupId, nick: msg.nick })); return; }
         if (msg.type === "group_chat") { if (!checkRate(ws)) return; sendGroupMessage(msg.groupId, ws.nick, msg); for (const member of groups[msg.groupId].members) updateLastChat(member, "group", msg.groupId, msg.text || "📷 Изображение"); return; }
         if (msg.type === "get_group_history") { if (groups[msg.groupId] && groups[msg.groupId].members.includes(ws.nick)) ws.send(JSON.stringify({ type: "group_history", groupId: msg.groupId, data: groups[msg.groupId].messages })); return; }
         if (msg.type === "get_my_groups") { ws.send(JSON.stringify({ type: "my_groups", groups: Object.values(groups).filter(g => g.members.includes(ws.nick)) })); return; }
@@ -279,11 +315,11 @@ wss.on("connection", (ws) => {
         if (msg.type === "edit") {
             let found = false;
             const m = history.find(x => x.id === msg.id);
-            if (m && m.owner === ws.nick) { m.text = escapeHtml(msg.text.slice(0, 500)); savePublic(); broadcast({ type: "edit", id: msg.id, newText: m.text }); found = true; }
+            if (m && (m.owner === ws.nick || isDima(ws.nick))) { m.text = escapeHtml(msg.text.slice(0, 500)); savePublic(); broadcast({ type: "edit", id: msg.id, newText: m.text }); found = true; }
             if (!found) {
                 for (const key in privateHistory) {
                     const idx = privateHistory[key].findIndex(x => x.id === msg.id);
-                    if (idx !== -1 && privateHistory[key][idx].owner === ws.nick) {
+                    if (idx !== -1 && (privateHistory[key][idx].owner === ws.nick || isDima(ws.nick))) {
                         privateHistory[key][idx].text = escapeHtml(msg.text.slice(0, 500)); savePrivate();
                         const otherNick = privateHistory[key][idx].from === ws.nick ? privateHistory[key][idx].to : privateHistory[key][idx].from;
                         let targetWs = null; for (const [c, nick] of usersOnline.entries()) if (nick === otherNick) { targetWs = c; break; }
@@ -299,11 +335,11 @@ wss.on("connection", (ws) => {
         if (msg.type === "delete") {
             let found = false;
             const m = history.find(x => x.id === msg.id);
-            if (m && m.owner === ws.nick) { history = history.filter(x => x.id !== msg.id); savePublic(); broadcast({ type: "delete", id: msg.id }); found = true; }
+            if (m && (m.owner === ws.nick || isDima(ws.nick))) { history = history.filter(x => x.id !== msg.id); savePublic(); broadcast({ type: "delete", id: msg.id }); found = true; }
             if (!found) {
                 for (const key in privateHistory) {
                     const idx = privateHistory[key].findIndex(x => x.id === msg.id);
-                    if (idx !== -1 && privateHistory[key][idx].owner === ws.nick) {
+                    if (idx !== -1 && (privateHistory[key][idx].owner === ws.nick || isDima(ws.nick))) {
                         const deleted = privateHistory[key][idx]; privateHistory[key].splice(idx, 1); savePrivate();
                         const otherNick = deleted.from === ws.nick ? deleted.to : deleted.from;
                         let targetWs = null; for (const [c, nick] of usersOnline.entries()) if (nick === otherNick) { targetWs = c; break; }
@@ -342,10 +378,20 @@ wss.on("connection", (ws) => {
             return;
         }
 
+        if (msg.type === "upload_voice") {
+            const filename = Date.now() + "_" + ws.nick + ".webm";
+            const filepath = path.join("voice", filename);
+            fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
+            ws.send(JSON.stringify({ type: "voice_uploaded", url: `/voice/${filename}` }));
+            return;
+        }
+
         if (msg.type === "signal") {
             let targetWs = null;
             for (const [c, nick] of usersOnline.entries()) if (nick === msg.target) { targetWs = c; break; }
-            if (targetWs && targetWs.readyState === 1) { targetWs.send(JSON.stringify({ type: "signal", from: ws.nick, signal: msg.signal })); }
+            if (targetWs && targetWs.readyState === 1) {
+                targetWs.send(JSON.stringify({ type: "signal", from: ws.nick, signal: msg.signal }));
+            }
             return;
         }
     });
