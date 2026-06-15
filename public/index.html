@@ -117,6 +117,15 @@ body.dark .header { background: #1b5e20; }
     color: white;
     flex-shrink: 0;
 }
+.connection-status {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.3);
+}
+.connection-status.online { background: #4caf50; }
+.connection-status.offline { background: #f44336; }
+.connection-status.connecting { background: #ff9800; }
 
 .top-bar {
     background: #0084ff;
@@ -238,6 +247,12 @@ body.dark .message { background: #2d2d2d; color: white; }
     border-radius: 16px;
     align-self: center;
     max-width: 85%;
+}
+.loading-indicator {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-style: italic;
 }
 
 .input-bar {
@@ -576,6 +591,7 @@ body.dark .profile-screen { background: #121212; color: white; }
         <button class="menu-btn" id="menuBtn">☰</button>
         <span class="nick" id="currentNick">--</span>
         <span class="online-count" id="onlineCount">0</span>
+        <span class="connection-status" id="connectionStatus">🟢 Онлайн</span>
         <button id="logoutBtn">Выйти</button>
     </div>
     <div class="top-bar">
@@ -593,7 +609,7 @@ body.dark .profile-screen { background: #121212; color: white; }
         <button id="groupMembersBtn" class="hidden">👥</button>
         <button id="groupSettingsBtn" class="hidden">⚙️</button>
     </div>
-    <div class="chat" id="chat"><div id="typingIndicator" class="typing-indicator hidden"></div></div>
+    <div class="chat" id="chat"><div class="loading-indicator" id="loadingIndicator">Загрузка сообщений...</div><div id="typingIndicator" class="typing-indicator hidden"></div></div>
     <div class="input-bar" id="inputBar">
         <input type="text" id="msgInput" placeholder="Сообщение..." autocomplete="off">
         <button id="sendBtn">➤</button>
@@ -687,6 +703,7 @@ const authError = document.getElementById("authError");
 const mainApp = document.getElementById("mainApp");
 const currentNickSpan = document.getElementById("currentNick");
 const onlineCount = document.getElementById("onlineCount");
+const connectionStatus = document.getElementById("connectionStatus");
 const logoutBtn = document.getElementById("logoutBtn");
 const searchInput = document.getElementById("searchInput");
 const searchBtn = document.getElementById("searchBtn");
@@ -701,6 +718,7 @@ const audioCallBtn = document.getElementById("audioCallBtn");
 const videoCallBtn = document.getElementById("videoCallBtn");
 const chatDiv = document.getElementById("chat");
 const typingIndicator = document.getElementById("typingIndicator");
+const loadingIndicator = document.getElementById("loadingIndicator");
 const inputBar = document.getElementById("inputBar");
 const msgInput = document.getElementById("msgInput");
 const sendBtn = document.getElementById("sendBtn");
@@ -750,6 +768,7 @@ let currentGroupId = null;
 let currentGroup = null;
 let usersOnline = [];
 let userStatuses = {};
+let userLastSeen = {};
 let allUsers = [];
 let myGroups = [];
 let myLastChats = [];
@@ -768,22 +787,41 @@ let audioChunks = [];
 let isRecording = false;
 let myStickers = [];
 let isDimaUser = false;
+let draftMessage = {};
+
+// ICE очередь для звонков
+let iceQueue = [];
+let remoteDescriptionSet = false;
 
 let pc = null;
 let localStream = null;
 let currentCallUser = null;
 let pendingOffer = null;
 let isVideoCall = false;
+let reconnectTimer = null;
 
 const servers = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }] };
 
 function isDima() { return currentNick === "Дима"; }
 
+function updateConnectionStatus(status) {
+    connectionStatus.textContent = status;
+    if (status === "🟢 Онлайн") connectionStatus.className = "connection-status online";
+    else if (status === "🔴 Офлайн") connectionStatus.className = "connection-status offline";
+    else connectionStatus.className = "connection-status connecting";
+}
+
 function connect() {
+    updateConnectionStatus("🟡 Подключение...");
     ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host);
-    ws.onopen = () => { console.log("✅ WebSocket подключен"); tryAutoLogin(); };
-    ws.onerror = () => { authError.textContent = "Ошибка подключения к серверу"; };
-    ws.onclose = () => { if (logged) addSystem("❌ Соединение потеряно"); setTimeout(connect, 2000); };
+    ws.onopen = () => { console.log("✅ WebSocket подключен"); updateConnectionStatus("🟢 Онлайн"); tryAutoLogin(); };
+    ws.onerror = () => { authError.textContent = "Ошибка подключения к серверу"; updateConnectionStatus("🔴 Ошибка"); };
+    ws.onclose = () => { 
+        if (logged) addSystem("❌ Соединение потеряно, переподключение...");
+        updateConnectionStatus("🟡 Переподключение...");
+        if (reconnectTimer) clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(connect, 2000);
+    };
     ws.onmessage = (e) => {
         let d; try { d = JSON.parse(e.data); } catch { return; }
         if (d.type === "error") { if (!authScreen.classList.contains("hidden")) authError.textContent = d.text; else alert("❌ " + d.text); return; }
@@ -805,22 +843,30 @@ function connect() {
             switchToPublic();
             loadUnreadCounts();
             updateOnlineCount();
+            loadingIndicator.classList.add("hidden");
             return;
         }
         if (!logged) return;
-        if (d.type === "history" && currentMode === "public") { renderMessages(d.data); return; }
+        if (d.type === "history" && currentMode === "public") { loadingIndicator.classList.add("hidden"); renderMessages(d.data); return; }
         if (d.type === "msg" && currentMode === "public") { addMessage(d.data); notify(d.data.text); markUnread("public", d.data.id); return; }
         if (d.type === "system") { addSystem(d.text); notify(d.text); return; }
-        if (d.type === "users") { usersOnline = d.users; userStatuses = d.statuses || {}; allUsers = [...new Set([...allUsers, ...usersOnline])]; renderUsersList(); updateOnlineCount(); }
+        if (d.type === "users") { 
+            usersOnline = d.users; 
+            userStatuses = d.statuses || {}; 
+            userLastSeen = d.lastSeen || {};
+            allUsers = [...new Set([...allUsers, ...usersOnline])];
+            renderUsersList(); 
+            updateOnlineCount(); 
+        }
         if (d.type === "private_msg") {
             if (currentMode === "private" && currentPrivateWith === d.with) addPrivateMessage(d.data);
             else { addSystem(`💬 Новое сообщение от ${d.with}`); markUnread(`private_${d.with}`, d.data.id); }
             notify(`📩 ${d.with}: ${d.data.text}`);
             updateLastChats();
         }
-        if (d.type === "private_history" && currentMode === "private" && currentPrivateWith === d.with) { renderPrivateMessages(d.data); return; }
+        if (d.type === "private_history" && currentMode === "private" && currentPrivateWith === d.with) { loadingIndicator.classList.add("hidden"); renderPrivateMessages(d.data); return; }
         if (d.type === "group_msg" && currentMode === "group" && currentGroupId === d.groupId) { addGroupMessage(d.data); return; }
-        if (d.type === "group_history" && currentMode === "group" && currentGroupId === d.groupId) { renderGroupMessages(d.data); return; }
+        if (d.type === "group_history" && currentMode === "group" && currentGroupId === d.groupId) { loadingIndicator.classList.add("hidden"); renderGroupMessages(d.data); return; }
         if (d.type === "group_update") { myGroups = myGroups.map(g => g.id === d.group.id ? d.group : g); if (!myGroups.find(g => g.id === d.group.id)) myGroups.push(d.group); renderGroupsList(); if (currentGroupId === d.group.id) { currentGroup = d.group; updateGroupUI(); } }
         if (d.type === "group_created") { myGroups.push(d.group); renderGroupsList(); addSystem(`✅ Группа "${d.group.name}" создана`); }
         if (d.type === "group_info") { currentGroup = d.group; updateGroupUI(); }
@@ -836,7 +882,7 @@ function connect() {
         }
         if (d.type === "profile_data") { updateProfileUI(d.profile, d.nick !== currentNick); profileTitle.textContent = d.nick === currentNick ? "Мой профиль" : `Профиль ${d.nick}`; }
         if (d.type === "reaction_update") { updateReactionUI(d.id, d.from, d.reaction, d.remove); }
-        if (d.type === "search_results") { renderSearchResults(d.results); }
+        if (d.type === "search_results") { loadingIndicator.classList.add("hidden"); renderSearchResults(d.results); }
         if (d.type === "read_update") { updateReadStatus(d.msgId, d.readBy); }
         if (d.type === "poll_update") { updatePollUI(d.groupId, d.poll); }
         if (d.type === "voice_uploaded") { pendingVoice = d.url; sendText(); }
@@ -883,7 +929,33 @@ function sendTyping(isTyping) {
     if (currentMode === "private" && currentPrivateWith && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "typing", to: currentPrivateWith, isTyping }));
     else if (currentMode === "group" && currentGroupId && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "typing", to: currentGroupId, isTyping }));
 }
-msgInput.addEventListener("input", () => { if (typingTimer) clearTimeout(typingTimer); sendTyping(true); typingTimer = setTimeout(() => sendTyping(false), 1000); });
+msgInput.addEventListener("input", () => { 
+    if (typingTimer) clearTimeout(typingTimer); 
+    sendTyping(true); 
+    typingTimer = setTimeout(() => sendTyping(false), 1000);
+    if (currentMode === "private" && currentPrivateWith) {
+        draftMessage[`private_${currentPrivateWith}`] = msgInput.value;
+    } else if (currentMode === "group" && currentGroupId) {
+        draftMessage[`group_${currentGroupId}`] = msgInput.value;
+    } else {
+        draftMessage.public = msgInput.value;
+    }
+    localStorage.setItem(`draft_${currentNick}`, JSON.stringify(draftMessage));
+});
+
+function loadDraft() {
+    const saved = localStorage.getItem(`draft_${currentNick}`);
+    if (saved) {
+        draftMessage = JSON.parse(saved);
+        if (currentMode === "private" && currentPrivateWith && draftMessage[`private_${currentPrivateWith}`]) {
+            msgInput.value = draftMessage[`private_${currentPrivateWith}`];
+        } else if (currentMode === "group" && currentGroupId && draftMessage[`group_${currentGroupId}`]) {
+            msgInput.value = draftMessage[`group_${currentGroupId}`];
+        } else if (currentMode === "public" && draftMessage.public) {
+            msgInput.value = draftMessage.public;
+        }
+    }
+}
 
 document.querySelectorAll("#statusSelector span").forEach(el => {
     el.onclick = () => {
@@ -904,12 +976,24 @@ function renderLastChatsList() {
         if (chat.chatType === "public") name = "📢 Общий чат";
         else if (chat.chatType === "private") name = `💬 ${chat.chatId}`;
         else if (chat.chatType === "group") { const g = myGroups.find(g => g.id === chat.chatId); name = `👥 ${g ? g.name : "Группа"}`; }
-        div.innerHTML = `<span>${name}</span><span style="font-size: 11px;">${chat.lastMessage.substring(0, 20)}</span>`;
-        div.onclick = () => {
-            if (chat.chatType === "public") switchToPublic();
-            else if (chat.chatType === "private") switchToPrivate(chat.chatId);
-            else if (chat.chatType === "group") switchToGroup(chat.chatId);
-            menuPanel.classList.remove("open");
+        div.innerHTML = `<span>${name}</span><span style="font-size: 11px;">${chat.lastMessage.substring(0, 20)}</span><span style="margin-left: auto;">🗑️</span>`;
+        div.onclick = (e) => {
+            if (e.target.tagName === 'SPAN' && e.target.textContent === '🗑️') {
+                e.stopPropagation();
+                if (confirm("Удалить чат из списка?")) {
+                    if (chat.chatType === "private") delete draftMessage[`private_${chat.chatId}`];
+                    else if (chat.chatType === "group") delete draftMessage[`group_${chat.chatId}`];
+                    else delete draftMessage.public;
+                    localStorage.setItem(`draft_${currentNick}`, JSON.stringify(draftMessage));
+                    myLastChats = myLastChats.filter(c => c.chatId !== chat.chatId);
+                    renderLastChatsList();
+                }
+            } else {
+                if (chat.chatType === "public") switchToPublic();
+                else if (chat.chatType === "private") switchToPrivate(chat.chatId);
+                else if (chat.chatType === "group") switchToGroup(chat.chatId);
+                menuPanel.classList.remove("open");
+            }
         };
         lastChatsListDiv.appendChild(div);
     });
@@ -946,6 +1030,7 @@ function addMessage(m) {
         div.appendChild(reactionsDiv);
     }
     attachMessageMenu(div, m, "public", "public");
+    div.ondblclick = () => { ws.send(JSON.stringify({ type: "reaction", chatType: "public", id: m.id, reaction: "❤️" })); };
     attachSwipeReply(div, m);
     chatDiv.appendChild(div); chatDiv.scrollTop = chatDiv.scrollHeight;
     if (currentMode !== "public") ws.send(JSON.stringify({ type: "mark_read", chatType: currentMode === "private" ? "private" : "group", chatId: currentMode === "private" ? currentPrivateWith : currentGroupId, msgId: m.id }));
@@ -980,6 +1065,7 @@ function addPrivateMessage(m) {
         div.appendChild(reactionsDiv);
     }
     attachMessageMenu(div, m, "private", getPrivateKey(currentNick, currentPrivateWith));
+    div.ondblclick = () => { ws.send(JSON.stringify({ type: "reaction", chatType: "private", id: m.id, reaction: "❤️" })); };
     attachSwipeReply(div, m);
     chatDiv.appendChild(div); chatDiv.scrollTop = chatDiv.scrollHeight;
     ws.send(JSON.stringify({ type: "mark_read", chatType: "private", chatId: currentPrivateWith, msgId: m.id }));
@@ -1014,6 +1100,7 @@ function addGroupMessage(m) {
         div.appendChild(reactionsDiv);
     }
     attachMessageMenu(div, m, "group", currentGroupId);
+    div.ondblclick = () => { ws.send(JSON.stringify({ type: "reaction", chatType: "group", id: m.id, reaction: "❤️" })); };
     attachSwipeReply(div, m);
     chatDiv.appendChild(div); chatDiv.scrollTop = chatDiv.scrollHeight;
     ws.send(JSON.stringify({ type: "mark_read", chatType: "group", chatId: currentGroupId, msgId: m.id }));
@@ -1088,8 +1175,8 @@ document.getElementById("menuReply").onclick = () => { if (currentMsgTarget) rep
 document.getElementById("menuForward").onclick = () => { if (currentMsgTarget) forwardMessage(currentMsgTarget.msg); messageMenu.style.display = "none"; };
 document.getElementById("menuReaction").onclick = () => { if (currentMsgTarget) showQuickReactionPicker(currentMsgTarget.msg, currentMsgTarget.chatType); messageMenu.style.display = "none"; };
 document.getElementById("menuProfile").onclick = () => { if (currentMsgTarget) viewProfile(currentMsgTarget.msg.from || currentMsgTarget.msg.owner); messageMenu.style.display = "none"; };
-document.getElementById("menuBlock").onclick = () => { if (currentMsgTarget) { ws.send(JSON.stringify({ type: "block_user", target: currentMsgTarget.msg.from || currentMsgTarget.msg.owner })); addSystem(`🚫 Пользователь заблокирован`); } messageMenu.style.display = "none"; };
-document.getElementById("menuDelete").onclick = () => { if (currentMsgTarget) deleteMessage(currentMsgTarget.msg, currentMsgTarget.chatType, currentMsgTarget.chatId); messageMenu.style.display = "none"; };
+document.getElementById("menuBlock").onclick = () => { if (currentMsgTarget) { if (confirm(`Заблокировать пользователя ${currentMsgTarget.msg.from || currentMsgTarget.msg.owner}?`)) { ws.send(JSON.stringify({ type: "block_user", target: currentMsgTarget.msg.from || currentMsgTarget.msg.owner })); addSystem(`🚫 Пользователь заблокирован`); } } messageMenu.style.display = "none"; };
+document.getElementById("menuDelete").onclick = () => { if (currentMsgTarget) { if (confirm("Удалить сообщение?")) { ws.send(JSON.stringify({ type: "delete", id: currentMsgTarget.msg.id })); } } messageMenu.style.display = "none"; };
 
 function showQuickReactionPicker(msg, chatType) {
     const picker = document.createElement("div");
@@ -1245,6 +1332,7 @@ chatDiv.addEventListener("click", (e) => {
 });
 
 function switchToPublic() { 
+    loadDraft();
     currentMode = "public"; 
     currentPrivateWith = null; 
     currentGroupId = null; 
@@ -1255,6 +1343,7 @@ function switchToPublic() {
     callButtons.classList.add("hidden");
     backBtn.classList.remove("hidden"); 
     chatDiv.innerHTML = ""; 
+    loadingIndicator.classList.remove("hidden");
     if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "get_history" })); 
 }
 function switchToPrivate(withNick) { 
@@ -1270,8 +1359,10 @@ function switchToPrivate(withNick) {
     backBtn.classList.remove("hidden"); 
     modeTitle.textContent = `💬 ${withNick}`; 
     chatDiv.innerHTML = ""; 
+    loadingIndicator.classList.remove("hidden");
     if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "get_private_history", with: withNick })); 
     clearUnread(`private_${withNick}`); 
+    loadDraft();
 }
 function switchToGroup(groupId) { 
     currentMode = "group"; 
@@ -1285,8 +1376,10 @@ function switchToGroup(groupId) {
     backBtn.classList.remove("hidden"); 
     modeTitle.textContent = `👥 ${currentGroup ? currentGroup.name : "Группа"}`; 
     chatDiv.innerHTML = ""; 
+    loadingIndicator.classList.remove("hidden");
     if (ws && ws.readyState === 1) { ws.send(JSON.stringify({ type: "get_group_history", groupId })); ws.send(JSON.stringify({ type: "get_group_info", groupId })); } 
     clearUnread(`group_${groupId}`); 
+    loadDraft();
 }
 function updateGroupUI() {
     if (currentGroup) { 
@@ -1363,7 +1456,7 @@ avatarPicker.onclick = () => { const input = document.createElement("input"); in
 
 backBtn.onclick = switchToPublic;
 inviteBtn.onclick = () => { const nick = prompt("Введите ник для приглашения:"); if (nick && nick.trim() && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "invite_to_group", groupId: currentGroupId, nick: nick.trim() })); };
-searchBtn.onclick = () => { const query = searchInput.value.trim(); if (!query) return; ws.send(JSON.stringify({ type: "search_messages", query })); };
+searchBtn.onclick = () => { const query = searchInput.value.trim(); if (!query) return; ws.send(JSON.stringify({ type: "search_messages", query })); loadingIndicator.classList.remove("hidden"); };
 
 menuBtn.onclick = () => { menuPanel.classList.toggle("open"); if (menuPanel.classList.contains("open")) { renderUsersList(); renderGroupsList(); renderLastChatsList(); } };
 closeMenu.onclick = () => menuPanel.classList.remove("open");
@@ -1377,11 +1470,14 @@ if (isDark) document.body.classList.add("dark");
 themeItem.onclick = () => { isDark = !isDark; if (isDark) document.body.classList.add("dark"); else document.body.classList.remove("dark"); localStorage.setItem("theme", isDark ? "dark" : "light"); };
 soundItem.onclick = () => { soundEnabled = !soundEnabled; soundItem.innerHTML = soundEnabled ? "🔊 Звук: Вкл" : "🔇 Звук: Выкл"; };
 
+// ========== WEBRTC ЗВОНКИ С ICE ОЧЕРЕДЬЮ ==========
 async function startCall(targetNick, video = false) {
     if (currentCallUser) endCall();
     currentCallUser = targetNick;
     isVideoCall = video;
     showCallStatus(targetNick);
+    iceQueue = [];
+    remoteDescriptionSet = false;
     try {
         pc = new RTCPeerConnection(servers);
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: video });
@@ -1412,6 +1508,7 @@ async function startCall(targetNick, video = false) {
                     document.body.appendChild(audio);
                 }
                 audio.srcObject = event.streams[0];
+                audio.play().catch(e => console.log("audio play error", e));
             }
         };
         pc.onicecandidate = (e) => { if (e.candidate) ws.send(JSON.stringify({ type: "ice", to: targetNick, ice: e.candidate })); };
@@ -1436,7 +1533,7 @@ async function startCall(targetNick, video = false) {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         ws.send(JSON.stringify({ type: "offer", to: targetNick, offer, video }));
-    } catch(e) { addSystem("❌ Ошибка звонка"); endCall(); }
+    } catch(e) { addSystem("❌ Ошибка звонка: " + e.message); endCall(); }
 }
 function startAudioCall() { if (currentMode === "private" && currentPrivateWith) startCall(currentPrivateWith, false); }
 function startVideoCallCall() { if (currentMode === "private" && currentPrivateWith) startCall(currentPrivateWith, true); }
@@ -1447,6 +1544,8 @@ async function handleOffer(msg) {
     if (currentCallUser) { ws.send(JSON.stringify({ type: "call_busy", to: msg.from })); return; }
     pendingOffer = msg;
     isVideoCall = msg.video || false;
+    iceQueue = [];
+    remoteDescriptionSet = false;
     incomingCallerSpan.innerHTML = `${msg.video ? "📹" : "📞"} ${msg.from} звонит...`;
     incomingCallDiv.style.display = "flex";
     playRingtone();
@@ -1498,6 +1597,7 @@ async function acceptCall() {
                     document.body.appendChild(audio);
                 }
                 audio.srcObject = event.streams[0];
+                audio.play().catch(e => console.log("audio play error", e));
             }
         };
         pc.onicecandidate = (e) => { if (e.candidate) ws.send(JSON.stringify({ type: "ice", to: pendingOffer.from, ice: e.candidate })); };
@@ -1520,17 +1620,29 @@ async function acceptCall() {
             localVideo.srcObject = localStream;
         }
         await pc.setRemoteDescription(pendingOffer.offer);
+        remoteDescriptionSet = true;
+        for (const candidate of iceQueue) {
+            try { await pc.addIceCandidate(candidate); } catch(e) { console.log("ICE candidate error", e); }
+        }
+        iceQueue = [];
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         ws.send(JSON.stringify({ type: "answer", to: pendingOffer.from, answer }));
         pendingOffer = null;
-    } catch(e) { addSystem("❌ Ошибка ответа на звонок"); endCall(); }
+    } catch(e) { addSystem("❌ Ошибка ответа на звонок: " + e.message); endCall(); }
 }
 function rejectCall() {
     if (pendingOffer) { ws.send(JSON.stringify({ type: "call_reject", to: pendingOffer.from })); hideIncomingCall(); stopRingtone(); pendingOffer = null; }
 }
-async function handleAnswer(msg) { if (!pc) return; await pc.setRemoteDescription(msg.answer); }
-async function handleIce(msg) { if (!pc) return; try { await pc.addIceCandidate(msg.ice); } catch(e) { console.log("ICE error", e); } }
+async function handleAnswer(msg) { if (!pc) return; await pc.setRemoteDescription(msg.answer); remoteDescriptionSet = true; }
+async function handleIce(msg) { 
+    if (!pc) return;
+    if (!remoteDescriptionSet) {
+        iceQueue.push(msg.ice);
+        return;
+    }
+    try { await pc.addIceCandidate(msg.ice); } catch(e) { console.log("ICE error", e); } 
+}
 function endCall() {
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     if (pc) { pc.close(); pc = null; }
@@ -1542,6 +1654,8 @@ function endCall() {
     if (audio) audio.remove();
     if (currentCallUser) { addSystem(`📴 Звонок с ${currentCallUser} завершён`); currentCallUser = null; }
     hideCallStatus(); hideIncomingCall(); stopRingtone(); pendingOffer = null;
+    iceQueue = [];
+    remoteDescriptionSet = false;
 }
 function showCallStatus(withNick) { callStatusText.innerHTML = `📞 В звонке с ${withNick}`; callStatusDiv.style.display = "flex"; }
 function hideCallStatus() { callStatusDiv.style.display = "none"; }

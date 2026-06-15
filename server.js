@@ -25,7 +25,8 @@ let privateHistory = {};
 let groups = {};
 let usersOnline = new Map();
 let userStatus = new Map();
-let sessions = new Map();
+let userLastSeen = new Map();
+let sessions = new Map(); // token -> nick
 let rate = new Map();
 let usersDB = {};
 let userBlocks = new Map();
@@ -35,6 +36,7 @@ const PRIVATE_FILE = "private.json";
 const GROUPS_FILE = "groups.json";
 const USERS_FILE = "users.json";
 
+// ========== ЗАГРУЗКА ДАННЫХ ==========
 function loadData() {
     try {
         if (fs.existsSync(USERS_FILE)) {
@@ -83,24 +85,28 @@ function loadData() {
 
 loadData();
 
+// ========== СОХРАНЕНИЕ ==========
 function saveUsers() { try { fs.writeFileSync(USERS_FILE, JSON.stringify(usersDB, null, 2)); } catch(e){ console.error("❌ Ошибка сохранения users.json"); } }
 function savePublic() { try { fs.writeFileSync(DB_FILE, JSON.stringify(history.slice(-500), null, 2)); } catch(e){ console.error("❌ Ошибка сохранения db.json"); } }
 function savePrivate() { try { fs.writeFileSync(PRIVATE_FILE, JSON.stringify(privateHistory, null, 2)); } catch(e){ console.error("❌ Ошибка сохранения private.json"); } }
 function saveGroups() { try { fs.writeFileSync(GROUPS_FILE, JSON.stringify(groups, null, 2)); } catch(e){ console.error("❌ Ошибка сохранения groups.json"); } }
 
+// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 function hashPassword(p) { return crypto.createHash("sha256").update(p).digest("hex"); }
 function generateToken() { return crypto.randomBytes(32).toString("hex"); }
 function formatTime(t) { const d = new Date(t); d.setHours(d.getHours() + 3); return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }); }
-function escapeHtml(s) { if (!s) return ""; return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function formatFullTime(t) { const d = new Date(t); d.setHours(d.getHours() + 3); return d.toLocaleString("ru-RU"); }
+function escapeHtml(s) { if (!s) return ""; return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 function checkRate(ws) { const now = Date.now(); if (!rate.has(ws)) rate.set(ws, []); const arr = rate.get(ws).filter(t => now - t < 1000); arr.push(now); rate.set(ws, arr); return arr.length <= 10; }
 function broadcast(obj) { const data = JSON.stringify(obj); for (const c of wss.clients) if (c.readyState === 1) c.send(data); }
-function sendUsers() { broadcast({ type: "users", users: Array.from(usersOnline.values()), statuses: Object.fromEntries(userStatus) }); }
+function sendUsers() { broadcast({ type: "users", users: Array.from(usersOnline.values()), statuses: Object.fromEntries(userStatus), lastSeen: Object.fromEntries(userLastSeen) }); }
 function validNick(n) { n = n?.trim(); if (!n || n.length < 2 || n.length > 16) return false; return /^[a-zA-Zа-яА-Я0-9_]+$/.test(n); }
 function nickExistsInDB(n) { return !!usersDB[n]; }
 function getPrivateKey(u1, u2) { return [u1, u2].sort().join("_"); }
 function isDima(n) { return n === "Дима"; }
 function isBlocked(user, target) { return (userBlocks.get(user) || []).includes(target); }
 
+// ========== ГРУППЫ ==========
 function createGroup(name, creator) {
     const id = Date.now().toString() + "-" + Math.random().toString(36).substr(2, 6);
     groups[id] = { 
@@ -251,6 +257,7 @@ function voteInPoll(groupId, pollId, option, voter) {
     return true;
 }
 
+// ========== ПОСЛЕДНИЕ ЧАТЫ ==========
 function updateLastChat(nick, chatType, chatId, lastMessage) {
     if (!usersDB[nick]) usersDB[nick] = {};
     if (!usersDB[nick].lastChats) usersDB[nick].lastChats = [];
@@ -262,6 +269,7 @@ function updateLastChat(nick, chatType, chatId, lastMessage) {
 }
 function getLastChats(nick) { return (usersDB[nick]?.lastChats || []).sort((a, b) => b.timestamp - a.timestamp); }
 
+// ========== ПРОЧИТАНО ==========
 function markAsRead(chatType, chatId, msgId, user) {
     let target = null;
     if (chatType === "public") target = history.find(x => x.id === msgId);
@@ -282,6 +290,7 @@ function markAsRead(chatType, chatId, msgId, user) {
     }
 }
 
+// ========== РЕАКЦИИ ==========
 function updateReaction(type, id, from, reaction, remove) {
     let target = null;
     if (type === "public") target = history.find(x => x.id === id);
@@ -307,86 +316,108 @@ function updateReaction(type, id, from, reaction, remove) {
     broadcast({ type: "reaction_update", id, from, reaction, remove });
 }
 
+// ========== ВЕБСОКЕТ ==========
 wss.on("connection", (ws) => {
     ws.isAlive = true;
     ws.on("pong", () => ws.isAlive = true);
 
     ws.send(JSON.stringify({ type: "history", data: history.slice(-500).map(m => ({ ...m, timeFormatted: formatTime(m.time) })) }));
-    ws.send(JSON.stringify({ type: "users", users: Array.from(usersOnline.values()), statuses: Object.fromEntries(userStatus) }));
+    ws.send(JSON.stringify({ type: "users", users: Array.from(usersOnline.values()), statuses: Object.fromEntries(userStatus), lastSeen: Object.fromEntries(userLastSeen) }));
 
     ws.on("message", (raw) => {
         let msg; try { msg = JSON.parse(raw); } catch { return; }
 
+        // ===== АВТОВХОД =====
         if (msg.type === "auto_login") {
             const token = msg.token;
             const nick = sessions.get(token);
             if (nick && usersDB[nick]) {
-                ws.nick = nick; 
+                let alreadyOnline = false;
+                for (const [c, n] of usersOnline.entries()) {
+                    if (n === nick) {
+                        alreadyOnline = true;
+                        break;
+                    }
+                }
+                if (alreadyOnline) {
+                    ws.send(JSON.stringify({ type: "error", text: "Уже в сети" }));
+                    return;
+                }
+                ws.nick = nick;
                 usersOnline.set(ws, nick);
                 userStatus.set(nick, { status: "online", lastSeen: Date.now() });
-                ws.send(JSON.stringify({ 
-                    type: "login_success", 
-                    nick: nick, 
-                    profile: usersDB[nick].profile || {}, 
-                    groups: Object.values(groups).filter(g => g.members.includes(nick)), 
+                userLastSeen.set(nick, Date.now());
+                ws.send(JSON.stringify({
+                    type: "login_success",
+                    nick: nick,
+                    profile: usersDB[nick].profile || {},
+                    groups: Object.values(groups).filter(g => g.members.includes(nick)),
                     lastChats: getLastChats(nick),
                     isDima: isDima(nick)
                 }));
-                sendUsers(); 
+                sendUsers();
                 broadcast({ type: "system", text: `🟢 ${escapeHtml(nick)} вошёл` });
-            } else ws.send(JSON.stringify({ type: "error", text: "Сессия устарела" }));
+            } else {
+                ws.send(JSON.stringify({ type: "error", text: "Сессия устарела, войдите заново" }));
+            }
             return;
         }
 
+        // ===== РЕГИСТРАЦИЯ =====
         if (msg.type === "register") {
             const nick = msg.nick?.trim(); const password = msg.password?.trim();
             if (!validNick(nick)) { ws.send(JSON.stringify({ type: "error", text: "Ник 2-16 символов" })); return; }
             if (!password || password.length < 3) { ws.send(JSON.stringify({ type: "error", text: "Пароль минимум 3 символа" })); return; }
             if (nickExistsInDB(nick)) { ws.send(JSON.stringify({ type: "error", text: "Пользователь уже существует" })); return; }
-            usersDB[nick] = { 
-                password: hashPassword(password), 
-                created: new Date().toISOString(), 
-                profile: { bio: "", age: "", phone: "", avatar: null }, 
-                lastChats: [] 
+            usersDB[nick] = {
+                password: hashPassword(password),
+                created: new Date().toISOString(),
+                profile: { bio: "", age: "", phone: "", avatar: null },
+                lastChats: []
             };
             saveUsers();
             ws.send(JSON.stringify({ type: "register_success", text: "Регистрация успешна! Теперь войдите." }));
             return;
         }
 
+        // ===== ЛОГИН =====
         if (msg.type === "login") {
             const nick = msg.nick?.trim(); const password = msg.password?.trim(); const remember = msg.remember || false;
             if (!validNick(nick)) { ws.send(JSON.stringify({ type: "error", text: "Неверный ник" })); return; }
             if (!password) { ws.send(JSON.stringify({ type: "error", text: "Введите пароль" })); return; }
             if (!nickExistsInDB(nick)) { ws.send(JSON.stringify({ type: "error", text: "Пользователь не найден" })); return; }
             if (usersDB[nick].password !== hashPassword(password)) { ws.send(JSON.stringify({ type: "error", text: "Неверный пароль" })); return; }
-            ws.nick = nick; 
+            ws.nick = nick;
             usersOnline.set(ws, nick);
             userStatus.set(nick, { status: "online", lastSeen: Date.now() });
-            let token = null; 
+            userLastSeen.set(nick, Date.now());
+            let token = null;
             if (remember) { token = generateToken(); sessions.set(token, nick); }
-            ws.send(JSON.stringify({ 
-                type: "login_success", 
-                nick: nick, 
-                profile: usersDB[nick].profile || {}, 
-                token: token, 
-                groups: Object.values(groups).filter(g => g.members.includes(nick)), 
+            ws.send(JSON.stringify({
+                type: "login_success",
+                nick: nick,
+                profile: usersDB[nick].profile || {},
+                token: token,
+                groups: Object.values(groups).filter(g => g.members.includes(nick)),
                 lastChats: getLastChats(nick),
                 isDima: isDima(nick)
             }));
-            sendUsers(); 
+            sendUsers();
             broadcast({ type: "system", text: `🟢 ${escapeHtml(nick)} вошёл` });
             return;
         }
 
         if (!ws.nick) { ws.send(JSON.stringify({ type: "error", text: "Сначала войдите" })); return; }
 
+        // ===== СТАТУС =====
         if (msg.type === "update_status") {
             userStatus.set(ws.nick, { status: msg.status, lastSeen: Date.now() });
+            userLastSeen.set(ws.nick, Date.now());
             sendUsers();
             return;
         }
 
+        // ===== ПРОФИЛЬ =====
         if (msg.type === "get_profile") {
             if (usersDB[msg.nick]) ws.send(JSON.stringify({ type: "profile_data", nick: msg.nick, profile: usersDB[msg.nick].profile || {} }));
             return;
@@ -402,6 +433,7 @@ wss.on("connection", (ws) => {
             return;
         }
 
+        // ===== ПЕЧАТАЕТ =====
         if (msg.type === "typing") {
             let targetWs = null;
             for (const [c, nick] of usersOnline.entries()) if (nick === msg.to) { targetWs = c; break; }
@@ -409,68 +441,73 @@ wss.on("connection", (ws) => {
             return;
         }
 
+        // ===== ОБЩИЙ ЧАТ =====
         if (msg.type === "chat") {
             if (!checkRate(ws)) return;
-            const m = { 
-                id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), 
-                text: escapeHtml((msg.text || "").slice(0, 500)), 
-                image: msg.image || null, 
-                video: msg.video || null, 
-                file: msg.file || null, 
-                music: msg.music || null, 
-                voice: msg.voice || null, 
-                sticker: msg.sticker || null, 
-                owner: ws.nick, 
-                time: Date.now(), 
-                timeFormatted: formatTime(Date.now()), 
-                reactions: {}, 
-                readBy: [ws.nick] 
+            if (msg.text && msg.text.length > 500) { ws.send(JSON.stringify({ type: "error", text: "Сообщение слишком длинное (макс 500 символов)" })); return; }
+            const m = {
+                id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
+                text: escapeHtml((msg.text || "").slice(0, 500)),
+                image: msg.image || null,
+                video: msg.video || null,
+                file: msg.file || null,
+                music: msg.music || null,
+                voice: msg.voice || null,
+                sticker: msg.sticker || null,
+                owner: ws.nick,
+                time: Date.now(),
+                timeFormatted: formatTime(Date.now()),
+                reactions: {},
+                readBy: [ws.nick]
             };
-            history.push(m); 
-            history = history.slice(-500); 
+            history.push(m);
+            history = history.slice(-500);
             savePublic();
             updateLastChat(ws.nick, "public", "public", m.text || "📷 Вложение");
             broadcast({ type: "msg", data: m });
             return;
         }
 
+        // ===== ЛИЧНОЕ СООБЩЕНИЕ =====
         if (msg.type === "private_chat") {
             if (!checkRate(ws)) return;
             if (isBlocked(ws.nick, msg.target) || isBlocked(msg.target, ws.nick)) {
                 ws.send(JSON.stringify({ type: "error", text: "Пользователь заблокирован" }));
                 return;
             }
+            if (msg.text && msg.text.length > 500) { ws.send(JSON.stringify({ type: "error", text: "Сообщение слишком длинное (макс 500 символов)" })); return; }
             const key = getPrivateKey(ws.nick, msg.target);
             if (!privateHistory[key]) privateHistory[key] = [];
-            const m = { 
-                id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8), 
-                from: ws.nick, 
-                to: msg.target, 
-                text: escapeHtml((msg.text || "").slice(0, 500)), 
-                image: msg.image || null, 
-                video: msg.video || null, 
-                file: msg.file || null, 
-                music: msg.music || null, 
-                voice: msg.voice || null, 
-                sticker: msg.sticker || null, 
-                owner: ws.nick, 
-                time: Date.now(), 
-                timeFormatted: formatTime(Date.now()), 
-                reactions: {}, 
-                readBy: [ws.nick] 
+            const m = {
+                id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
+                from: ws.nick,
+                to: msg.target,
+                text: escapeHtml((msg.text || "").slice(0, 500)),
+                image: msg.image || null,
+                video: msg.video || null,
+                file: msg.file || null,
+                music: msg.music || null,
+                voice: msg.voice || null,
+                sticker: msg.sticker || null,
+                owner: ws.nick,
+                time: Date.now(),
+                timeFormatted: formatTime(Date.now()),
+                reactions: {},
+                readBy: [ws.nick]
             };
-            privateHistory[key].push(m); 
-            privateHistory[key] = privateHistory[key].slice(-500); 
+            privateHistory[key].push(m);
+            privateHistory[key] = privateHistory[key].slice(-500);
             savePrivate();
             updateLastChat(ws.nick, "private", msg.target, m.text || "📷 Вложение");
             updateLastChat(msg.target, "private", ws.nick, m.text || "📷 Вложение");
             ws.send(JSON.stringify({ type: "private_msg", data: m, with: msg.target }));
-            let targetWs = null; 
+            let targetWs = null;
             for (const [c, nick] of usersOnline.entries()) if (nick === msg.target) { targetWs = c; break; }
             if (targetWs && targetWs.readyState === 1) targetWs.send(JSON.stringify({ type: "private_msg", data: m, with: ws.nick }));
             return;
         }
 
+        // ===== БЛОКИРОВКА =====
         if (msg.type === "block_user") {
             if (!userBlocks.has(ws.nick)) userBlocks.set(ws.nick, []);
             if (!userBlocks.get(ws.nick).includes(msg.target)) {
@@ -487,6 +524,7 @@ wss.on("connection", (ws) => {
             return;
         }
 
+        // ===== ГРУППЫ =====
         if (msg.type === "create_group") { const groupId = createGroup(msg.name, ws.nick); ws.send(JSON.stringify({ type: "group_created", group: groups[groupId] })); return; }
         if (msg.type === "invite_to_group") { if (addToGroup(msg.groupId, msg.nick)) ws.send(JSON.stringify({ type: "invite_sent", groupId: msg.groupId, nick: msg.nick })); return; }
         if (msg.type === "remove_from_group") { if (removeFromGroup(msg.groupId, msg.nick, ws.nick)) ws.send(JSON.stringify({ type: "remove_sent", groupId: msg.groupId, nick: msg.nick })); return; }
@@ -499,23 +537,36 @@ wss.on("connection", (ws) => {
         if (msg.type === "get_last_chats") { ws.send(JSON.stringify({ type: "last_chats", data: getLastChats(ws.nick) })); return; }
         if (msg.type === "get_group_info") { if (groups[msg.groupId]) ws.send(JSON.stringify({ type: "group_info", groupId: msg.groupId, group: groups[msg.groupId] })); return; }
 
+        // ===== ОПРОСЫ =====
         if (msg.type === "create_poll") { addPollToGroup(msg.groupId, { question: msg.question, options: msg.options }, ws.nick); return; }
         if (msg.type === "vote_poll") { voteInPoll(msg.groupId, msg.pollId, msg.option, ws.nick); return; }
 
+        // ===== ПРОЧИТАНО =====
         if (msg.type === "mark_read") { markAsRead(msg.chatType, msg.chatId, msg.msgId, ws.nick); return; }
+
+        // ===== РЕАКЦИИ =====
         if (msg.type === "reaction") { updateReaction(msg.chatType, msg.id, ws.nick, msg.reaction, msg.remove); return; }
 
+        // ===== РЕДАКТИРОВАНИЕ =====
         if (msg.type === "edit") {
             let found = false;
             const m = history.find(x => x.id === msg.id);
-            if (m && (m.owner === ws.nick || isDima(ws.nick))) { m.text = escapeHtml(msg.text.slice(0, 500)); savePublic(); broadcast({ type: "edit", id: msg.id, newText: m.text }); found = true; }
+            if (m && (m.owner === ws.nick || isDima(ws.nick))) {
+                if (msg.text && msg.text.length > 500) { ws.send(JSON.stringify({ type: "error", text: "Сообщение слишком длинное" })); return; }
+                m.text = escapeHtml(msg.text.slice(0, 500));
+                savePublic();
+                broadcast({ type: "edit", id: msg.id, newText: m.text });
+                found = true;
+            }
             if (!found) {
                 for (const key in privateHistory) {
                     const idx = privateHistory[key].findIndex(x => x.id === msg.id);
                     if (idx !== -1 && (privateHistory[key][idx].owner === ws.nick || isDima(ws.nick))) {
-                        privateHistory[key][idx].text = escapeHtml(msg.text.slice(0, 500)); savePrivate();
+                        if (msg.text && msg.text.length > 500) { ws.send(JSON.stringify({ type: "error", text: "Сообщение слишком длинное" })); return; }
+                        privateHistory[key][idx].text = escapeHtml(msg.text.slice(0, 500));
+                        savePrivate();
                         const otherNick = privateHistory[key][idx].from === ws.nick ? privateHistory[key][idx].to : privateHistory[key][idx].from;
-                        let targetWs = null; 
+                        let targetWs = null;
                         for (const [c, nick] of usersOnline.entries()) if (nick === otherNick) { targetWs = c; break; }
                         if (targetWs && targetWs.readyState === 1) targetWs.send(JSON.stringify({ type: "edit", id: msg.id, newText: privateHistory[key][idx].text }));
                         ws.send(JSON.stringify({ type: "edit", id: msg.id, newText: privateHistory[key][idx].text }));
@@ -526,19 +577,25 @@ wss.on("connection", (ws) => {
             return;
         }
 
+        // ===== УДАЛЕНИЕ =====
         if (msg.type === "delete") {
             let found = false;
             const m = history.find(x => x.id === msg.id);
-            if (m && (m.owner === ws.nick || isDima(ws.nick))) { history = history.filter(x => x.id !== msg.id); savePublic(); broadcast({ type: "delete", id: msg.id }); found = true; }
+            if (m && (m.owner === ws.nick || isDima(ws.nick))) {
+                history = history.filter(x => x.id !== msg.id);
+                savePublic();
+                broadcast({ type: "delete", id: msg.id });
+                found = true;
+            }
             if (!found) {
                 for (const key in privateHistory) {
                     const idx = privateHistory[key].findIndex(x => x.id === msg.id);
                     if (idx !== -1 && (privateHistory[key][idx].owner === ws.nick || isDima(ws.nick))) {
-                        const deleted = privateHistory[key][idx]; 
-                        privateHistory[key].splice(idx, 1); 
+                        const deleted = privateHistory[key][idx];
+                        privateHistory[key].splice(idx, 1);
                         savePrivate();
                         const otherNick = deleted.from === ws.nick ? deleted.to : deleted.from;
-                        let targetWs = null; 
+                        let targetWs = null;
                         for (const [c, nick] of usersOnline.entries()) if (nick === otherNick) { targetWs = c; break; }
                         if (targetWs && targetWs.readyState === 1) targetWs.send(JSON.stringify({ type: "delete", id: msg.id }));
                         ws.send(JSON.stringify({ type: "delete", id: msg.id }));
@@ -549,6 +606,7 @@ wss.on("connection", (ws) => {
             return;
         }
 
+        // ===== ИСТОРИЯ =====
         if (msg.type === "get_private_history") {
             const key = getPrivateKey(ws.nick, msg.with);
             ws.send(JSON.stringify({ type: "private_history", with: msg.with, data: (privateHistory[key] || []).map(m => ({ ...m, timeFormatted: formatTime(m.time) })) }));
@@ -559,32 +617,65 @@ wss.on("connection", (ws) => {
             return;
         }
 
+        // ===== ЗАГРУЗКА ФАЙЛОВ =====
         if (msg.type === "upload_file") {
+            if (msg.data && msg.data.length > 10 * 1024 * 1024) {
+                ws.send(JSON.stringify({ type: "error", text: "Файл слишком большой (макс 10MB)" }));
+                return;
+            }
             const filename = Date.now() + "_" + ws.nick + "_" + msg.filename;
             const filepath = path.join("files", filename);
-            fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
-            ws.send(JSON.stringify({ type: "file_uploaded", url: `/files/${filename}`, filename: msg.filename }));
+            try {
+                fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
+                ws.send(JSON.stringify({ type: "file_uploaded", url: `/files/${filename}`, filename: msg.filename }));
+            } catch(e) {
+                ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения файла" }));
+            }
             return;
         }
         if (msg.type === "upload_music") {
+            if (msg.data && msg.data.length > 10 * 1024 * 1024) {
+                ws.send(JSON.stringify({ type: "error", text: "Файл слишком большой (макс 10MB)" }));
+                return;
+            }
             const filename = Date.now() + "_" + ws.nick + "_" + msg.filename;
             const filepath = path.join("music", filename);
-            fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
-            ws.send(JSON.stringify({ type: "music_uploaded", url: `/music/${filename}`, filename: msg.filename }));
+            try {
+                fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
+                ws.send(JSON.stringify({ type: "music_uploaded", url: `/music/${filename}`, filename: msg.filename }));
+            } catch(e) {
+                ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения файла" }));
+            }
             return;
         }
         if (msg.type === "upload_voice") {
+            if (msg.data && msg.data.length > 5 * 1024 * 1024) {
+                ws.send(JSON.stringify({ type: "error", text: "Голосовое слишком большое (макс 5MB)" }));
+                return;
+            }
             const filename = Date.now() + "_" + ws.nick + ".webm";
             const filepath = path.join("voice", filename);
-            fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
-            ws.send(JSON.stringify({ type: "voice_uploaded", url: `/voice/${filename}` }));
+            try {
+                fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
+                ws.send(JSON.stringify({ type: "voice_uploaded", url: `/voice/${filename}` }));
+            } catch(e) {
+                ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения голосового" }));
+            }
             return;
         }
         if (msg.type === "upload_sticker") {
+            if (msg.data && msg.data.length > 1 * 1024 * 1024) {
+                ws.send(JSON.stringify({ type: "error", text: "Стикер слишком большой (макс 1MB)" }));
+                return;
+            }
             const filename = Date.now() + "_" + ws.nick + ".png";
             const filepath = path.join("stickers", filename);
-            fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
-            ws.send(JSON.stringify({ type: "sticker_uploaded", url: `/stickers/${filename}` }));
+            try {
+                fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
+                ws.send(JSON.stringify({ type: "sticker_uploaded", url: `/stickers/${filename}` }));
+            } catch(e) {
+                ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения стикера" }));
+            }
             return;
         }
         if (msg.type === "add_sticker") {
@@ -594,7 +685,7 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // WebRTC звонки
+        // ===== WEBRTC ЗВОНКИ =====
         if (msg.type === "offer" || msg.type === "answer" || msg.type === "ice") {
             let targetWs = null;
             for (const [c, nick] of usersOnline.entries()) if (nick === msg.to) { targetWs = c; break; }
@@ -616,6 +707,7 @@ wss.on("connection", (ws) => {
         if (ws.nick) {
             usersOnline.delete(ws);
             userStatus.set(ws.nick, { status: "offline", lastSeen: Date.now() });
+            userLastSeen.set(ws.nick, Date.now());
             sendUsers();
             broadcast({ type: "system", text: `🔴 ${escapeHtml(ws.nick)} вышел` });
         }
