@@ -23,6 +23,7 @@ if (!fs.existsSync("stickers")) fs.mkdirSync("stickers");
 let history = [];
 let privateHistory = {};
 let groups = {};
+let channels = {};
 let usersOnline = new Map();
 let userStatus = new Map();
 let userLastSeen = new Map();
@@ -30,11 +31,19 @@ let sessions = new Map(); // token -> nick
 let rate = new Map();
 let usersDB = {};
 let userBlocks = new Map();
+let userReputation = new Map(); // nick -> репутация
+let complaints = []; // [{from, to, reason, time}]
+let deviceTokens = {}; // deviceId -> nick (для запоминания устройств)
 
 const DB_FILE = "db.json";
 const PRIVATE_FILE = "private.json";
 const GROUPS_FILE = "groups.json";
+const CHANNELS_FILE = "channels.json";
 const USERS_FILE = "users.json";
+const SESSIONS_FILE = "sessions.json";
+const COMPLAINTS_FILE = "complaints.json";
+const REPUTATION_FILE = "reputation.json";
+const DEVICES_FILE = "devices.json";
 
 // ========== ЗАГРУЗКА ДАННЫХ ==========
 function loadData() {
@@ -45,7 +54,6 @@ function loadData() {
         } else {
             usersDB = {};
             fs.writeFileSync(USERS_FILE, JSON.stringify({}, null, 2));
-            console.log("📁 Создан users.json");
         }
     } catch (e) { console.error("❌ Ошибка users.json:", e.message); usersDB = {}; }
 
@@ -56,7 +64,6 @@ function loadData() {
         } else {
             history = [];
             fs.writeFileSync(DB_FILE, JSON.stringify([], null, 2));
-            console.log("📁 Создан db.json");
         }
     } catch (e) { console.error("❌ Ошибка db.json:", e.message); history = []; }
 
@@ -67,7 +74,6 @@ function loadData() {
         } else {
             privateHistory = {};
             fs.writeFileSync(PRIVATE_FILE, JSON.stringify({}, null, 2));
-            console.log("📁 Создан private.json");
         }
     } catch (e) { console.error("❌ Ошибка private.json:", e.message); privateHistory = {}; }
 
@@ -78,46 +84,163 @@ function loadData() {
         } else {
             groups = {};
             fs.writeFileSync(GROUPS_FILE, JSON.stringify({}, null, 2));
-            console.log("📁 Создан groups.json");
         }
     } catch (e) { console.error("❌ Ошибка groups.json:", e.message); groups = {}; }
+
+    try {
+        if (fs.existsSync(CHANNELS_FILE)) {
+            channels = JSON.parse(fs.readFileSync(CHANNELS_FILE, "utf8")) || {};
+            console.log(`✅ Загружено ${Object.keys(channels).length} каналов`);
+        } else {
+            channels = {};
+            fs.writeFileSync(CHANNELS_FILE, JSON.stringify({}, null, 2));
+        }
+    } catch (e) { console.error("❌ Ошибка channels.json:", e.message); channels = {}; }
+
+    try {
+        if (fs.existsSync(SESSIONS_FILE)) {
+            const data = JSON.parse(fs.readFileSync(SESSIONS_FILE, "utf8"));
+            sessions = new Map(Object.entries(data));
+            console.log(`✅ Загружено ${sessions.size} сессий`);
+        } else {
+            sessions = new Map();
+            fs.writeFileSync(SESSIONS_FILE, JSON.stringify({}, null, 2));
+        }
+    } catch (e) { console.error("❌ Ошибка sessions.json:", e.message); sessions = new Map(); }
+
+    try {
+        if (fs.existsSync(COMPLAINTS_FILE)) {
+            complaints = JSON.parse(fs.readFileSync(COMPLAINTS_FILE, "utf8")) || [];
+            console.log(`✅ Загружено ${complaints.length} жалоб`);
+        } else {
+            complaints = [];
+            fs.writeFileSync(COMPLAINTS_FILE, JSON.stringify([], null, 2));
+        }
+    } catch (e) { console.error("❌ Ошибка complaints.json:", e.message); complaints = []; }
+
+    try {
+        if (fs.existsSync(REPUTATION_FILE)) {
+            userReputation = new Map(Object.entries(JSON.parse(fs.readFileSync(REPUTATION_FILE, "utf8"))));
+            console.log(`✅ Загружена репутация для ${userReputation.size} пользователей`);
+        } else {
+            userReputation = new Map();
+            fs.writeFileSync(REPUTATION_FILE, JSON.stringify({}, null, 2));
+        }
+    } catch (e) { console.error("❌ Ошибка reputation.json:", e.message); userReputation = new Map(); }
+
+    try {
+        if (fs.existsSync(DEVICES_FILE)) {
+            deviceTokens = JSON.parse(fs.readFileSync(DEVICES_FILE, "utf8")) || {};
+            console.log(`✅ Загружено ${Object.keys(deviceTokens).length} устройств`);
+        } else {
+            deviceTokens = {};
+            fs.writeFileSync(DEVICES_FILE, JSON.stringify({}, null, 2));
+        }
+    } catch (e) { console.error("❌ Ошибка devices.json:", e.message); deviceTokens = {}; }
 }
 
 loadData();
 
 // ========== СОХРАНЕНИЕ ==========
-function saveUsers() { try { fs.writeFileSync(USERS_FILE, JSON.stringify(usersDB, null, 2)); } catch(e){ console.error("❌ Ошибка сохранения users.json"); } }
-function savePublic() { try { fs.writeFileSync(DB_FILE, JSON.stringify(history.slice(-500), null, 2)); } catch(e){ console.error("❌ Ошибка сохранения db.json"); } }
-function savePrivate() { try { fs.writeFileSync(PRIVATE_FILE, JSON.stringify(privateHistory, null, 2)); } catch(e){ console.error("❌ Ошибка сохранения private.json"); } }
-function saveGroups() { try { fs.writeFileSync(GROUPS_FILE, JSON.stringify(groups, null, 2)); } catch(e){ console.error("❌ Ошибка сохранения groups.json"); } }
+function saveUsers() { try { fs.writeFileSync(USERS_FILE, JSON.stringify(usersDB, null, 2)); } catch(e){} }
+function savePublic() { try { fs.writeFileSync(DB_FILE, JSON.stringify(history.slice(-500), null, 2)); } catch(e){} }
+function savePrivate() { try { fs.writeFileSync(PRIVATE_FILE, JSON.stringify(privateHistory, null, 2)); } catch(e){} }
+function saveGroups() { try { fs.writeFileSync(GROUPS_FILE, JSON.stringify(groups, null, 2)); } catch(e){} }
+function saveChannels() { try { fs.writeFileSync(CHANNELS_FILE, JSON.stringify(channels, null, 2)); } catch(e){} }
+function saveSessions() { try { fs.writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(sessions), null, 2)); } catch(e){} }
+function saveComplaints() { try { fs.writeFileSync(COMPLAINTS_FILE, JSON.stringify(complaints, null, 2)); } catch(e){} }
+function saveReputation() { try { fs.writeFileSync(REPUTATION_FILE, JSON.stringify(Object.fromEntries(userReputation), null, 2)); } catch(e){} }
+function saveDevices() { try { fs.writeFileSync(DEVICES_FILE, JSON.stringify(deviceTokens, null, 2)); } catch(e){} }
 
-// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+// ========== ВСПОМОГАТЕЛЬНЫЕ ==========
 function hashPassword(p) { return crypto.createHash("sha256").update(p).digest("hex"); }
 function generateToken() { return crypto.randomBytes(32).toString("hex"); }
+function generateDeviceId() { return crypto.randomBytes(16).toString("hex"); }
 function formatTime(t) { const d = new Date(t); d.setHours(d.getHours() + 3); return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }); }
-function formatFullTime(t) { const d = new Date(t); d.setHours(d.getHours() + 3); return d.toLocaleString("ru-RU"); }
-function escapeHtml(s) { if (!s) return ""; return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function escapeHtml(s) { if (!s) return ""; return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function checkRate(ws) { const now = Date.now(); if (!rate.has(ws)) rate.set(ws, []); const arr = rate.get(ws).filter(t => now - t < 1000); arr.push(now); rate.set(ws, arr); return arr.length <= 10; }
 function broadcast(obj) { const data = JSON.stringify(obj); for (const c of wss.clients) if (c.readyState === 1) c.send(data); }
-function sendUsers() { broadcast({ type: "users", users: Array.from(usersOnline.values()), statuses: Object.fromEntries(userStatus), lastSeen: Object.fromEntries(userLastSeen) }); }
+function sendUsers() { broadcast({ type: "users", users: Array.from(usersOnline.values()), statuses: Object.fromEntries(userStatus), lastSeen: Object.fromEntries(userLastSeen), reputation: Object.fromEntries(userReputation) }); }
 function validNick(n) { n = n?.trim(); if (!n || n.length < 2 || n.length > 16) return false; return /^[a-zA-Zа-яА-Я0-9_]+$/.test(n); }
 function nickExistsInDB(n) { return !!usersDB[n]; }
 function getPrivateKey(u1, u2) { return [u1, u2].sort().join("_"); }
 function isDima(n) { return n === "Дима"; }
 function isBlocked(user, target) { return (userBlocks.get(user) || []).includes(target); }
 
+// ========== КАНАЛЫ ==========
+function createChannel(name, creator) {
+    const id = Date.now().toString() + "-" + Math.random().toString(36).substr(2, 6);
+    channels[id] = {
+        id,
+        name: escapeHtml(name),
+        creator,
+        subscribers: [creator],
+        messages: [],
+        avatar: null,
+        isLive: false,
+        createdAt: Date.now()
+    };
+    saveChannels();
+    return id;
+}
+
+function subscribeToChannel(channelId, nick) {
+    if (!channels[channelId]) return false;
+    if (channels[channelId].subscribers.includes(nick)) return false;
+    channels[channelId].subscribers.push(nick);
+    saveChannels();
+    for (const sub of channels[channelId].subscribers) {
+        let targetWs = null;
+        for (const [c, n] of usersOnline.entries()) if (n === sub) { targetWs = c; break; }
+        if (targetWs && targetWs.readyState === 1) {
+            targetWs.send(JSON.stringify({ type: "channel_update", channel: channels[channelId] }));
+        }
+    }
+    return true;
+}
+
+function sendChannelMessage(channelId, from, msgData) {
+    if (!channels[channelId]) return;
+    if (channels[channelId].creator !== from && !isDima(from)) return;
+    const m = {
+        id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
+        from,
+        text: escapeHtml((msgData.text || "").slice(0, 500)),
+        image: msgData.image || null,
+        video: msgData.video || null,
+        file: msgData.file || null,
+        music: msgData.music || null,
+        voice: msgData.voice || null,
+        sticker: msgData.sticker || null,
+        time: Date.now(),
+        timeFormatted: formatTime(Date.now()),
+        reactions: {},
+        readBy: []
+    };
+    channels[channelId].messages.push(m);
+    channels[channelId].messages = channels[channelId].messages.slice(-500);
+    saveChannels();
+    for (const sub of channels[channelId].subscribers) {
+        let targetWs = null;
+        for (const [c, n] of usersOnline.entries()) if (n === sub) { targetWs = c; break; }
+        if (targetWs && targetWs.readyState === 1) {
+            targetWs.send(JSON.stringify({ type: "channel_msg", channelId, data: m }));
+        }
+    }
+}
+
 // ========== ГРУППЫ ==========
 function createGroup(name, creator) {
     const id = Date.now().toString() + "-" + Math.random().toString(36).substr(2, 6);
-    groups[id] = { 
-        id, 
-        name: escapeHtml(name), 
-        creator, 
-        members: [creator], 
-        messages: [], 
-        polls: [], 
+    groups[id] = {
+        id,
+        name: escapeHtml(name),
+        creator,
+        members: [creator],
+        messages: [],
+        polls: [],
         avatar: null,
-        createdAt: Date.now() 
+        createdAt: Date.now()
     };
     saveGroups();
     return id;
@@ -202,17 +325,17 @@ function sendGroupMessage(groupId, from, msgData) {
     if (!groups[groupId]) return;
     const m = {
         id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
-        from, 
-        text: escapeHtml((msgData.text || "").slice(0, 500)), 
-        image: msgData.image || null, 
-        video: msgData.video || null, 
-        file: msgData.file || null, 
-        music: msgData.music || null, 
-        voice: msgData.voice || null, 
+        from,
+        text: escapeHtml((msgData.text || "").slice(0, 500)),
+        image: msgData.image || null,
+        video: msgData.video || null,
+        file: msgData.file || null,
+        music: msgData.music || null,
+        voice: msgData.voice || null,
         sticker: msgData.sticker || null,
-        time: Date.now(), 
-        timeFormatted: formatTime(Date.now()), 
-        reactions: {}, 
+        time: Date.now(),
+        timeFormatted: formatTime(Date.now()),
+        reactions: {},
         readBy: [from]
     };
     groups[groupId].messages.push(m);
@@ -257,6 +380,44 @@ function voteInPoll(groupId, pollId, option, voter) {
     return true;
 }
 
+// ========== РЕПУТАЦИЯ ==========
+function changeReputation(nick, change) {
+    const current = userReputation.get(nick) || 0;
+    userReputation.set(nick, current + change);
+    saveReputation();
+    return userReputation.get(nick);
+}
+
+// ========== ЖАЛОБЫ ==========
+function addComplaint(from, to, reason) {
+    const complaint = {
+        id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 6),
+        from,
+        to,
+        reason: escapeHtml(reason),
+        time: Date.now(),
+        resolved: false
+    };
+    complaints.push(complaint);
+    saveComplaints();
+
+    // Отправить уведомление Диме
+    let dimaWs = null;
+    for (const [c, nick] of usersOnline.entries()) {
+        if (nick === "Дима") {
+            dimaWs = c;
+            break;
+        }
+    }
+    if (dimaWs && dimaWs.readyState === 1) {
+        dimaWs.send(JSON.stringify({
+            type: "new_complaint",
+            complaint: complaint
+        }));
+    }
+    return complaint;
+}
+
 // ========== ПОСЛЕДНИЕ ЧАТЫ ==========
 function updateLastChat(nick, chatType, chatId, lastMessage) {
     if (!usersDB[nick]) usersDB[nick] = {};
@@ -273,19 +434,21 @@ function getLastChats(nick) { return (usersDB[nick]?.lastChats || []).sort((a, b
 function markAsRead(chatType, chatId, msgId, user) {
     let target = null;
     if (chatType === "public") target = history.find(x => x.id === msgId);
-    else if (chatType === "private") { 
-        for (const key in privateHistory) { 
-            const idx = privateHistory[key].findIndex(x => x.id === msgId); 
-            if (idx !== -1) { target = privateHistory[key][idx]; break; } 
-        } 
+    else if (chatType === "private") {
+        for (const key in privateHistory) {
+            const idx = privateHistory[key].findIndex(x => x.id === msgId);
+            if (idx !== -1) { target = privateHistory[key][idx]; break; }
+        }
     }
     else if (chatType === "group" && groups[chatId]) { target = groups[chatId].messages.find(x => x.id === msgId); }
+    else if (chatType === "channel" && channels[chatId]) { target = channels[chatId].messages.find(x => x.id === msgId); }
     if (target && !target.readBy?.includes(user)) {
         if (!target.readBy) target.readBy = [];
         target.readBy.push(user);
         if (chatType === "public") savePublic();
         else if (chatType === "private") savePrivate();
         else if (chatType === "group") saveGroups();
+        else if (chatType === "channel") saveChannels();
         broadcast({ type: "read_update", chatType, chatId, msgId, readBy: target.readBy });
     }
 }
@@ -294,25 +457,32 @@ function markAsRead(chatType, chatId, msgId, user) {
 function updateReaction(type, id, from, reaction, remove) {
     let target = null;
     if (type === "public") target = history.find(x => x.id === id);
-    else if (type === "private") { 
-        for (const key in privateHistory) { 
-            const idx = privateHistory[key].findIndex(x => x.id === id); 
-            if (idx !== -1) { target = privateHistory[key][idx]; break; } 
-        } 
+    else if (type === "private") {
+        for (const key in privateHistory) {
+            const idx = privateHistory[key].findIndex(x => x.id === id);
+            if (idx !== -1) { target = privateHistory[key][idx]; break; }
+        }
     }
-    else if (type === "group") { 
-        for (const gid in groups) { 
-            const idx = groups[gid].messages.findIndex(x => x.id === id); 
-            if (idx !== -1) { target = groups[gid].messages[idx]; break; } 
-        } 
+    else if (type === "group") {
+        for (const gid in groups) {
+            const idx = groups[gid].messages.findIndex(x => x.id === id);
+            if (idx !== -1) { target = groups[gid].messages[idx]; break; }
+        }
+    }
+    else if (type === "channel") {
+        for (const cid in channels) {
+            const idx = channels[cid].messages.findIndex(x => x.id === id);
+            if (idx !== -1) { target = channels[cid].messages[idx]; break; }
+        }
     }
     if (!target) return;
     if (!target.reactions) target.reactions = {};
     if (remove) delete target.reactions[from];
     else target.reactions[from] = reaction;
-    if (type === "public") savePublic(); 
-    else if (type === "private") savePrivate(); 
+    if (type === "public") savePublic();
+    else if (type === "private") savePrivate();
     else if (type === "group") saveGroups();
+    else if (type === "channel") saveChannels();
     broadcast({ type: "reaction_update", id, from, reaction, remove });
 }
 
@@ -322,15 +492,27 @@ wss.on("connection", (ws) => {
     ws.on("pong", () => ws.isAlive = true);
 
     ws.send(JSON.stringify({ type: "history", data: history.slice(-500).map(m => ({ ...m, timeFormatted: formatTime(m.time) })) }));
-    ws.send(JSON.stringify({ type: "users", users: Array.from(usersOnline.values()), statuses: Object.fromEntries(userStatus), lastSeen: Object.fromEntries(userLastSeen) }));
+    ws.send(JSON.stringify({ type: "users", users: Array.from(usersOnline.values()), statuses: Object.fromEntries(userStatus), lastSeen: Object.fromEntries(userLastSeen), reputation: Object.fromEntries(userReputation) }));
 
     ws.on("message", (raw) => {
         let msg; try { msg = JSON.parse(raw); } catch { return; }
 
-        // ===== АВТОВХОД =====
+        // ===== АВТОВХОД С УСТРОЙСТВОМ =====
         if (msg.type === "auto_login") {
             const token = msg.token;
-            const nick = sessions.get(token);
+            const deviceId = msg.deviceId;
+            let nick = sessions.get(token);
+
+            // Если по токену не нашли, пробуем по устройству
+            if (!nick && deviceId && deviceTokens[deviceId]) {
+                nick = deviceTokens[deviceId];
+                // Восстанавливаем сессию
+                const newToken = generateToken();
+                sessions.set(newToken, nick);
+                saveSessions();
+                token = newToken;
+            }
+
             if (nick && usersDB[nick]) {
                 let alreadyOnline = false;
                 for (const [c, n] of usersOnline.entries()) {
@@ -352,8 +534,12 @@ wss.on("connection", (ws) => {
                     nick: nick,
                     profile: usersDB[nick].profile || {},
                     groups: Object.values(groups).filter(g => g.members.includes(nick)),
+                    channels: Object.values(channels).filter(c => c.subscribers.includes(nick)),
                     lastChats: getLastChats(nick),
-                    isDima: isDima(nick)
+                    isDima: isDima(nick),
+                    reputation: userReputation.get(nick) || 0,
+                    token: token,
+                    deviceId: deviceId
                 }));
                 sendUsers();
                 broadcast({ type: "system", text: `🟢 ${escapeHtml(nick)} вошёл` });
@@ -382,7 +568,7 @@ wss.on("connection", (ws) => {
 
         // ===== ЛОГИН =====
         if (msg.type === "login") {
-            const nick = msg.nick?.trim(); const password = msg.password?.trim(); const remember = msg.remember || false;
+            const nick = msg.nick?.trim(); const password = msg.password?.trim(); const remember = msg.remember || false; const deviceId = msg.deviceId;
             if (!validNick(nick)) { ws.send(JSON.stringify({ type: "error", text: "Неверный ник" })); return; }
             if (!password) { ws.send(JSON.stringify({ type: "error", text: "Введите пароль" })); return; }
             if (!nickExistsInDB(nick)) { ws.send(JSON.stringify({ type: "error", text: "Пользователь не найден" })); return; }
@@ -391,16 +577,34 @@ wss.on("connection", (ws) => {
             usersOnline.set(ws, nick);
             userStatus.set(nick, { status: "online", lastSeen: Date.now() });
             userLastSeen.set(nick, Date.now());
+
             let token = null;
-            if (remember) { token = generateToken(); sessions.set(token, nick); }
+            let finalDeviceId = deviceId;
+
+            if (remember) {
+                token = generateToken();
+                sessions.set(token, nick);
+                saveSessions();
+
+                // Сохраняем устройство
+                if (!finalDeviceId) {
+                    finalDeviceId = generateDeviceId();
+                }
+                deviceTokens[finalDeviceId] = nick;
+                saveDevices();
+            }
+
             ws.send(JSON.stringify({
                 type: "login_success",
                 nick: nick,
                 profile: usersDB[nick].profile || {},
                 token: token,
+                deviceId: finalDeviceId,
                 groups: Object.values(groups).filter(g => g.members.includes(nick)),
+                channels: Object.values(channels).filter(c => c.subscribers.includes(nick)),
                 lastChats: getLastChats(nick),
-                isDima: isDima(nick)
+                isDima: isDima(nick),
+                reputation: userReputation.get(nick) || 0
             }));
             sendUsers();
             broadcast({ type: "system", text: `🟢 ${escapeHtml(nick)} вошёл` });
@@ -419,7 +623,14 @@ wss.on("connection", (ws) => {
 
         // ===== ПРОФИЛЬ =====
         if (msg.type === "get_profile") {
-            if (usersDB[msg.nick]) ws.send(JSON.stringify({ type: "profile_data", nick: msg.nick, profile: usersDB[msg.nick].profile || {} }));
+            if (usersDB[msg.nick]) {
+                ws.send(JSON.stringify({
+                    type: "profile_data",
+                    nick: msg.nick,
+                    profile: usersDB[msg.nick].profile || {},
+                    reputation: userReputation.get(msg.nick) || 0
+                }));
+            }
             return;
         }
         if (msg.type === "update_profile") {
@@ -432,6 +643,115 @@ wss.on("connection", (ws) => {
             ws.send(JSON.stringify({ type: "profile_updated", profile: usersDB[ws.nick].profile }));
             return;
         }
+
+        // ===== РЕПУТАЦИЯ (только Дима) =====
+        if (msg.type === "change_reputation") {
+            if (!isDima(ws.nick)) {
+                ws.send(JSON.stringify({ type: "error", text: "Только администратор может менять репутацию" }));
+                return;
+            }
+            const newRep = changeReputation(msg.target, msg.change);
+            sendUsers();
+            broadcast({ type: "reputation_update", target: msg.target, reputation: newRep });
+            ws.send(JSON.stringify({ type: "reputation_changed", target: msg.target, reputation: newRep }));
+            return;
+        }
+
+        // ===== ЖАЛОБЫ =====
+        if (msg.type === "complaint") {
+            if (!msg.target || !msg.reason) {
+                ws.send(JSON.stringify({ type: "error", text: "Укажите пользователя и причину" }));
+                return;
+            }
+            if (msg.target === ws.nick) {
+                ws.send(JSON.stringify({ type: "error", text: "Нельзя жаловаться на себя" }));
+                return;
+            }
+            const complaint = addComplaint(ws.nick, msg.target, msg.reason);
+            ws.send(JSON.stringify({ type: "complaint_sent", complaint: complaint }));
+            addSystem(`📩 ${ws.nick} пожаловался на ${msg.target}: ${msg.reason}`);
+            return;
+        }
+
+        if (msg.type === "get_complaints") {
+            if (!isDima(ws.nick)) {
+                ws.send(JSON.stringify({ type: "error", text: "Только администратор может видеть жалобы" }));
+                return;
+            }
+            ws.send(JSON.stringify({ type: "complaints_list", complaints: complaints }));
+            return;
+        }
+
+        if (msg.type === "resolve_complaint") {
+            if (!isDima(ws.nick)) {
+                ws.send(JSON.stringify({ type: "error", text: "Только администратор" }));
+                return;
+            }
+            const comp = complaints.find(c => c.id === msg.complaintId);
+            if (comp) {
+                comp.resolved = true;
+                saveComplaints();
+                ws.send(JSON.stringify({ type: "complaint_resolved", complaintId: msg.complaintId }));
+            }
+            return;
+        }
+
+        // ===== КАНАЛЫ =====
+        if (msg.type === "create_channel") {
+            const channelId = createChannel(msg.name, ws.nick);
+            ws.send(JSON.stringify({ type: "channel_created", channel: channels[channelId] }));
+            return;
+        }
+        if (msg.type === "subscribe_channel") {
+            if (subscribeToChannel(msg.channelId, ws.nick)) {
+                ws.send(JSON.stringify({ type: "channel_subscribed", channelId: msg.channelId }));
+            }
+            return;
+        }
+        if (msg.type === "channel_chat") {
+            if (!checkRate(ws)) return;
+            sendChannelMessage(msg.channelId, ws.nick, msg);
+            return;
+        }
+        if (msg.type === "get_channel_history") {
+            if (channels[msg.channelId] && channels[msg.channelId].subscribers.includes(ws.nick)) {
+                ws.send(JSON.stringify({ type: "channel_history", channelId: msg.channelId, data: channels[msg.channelId].messages }));
+            }
+            return;
+        }
+        if (msg.type === "get_my_channels") {
+            ws.send(JSON.stringify({ type: "my_channels", channels: Object.values(channels).filter(c => c.subscribers.includes(ws.nick)) }));
+            return;
+        }
+        if (msg.type === "get_channel_info") {
+            if (channels[msg.channelId]) {
+                ws.send(JSON.stringify({ type: "channel_info", channelId: msg.channelId, channel: channels[msg.channelId] }));
+            }
+            return;
+        }
+
+        // ===== ГРУППЫ =====
+        if (msg.type === "create_group") { const groupId = createGroup(msg.name, ws.nick); ws.send(JSON.stringify({ type: "group_created", group: groups[groupId] })); return; }
+        if (msg.type === "invite_to_group") { if (addToGroup(msg.groupId, msg.nick)) ws.send(JSON.stringify({ type: "invite_sent", groupId: msg.groupId, nick: msg.nick })); return; }
+        if (msg.type === "remove_from_group") { if (removeFromGroup(msg.groupId, msg.nick, ws.nick)) ws.send(JSON.stringify({ type: "remove_sent", groupId: msg.groupId, nick: msg.nick })); return; }
+        if (msg.type === "leave_group") { if (leaveGroup(msg.groupId, ws.nick)) ws.send(JSON.stringify({ type: "leave_sent", groupId: msg.groupId })); return; }
+        if (msg.type === "update_group_avatar") { if (updateGroupAvatar(msg.groupId, msg.avatar, ws.nick)) ws.send(JSON.stringify({ type: "group_avatar_updated", groupId: msg.groupId, avatar: msg.avatar })); return; }
+        if (msg.type === "update_group_name") { if (updateGroupName(msg.groupId, msg.newName, ws.nick)) ws.send(JSON.stringify({ type: "group_name_updated", groupId: msg.groupId, newName: msg.newName })); return; }
+        if (msg.type === "group_chat") { if (!checkRate(ws)) return; sendGroupMessage(msg.groupId, ws.nick, msg); for (const member of groups[msg.groupId].members) updateLastChat(member, "group", msg.groupId, msg.text || "📷 Вложение"); return; }
+        if (msg.type === "get_group_history") { if (groups[msg.groupId] && groups[msg.groupId].members.includes(ws.nick)) ws.send(JSON.stringify({ type: "group_history", groupId: msg.groupId, data: groups[msg.groupId].messages })); return; }
+        if (msg.type === "get_my_groups") { ws.send(JSON.stringify({ type: "my_groups", groups: Object.values(groups).filter(g => g.members.includes(ws.nick)) })); return; }
+        if (msg.type === "get_last_chats") { ws.send(JSON.stringify({ type: "last_chats", data: getLastChats(ws.nick) })); return; }
+        if (msg.type === "get_group_info") { if (groups[msg.groupId]) ws.send(JSON.stringify({ type: "group_info", groupId: msg.groupId, group: groups[msg.groupId] })); return; }
+
+        // ===== ОПРОСЫ =====
+        if (msg.type === "create_poll") { addPollToGroup(msg.groupId, { question: msg.question, options: msg.options }, ws.nick); return; }
+        if (msg.type === "vote_poll") { voteInPoll(msg.groupId, msg.pollId, msg.option, ws.nick); return; }
+
+        // ===== ПРОЧИТАНО =====
+        if (msg.type === "mark_read") { markAsRead(msg.chatType, msg.chatId, msg.msgId, ws.nick); return; }
+
+        // ===== РЕАКЦИИ =====
+        if (msg.type === "reaction") { updateReaction(msg.chatType, msg.id, ws.nick, msg.reaction, msg.remove); return; }
 
         // ===== ПЕЧАТАЕТ =====
         if (msg.type === "typing") {
@@ -475,7 +795,7 @@ wss.on("connection", (ws) => {
                 ws.send(JSON.stringify({ type: "error", text: "Пользователь заблокирован" }));
                 return;
             }
-            if (msg.text && msg.text.length > 500) { ws.send(JSON.stringify({ type: "error", text: "Сообщение слишком длинное (макс 500 символов)" })); return; }
+            if (msg.text && msg.text.length > 500) { ws.send(JSON.stringify({ type: "error", text: "Сообщение слишком длинное" })); return; }
             const key = getPrivateKey(ws.nick, msg.target);
             if (!privateHistory[key]) privateHistory[key] = [];
             const m = {
@@ -523,29 +843,6 @@ wss.on("connection", (ws) => {
             }
             return;
         }
-
-        // ===== ГРУППЫ =====
-        if (msg.type === "create_group") { const groupId = createGroup(msg.name, ws.nick); ws.send(JSON.stringify({ type: "group_created", group: groups[groupId] })); return; }
-        if (msg.type === "invite_to_group") { if (addToGroup(msg.groupId, msg.nick)) ws.send(JSON.stringify({ type: "invite_sent", groupId: msg.groupId, nick: msg.nick })); return; }
-        if (msg.type === "remove_from_group") { if (removeFromGroup(msg.groupId, msg.nick, ws.nick)) ws.send(JSON.stringify({ type: "remove_sent", groupId: msg.groupId, nick: msg.nick })); return; }
-        if (msg.type === "leave_group") { if (leaveGroup(msg.groupId, ws.nick)) ws.send(JSON.stringify({ type: "leave_sent", groupId: msg.groupId })); return; }
-        if (msg.type === "update_group_avatar") { if (updateGroupAvatar(msg.groupId, msg.avatar, ws.nick)) ws.send(JSON.stringify({ type: "group_avatar_updated", groupId: msg.groupId, avatar: msg.avatar })); return; }
-        if (msg.type === "update_group_name") { if (updateGroupName(msg.groupId, msg.newName, ws.nick)) ws.send(JSON.stringify({ type: "group_name_updated", groupId: msg.groupId, newName: msg.newName })); return; }
-        if (msg.type === "group_chat") { if (!checkRate(ws)) return; sendGroupMessage(msg.groupId, ws.nick, msg); for (const member of groups[msg.groupId].members) updateLastChat(member, "group", msg.groupId, msg.text || "📷 Вложение"); return; }
-        if (msg.type === "get_group_history") { if (groups[msg.groupId] && groups[msg.groupId].members.includes(ws.nick)) ws.send(JSON.stringify({ type: "group_history", groupId: msg.groupId, data: groups[msg.groupId].messages })); return; }
-        if (msg.type === "get_my_groups") { ws.send(JSON.stringify({ type: "my_groups", groups: Object.values(groups).filter(g => g.members.includes(ws.nick)) })); return; }
-        if (msg.type === "get_last_chats") { ws.send(JSON.stringify({ type: "last_chats", data: getLastChats(ws.nick) })); return; }
-        if (msg.type === "get_group_info") { if (groups[msg.groupId]) ws.send(JSON.stringify({ type: "group_info", groupId: msg.groupId, group: groups[msg.groupId] })); return; }
-
-        // ===== ОПРОСЫ =====
-        if (msg.type === "create_poll") { addPollToGroup(msg.groupId, { question: msg.question, options: msg.options }, ws.nick); return; }
-        if (msg.type === "vote_poll") { voteInPoll(msg.groupId, msg.pollId, msg.option, ws.nick); return; }
-
-        // ===== ПРОЧИТАНО =====
-        if (msg.type === "mark_read") { markAsRead(msg.chatType, msg.chatId, msg.msgId, ws.nick); return; }
-
-        // ===== РЕАКЦИИ =====
-        if (msg.type === "reaction") { updateReaction(msg.chatType, msg.id, ws.nick, msg.reaction, msg.remove); return; }
 
         // ===== РЕДАКТИРОВАНИЕ =====
         if (msg.type === "edit") {
@@ -619,63 +916,43 @@ wss.on("connection", (ws) => {
 
         // ===== ЗАГРУЗКА ФАЙЛОВ =====
         if (msg.type === "upload_file") {
-            if (msg.data && msg.data.length > 10 * 1024 * 1024) {
-                ws.send(JSON.stringify({ type: "error", text: "Файл слишком большой (макс 10MB)" }));
-                return;
-            }
+            if (msg.data && msg.data.length > 10 * 1024 * 1024) { ws.send(JSON.stringify({ type: "error", text: "Файл слишком большой (макс 10MB)" })); return; }
             const filename = Date.now() + "_" + ws.nick + "_" + msg.filename;
             const filepath = path.join("files", filename);
             try {
                 fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
                 ws.send(JSON.stringify({ type: "file_uploaded", url: `/files/${filename}`, filename: msg.filename }));
-            } catch(e) {
-                ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения файла" }));
-            }
+            } catch(e) { ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения файла" })); }
             return;
         }
         if (msg.type === "upload_music") {
-            if (msg.data && msg.data.length > 10 * 1024 * 1024) {
-                ws.send(JSON.stringify({ type: "error", text: "Файл слишком большой (макс 10MB)" }));
-                return;
-            }
+            if (msg.data && msg.data.length > 10 * 1024 * 1024) { ws.send(JSON.stringify({ type: "error", text: "Файл слишком большой (макс 10MB)" })); return; }
             const filename = Date.now() + "_" + ws.nick + "_" + msg.filename;
             const filepath = path.join("music", filename);
             try {
                 fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
                 ws.send(JSON.stringify({ type: "music_uploaded", url: `/music/${filename}`, filename: msg.filename }));
-            } catch(e) {
-                ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения файла" }));
-            }
+            } catch(e) { ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения файла" })); }
             return;
         }
         if (msg.type === "upload_voice") {
-            if (msg.data && msg.data.length > 5 * 1024 * 1024) {
-                ws.send(JSON.stringify({ type: "error", text: "Голосовое слишком большое (макс 5MB)" }));
-                return;
-            }
+            if (msg.data && msg.data.length > 5 * 1024 * 1024) { ws.send(JSON.stringify({ type: "error", text: "Голосовое слишком большое (макс 5MB)" })); return; }
             const filename = Date.now() + "_" + ws.nick + ".webm";
             const filepath = path.join("voice", filename);
             try {
                 fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
                 ws.send(JSON.stringify({ type: "voice_uploaded", url: `/voice/${filename}` }));
-            } catch(e) {
-                ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения голосового" }));
-            }
+            } catch(e) { ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения голосового" })); }
             return;
         }
         if (msg.type === "upload_sticker") {
-            if (msg.data && msg.data.length > 1 * 1024 * 1024) {
-                ws.send(JSON.stringify({ type: "error", text: "Стикер слишком большой (макс 1MB)" }));
-                return;
-            }
+            if (msg.data && msg.data.length > 1 * 1024 * 1024) { ws.send(JSON.stringify({ type: "error", text: "Стикер слишком большой (макс 1MB)" })); return; }
             const filename = Date.now() + "_" + ws.nick + ".png";
             const filepath = path.join("stickers", filename);
             try {
                 fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
                 ws.send(JSON.stringify({ type: "sticker_uploaded", url: `/stickers/${filename}` }));
-            } catch(e) {
-                ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения стикера" }));
-            }
+            } catch(e) { ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения стикера" })); }
             return;
         }
         if (msg.type === "add_sticker") {
