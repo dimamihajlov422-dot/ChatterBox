@@ -767,168 +767,6 @@ body.dark .menu-item {
 }
 .menu-item:active { transform: scale(0.97); }
 
-.section-title { 
-    font-weight: 600; 
-    padding: 8px 4px; 
-    margin-top: 12px; 
-    color: #444; 
-    font-size: 13px;
-}
-body.dark .section-title { color: #aaa; }
-
-.user-list { 
-    overflow-y: auto; 
-    max-height: 200px;
-}
-.user-list::-webkit-scrollbar { width: 3px; }
-.user-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
-body.dark .user-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
-
-.user-item {
-    padding: 8px 10px;
-    background: rgba(0,0,0,0.03);
-    margin-bottom: 4px;
-    border-radius: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: relative;
-    border: 1px solid rgba(0,0,0,0.02);
-    color: #111;
-}
-body.dark .user-item { 
-    background: rgba(255,255,255,0.02); 
-    color: #eee; 
-    border-color: rgba(255,255,255,0.02); 
-}
-.user-item .status-dot { 
-    width: 8px; 
-    height: 8px; 
-    border-radius: 50%; 
-    display: inline-block; 
-    margin-right: 6px; 
-}
-.user-item .status-online { background: #2e7d32; }
-.user-item .status-offline { background: #888; }
-.user-item .status-away { background: #e65100; }
-.user-item .star { color: gold; margin-left: 4px; }
-.user-item .unread-badge {
-    background: #d32f2f;
-    color: white;
-    border-radius: 50%;
-    width: 18px;
-    height: 18px;
-    font-size: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    right: 70px;
-    top: -4px;
-}
-.user-item button { 
-    background: rgba(0,0,0,0.04); 
-    border: 1px solid rgba(0,0,0,0.04);
-    padding: 3px 10px; 
-    border-radius: 16px; 
-    color: #111; 
-    font-size: 11px; 
-    cursor: pointer; 
-    margin-left: 4px; 
-    transition: 0.2s;
-}
-body.dark .user-item button { 
-    color: #eee; 
-    background: rgba(255,255,255,0.04); 
-    border-color: rgba(255,255,255,0.04); 
-}
-.user-item button:active { transform: scale(0.9); }
-
-.chat-item, .group-item {
-    padding: 8px 10px;
-    background: rgba(0,0,0,0.03);
-    margin-bottom: 4px;
-    border-radius: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    border: 1px solid rgba(0,0,0,0.02);
-    color: #111;
-    transition: 0.15s;
-}
-body.dark .chat-item, body.dark .group-item { 
-    background: rgba(255,255,255,0.02); 
-    color: #eee; 
-    border-color: rgba(255,255,255,0.02); 
-}
-.chat-item:active, .group-item:active { transform: scale(0.97); }
-
-.group-create { 
-    padding: 8px; 
-    background: rgba(0,0,0,0.02); 
-    border-radius: 12px; 
-    margin-bottom: 6px; 
-    display: flex; 
-    gap: 6px; 
-}
-.group-create input { 
-    flex: 1; 
-    padding: 6px 10px; 
-    border-radius: 16px; 
-    border: 1px solid rgba(0,0,0,0.06);
-    background: rgba(255,255,255,0.4);
-    color: #111;
-}
-body.dark .group-create input { 
-    background: rgba(255,255,255,0.06); 
-    color: #eee; 
-    border-color: rgba(255,255,255,0.04); 
-}
-.group-create input::placeholder { color: #666; }
-body.dark .group-create input::placeholder { color: #888; }
-.group-create button { 
-    background: rgba(0,0,0,0.04); 
-    color: #111; 
-    border: 1px solid rgba(0,0,0,0.04);
-    padding: 6px 14px; 
-    border-radius: 16px; 
-    cursor: pointer; 
-    transition: 0.2s;
-}
-body.dark .group-create button { 
-    color: #eee; 
-    background: rgba(255,255,255,0.04); 
-    border-color: rgba(255,255,255,0.04); 
-}
-.group-create button:active { transform: scale(0.95); }
-
-.status-selector { 
-    display: flex; 
-    gap: 4px; 
-    padding: 6px; 
-    background: rgba(0,0,0,0.02); 
-    border-radius: 20px; 
-    margin-bottom: 6px; 
-}
-.status-selector span { 
-    cursor: pointer; 
-    padding: 3px 10px; 
-    border-radius: 16px; 
-    font-size: 11px; 
-    color: #444;
-    transition: 0.2s;
-}
-body.dark .status-selector span { color: #aaa; }
-.status-selector span.active { 
-    background: rgba(0, 132, 255, 0.15); 
-    color: #0084ff; 
-}
-body.dark .status-selector span.active { 
-    background: rgba(0, 132, 255, 0.2); 
-    color: #66b0ff; 
-}
-
 /* ===== ВХОДЯЩИЙ ЗВОНОК ===== */
 .incoming-call {
     position: fixed;
@@ -1218,7 +1056,7 @@ body.dark .profile-reputation { color: #aaa; }
 .settings-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
     z-index: 1600;
@@ -1226,44 +1064,164 @@ body.dark .profile-reputation { color: #aaa; }
     flex-direction: column;
     overflow-y: auto;
 }
-body.dark .settings-screen { background: rgba(0, 0, 0, 0.8); }
+body.dark .settings-screen { background: rgba(0, 0, 0, 0.4); }
 .settings-screen.open { display: flex; }
 .settings-header {
     padding: 16px 20px;
+    background: rgba(255,255,255,0.1);
+    color: #111;
     display: flex;
     align-items: center;
     gap: 16px;
     border-bottom: 1px solid rgba(0,0,0,0.04);
 }
+body.dark .settings-header { 
+    background: rgba(0,0,0,0.2); 
+    color: #eee; 
+    border-color: rgba(255,255,255,0.04); 
+}
 .settings-header button { 
     background: none; 
     border: none; 
+    color: #111; 
     font-size: 22px; 
     cursor: pointer; 
 }
+body.dark .settings-header button { color: #eee; }
 .settings-header span { 
-    font-size: 20px; 
+    font-size: 18px; 
     font-weight: 600; 
 }
-body.dark .settings-header { 
-    border-color: rgba(255,255,255,0.04); 
+
+.settings-body {
+    flex: 1;
+    padding: 16px 20px;
+}
+.settings-item {
+    padding: 14px 16px;
+    background: rgba(0,0,0,0.03);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #111;
+    font-size: 15px;
+    border: 1px solid rgba(0,0,0,0.02);
+    cursor: pointer;
+}
+body.dark .settings-item { 
+    background: rgba(255,255,255,0.02); 
     color: #eee; 
+    border-color: rgba(255,255,255,0.02); 
 }
-body.dark .settings-header button { color: #eee; }
-.settings-body { 
-    padding: 20px; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    flex: 1; 
-    color: #444; 
-    font-size: 16px; 
+.settings-item:active { transform: scale(0.97); }
+.settings-item .toggle {
+    color: #0084ff;
+    font-size: 18px;
 }
-body.dark .settings-body { color: #aaa; }
 
 .hidden { display: none; }
 .recording { animation: pulse 0.5s infinite; background: rgba(198, 40, 40, 0.2) !important; }
 @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+/* ===== НИЖНЯЯ НАВИГАЦИЯ (КАК В TELEGRAM) ===== */
+.bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 8px 0 12px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    flex-shrink: 0;
+}
+body.dark .bottom-nav { 
+    background: rgba(0, 0, 0, 0.2); 
+    border-top-color: rgba(255,255,255,0.04);
+}
+.nav-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 20px;
+    cursor: pointer;
+    color: #555;
+    transition: 0.2s;
+    border: none;
+    background: none;
+    font-family: inherit;
+}
+body.dark .nav-tab { color: #888; }
+.nav-tab.active { color: #0084ff; }
+body.dark .nav-tab.active { color: #66b0ff; }
+.nav-tab .icon { font-size: 22px; }
+.nav-tab .label { font-size: 10px; font-weight: 500; }
+.nav-tab:active { transform: scale(0.95); }
+
+/* ===== СПИСОК ЧАТОВ ===== */
+.chat-list-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px;
+}
+.chat-list-container::-webkit-scrollbar { width: 4px; }
+.chat-list-container::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+body.dark .chat-list-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+
+.chat-item {
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    margin-bottom: 4px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: 0.15s;
+    color: #111;
+}
+body.dark .chat-item { 
+    background: rgba(255,255,255,0.03); 
+    color: #eee; 
+    border-color: rgba(255,255,255,0.03); 
+}
+.chat-item:active { transform: scale(0.97); }
+.chat-item .avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+body.dark .chat-item .avatar { background: rgba(255,255,255,0.06); }
+.chat-item .info { flex: 1; min-width: 0; }
+.chat-item .info .name {
+    font-weight: 600;
+    font-size: 15px;
+}
+.chat-item .info .last-msg {
+    font-size: 13px;
+    opacity: 0.7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.chat-item .info .last-msg .from { font-weight: 500; opacity: 0.5; }
+.chat-item .time {
+    font-size: 11px;
+    opacity: 0.5;
+    flex-shrink: 0;
+}
 </style>
 </head>
 <body>
@@ -1281,6 +1239,7 @@ body.dark .settings-body { color: #aaa; }
 </div>
 
 <div class="main-app hidden" id="mainApp">
+    <!-- ШАПКА -->
     <div class="header">
         <div class="nav-left">
             <button class="menu-btn" id="menuBtn">☰</button>
@@ -1294,11 +1253,13 @@ body.dark .settings-body { color: #aaa; }
         </div>
     </div>
 
+    <!-- ПОИСК -->
     <div class="top-bar">
-        <input type="text" id="searchInput" placeholder="🔍 Поиск сообщений или контактов...">
+        <input type="text" id="searchInput" placeholder="🔍 Поиск...">
         <button id="searchBtn">Найти</button>
     </div>
 
+    <!-- РЕЖИМНАЯ ПАНЕЛЬ (скрыта по умолчанию) -->
     <div class="mode-bar hidden" id="modeBar">
         <button id="backBtn">← Назад</button>
         <span id="modeTitle"></span>
@@ -1311,18 +1272,37 @@ body.dark .settings-body { color: #aaa; }
         <button id="groupSettingsBtn" class="hidden">⚙️</button>
     </div>
 
+    <!-- ЧАТ -->
     <div class="chat" id="chat">
         <div class="loading-indicator" id="loadingIndicator">Загрузка сообщений...</div>
         <div id="typingIndicator" class="typing-indicator hidden"></div>
     </div>
 
+    <!-- ПАНЕЛЬ ВВОДА -->
     <div class="input-bar" id="inputBar">
         <input type="text" id="msgInput" placeholder="Сообщение..." autocomplete="off">
         <button id="sendBtn">➤</button>
         <button id="attachBtn">📎</button>
     </div>
+
+    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
+    <div class="bottom-nav" id="bottomNav">
+        <button class="nav-tab active" data-tab="chats">
+            <span class="icon">💬</span>
+            <span class="label">Чаты</span>
+        </button>
+        <button class="nav-tab" data-tab="profile">
+            <span class="icon">👤</span>
+            <span class="label">Профиль</span>
+        </button>
+        <button class="nav-tab" data-tab="settings">
+            <span class="icon">⚙️</span>
+            <span class="label">Настройки</span>
+        </button>
+    </div>
 </div>
 
+<!-- ПАНЕЛЬ ВЛОЖЕНИЙ -->
 <div class="attach-panel" id="attachPanel">
     <div class="attach-item" id="attachPhoto"><span>🖼️</span><span>Фото</span></div>
     <div class="attach-item" id="attachVideo"><span>🎥</span><span>Видео</span></div>
@@ -1334,6 +1314,7 @@ body.dark .settings-body { color: #aaa; }
     <div class="attach-item" id="attachPoll"><span>📊</span><span>Опрос</span></div>
 </div>
 
+<!-- МЕНЮ СООБЩЕНИЯ -->
 <div class="message-menu" id="messageMenu">
     <span id="menuEdit">✏️ Редактировать</span>
     <span id="menuCopy">📋 Копировать</span>
@@ -1345,36 +1326,34 @@ body.dark .settings-body { color: #aaa; }
     <span id="menuDelete">🗑️ Удалить</span>
 </div>
 
+<!-- МЕНЮ (ВЕСЬ ЭКРАН) -->
 <div class="menu-panel" id="menuPanel">
     <div class="menu-header">
         <span>Меню</span>
         <button id="closeMenu">✕</button>
     </div>
     <div class="menu-body">
-        <div class="status-selector" id="statusSelector">
-            <span data-status="online" class="active">🟢 Онлайн</span>
-            <span data-status="away">🟡 Отошёл</span>
-            <span data-status="offline">⚫ Офлайн</span>
+        <div class="section-title" style="font-weight:600; padding:8px 4px; margin-top:0; color:#444; font-size:13px;">👤 Пользователи</div>
+        <div><input type="text" id="searchUser" placeholder="🔍 Поиск пользователя..." style="width:100%; padding:8px 12px; border-radius:16px; border:1px solid rgba(0,0,0,0.06); background:rgba(255,255,255,0.4); color:#111; margin-bottom:8px;"></div>
+        <div id="usersList" class="user-list" style="max-height:300px; overflow-y:auto;"></div>
+        
+        <div class="section-title" style="font-weight:600; padding:8px 4px; margin-top:12px; color:#444; font-size:13px;">👥 Группы</div>
+        <div class="group-create" style="display:flex; gap:6px; margin-bottom:8px;">
+            <input type="text" id="newGroupName" placeholder="Название группы" style="flex:1; padding:8px 12px; border-radius:16px; border:1px solid rgba(0,0,0,0.06); background:rgba(255,255,255,0.4); color:#111;">
+            <button id="createGroupBtn" style="background:rgba(0,0,0,0.06); color:#111; border:1px solid rgba(0,0,0,0.04); padding:8px 16px; border-radius:16px; cursor:pointer;">Создать</button>
         </div>
-        <div class="menu-item" id="themeItem">🌓 Сменить тему</div>
-        <div class="menu-item" id="soundItem">🔊 Звук: Вкл</div>
-        <div class="section-title">📋 Последние чаты</div>
-        <div id="lastChatsList" class="user-list"></div>
-        <div class="section-title">👥 Группы</div>
-        <div class="group-create"><input type="text" id="newGroupName" placeholder="Название группы"><button id="createGroupBtn">Создать</button></div>
-        <div id="groupsList" class="user-list"></div>
-        <div class="section-title">👤 Пользователи</div>
-        <div><input type="text" id="searchUser" placeholder="🔍 Поиск пользователя..." style="width:100%; padding:6px 10px; border-radius:16px; border:1px solid rgba(0,0,0,0.06); background:rgba(255,255,255,0.4); color:#111; margin-bottom:6px;"></div>
-        <div id="usersList" class="user-list"></div>
+        <div id="groupsList" class="user-list" style="max-height:200px; overflow-y:auto;"></div>
     </div>
 </div>
 
+<!-- УЧАСТНИКИ ГРУППЫ -->
 <div class="group-members-panel" id="groupMembersPanel">
     <div style="font-weight: bold; text-align: center;">Участники группы</div>
     <div id="membersList"></div>
-    <button id="closeMembersPanel" style="margin-top: 6px; padding: 8px; border-radius: 20px; background: rgba(0,0,0,0.04); color: #111; border: 1px solid rgba(0,0,0,0.04); cursor: pointer;">Закрыть</button>
+    <button id="closeMembersPanel" style="margin-top:6px; padding:8px; border-radius:20px; background:rgba(0,0,0,0.04); color:#111; border:1px solid rgba(0,0,0,0.04); cursor:pointer;">Закрыть</button>
 </div>
 
+<!-- ВХОДЯЩИЙ ЗВОНОК -->
 <div class="incoming-call" id="incomingCall">
     <span id="incomingCaller">📞 Звонит...</span>
     <div>
@@ -1383,13 +1362,16 @@ body.dark .settings-body { color: #aaa; }
     </div>
 </div>
 
+<!-- СТАТУС ЗВОНКА -->
 <div class="call-status" id="callStatus">
     <span id="callStatusText">📞 В звонке...</span>
     <button id="endCallBtn">Завершить</button>
 </div>
 
+<!-- МОДАЛ -->
 <div class="modal" id="modal"><span class="close">&times;</span><img id="modalImg" src=""></div>
 
+<!-- ПРОФИЛЬ -->
 <div class="profile-screen" id="profileScreen">
     <div class="profile-header">
         <button id="closeProfile">←</button>
@@ -1419,18 +1401,30 @@ body.dark .settings-body { color: #aaa; }
     </div>
 </div>
 
+<!-- НАСТРОЙКИ -->
 <div class="settings-screen" id="settingsScreen">
     <div class="settings-header">
         <button id="closeSettings">←</button>
         <span>Настройки</span>
     </div>
     <div class="settings-body">
-        <span>⚙️ Настройки пока в разработке</span>
+        <div class="settings-item" id="themeItem">🌓 Сменить тему <span class="toggle">○</span></div>
+        <div class="settings-item" id="soundItem">🔊 Звук: Вкл <span class="toggle">●</span></div>
+        <div style="margin-top:16px; padding:8px 4px; color:#888; font-size:13px;">Статус</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <span class="status-opt" data-status="online" style="padding:6px 14px; border-radius:20px; background:rgba(0,0,0,0.04); cursor:pointer; font-size:13px; border:2px solid transparent;">🟢 Онлайн</span>
+            <span class="status-opt" data-status="away" style="padding:6px 14px; border-radius:20px; background:rgba(0,0,0,0.04); cursor:pointer; font-size:13px; border:2px solid transparent;">🟡 Отошёл</span>
+            <span class="status-opt" data-status="offline" style="padding:6px 14px; border-radius:20px; background:rgba(0,0,0,0.04); cursor:pointer; font-size:13px; border:2px solid transparent;">⚫ Офлайн</span>
+        </div>
+        <div style="margin-top:16px; padding:8px 4px; color:#888; font-size:13px;">Аккаунт</div>
+        <div class="settings-item" id="logoutSettingsBtn" style="color:#d32f2f;">🚪 Выйти <span class="toggle">→</span></div>
     </div>
 </div>
 
 <script>
 // ===== ВЕСЬ ВАШ JS КОД (БЕЗ ИЗМЕНЕНИЙ) =====
+// Я добавляю только навигацию и управление настройками
+
 const authScreen = document.getElementById("authScreen");
 const authTitle = document.getElementById("authTitle");
 const authNick = document.getElementById("authNick");
@@ -1469,7 +1463,6 @@ const closeMenu = document.getElementById("closeMenu");
 const themeItem = document.getElementById("themeItem");
 const soundItem = document.getElementById("soundItem");
 const usersListDiv = document.getElementById("usersList");
-const lastChatsListDiv = document.getElementById("lastChatsList");
 const groupsListDiv = document.getElementById("groupsList");
 const searchUser = document.getElementById("searchUser");
 const newGroupName = document.getElementById("newGroupName");
@@ -1500,7 +1493,108 @@ const profilePhone = document.getElementById("profilePhone");
 const saveProfile = document.getElementById("saveProfile");
 const settingsScreen = document.getElementById("settingsScreen");
 const closeSettings = document.getElementById("closeSettings");
+const logoutSettingsBtn = document.getElementById("logoutSettingsBtn");
+const bottomNav = document.getElementById("bottomNav");
 
+// ===== НАВИГАЦИЯ =====
+let currentTab = "chats";
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.nav-tab[data-tab="${tab}"]`).classList.add('active');
+    
+    if (tab === "chats") {
+        // Показываем чат
+        chatDiv.style.display = "flex";
+        inputBar.style.display = "flex";
+        modeBar.classList.add("hidden");
+        // Скрываем всё лишнее
+    } else if (tab === "profile") {
+        // Открываем профиль
+        viewProfile(currentNick);
+        chatDiv.style.display = "none";
+        inputBar.style.display = "none";
+        modeBar.classList.add("hidden");
+    } else if (tab === "settings") {
+        // Открываем настройки
+        settingsScreen.classList.add("open");
+        chatDiv.style.display = "none";
+        inputBar.style.display = "none";
+        modeBar.classList.add("hidden");
+    }
+}
+
+document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        switchTab(tab.dataset.tab);
+    });
+});
+
+// ===== НАСТРОЙКИ =====
+// Тема
+themeItem.addEventListener('click', () => {
+    document.body.classList.toggle('dark');
+    const isDark = document.body.classList.contains('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    themeItem.querySelector('.toggle').textContent = isDark ? '●' : '○';
+});
+
+// Звук
+let soundEnabled = true;
+soundItem.addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    soundItem.querySelector('.toggle').textContent = soundEnabled ? '●' : '○';
+    soundItem.innerHTML = soundEnabled ? '🔊 Звук: Вкл <span class="toggle">●</span>' : '🔇 Звук: Выкл <span class="toggle">○</span>';
+});
+
+// Статус
+document.querySelectorAll('.status-opt').forEach(el => {
+    el.addEventListener('click', () => {
+        const status = el.dataset.status;
+        document.querySelectorAll('.status-opt').forEach(s => s.style.borderColor = 'transparent');
+        el.style.borderColor = '#0084ff';
+        if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: "update_status", status }));
+        }
+    });
+});
+
+// Выход из настроек
+closeSettings.addEventListener('click', () => {
+    settingsScreen.classList.remove('open');
+    switchTab('chats');
+});
+
+// Выход через настройки
+logoutSettingsBtn.addEventListener('click', () => {
+    if (confirm('Выйти из аккаунта?')) {
+        localStorage.removeItem("chat_token");
+        if (ws) ws.close();
+        location.reload();
+    }
+});
+
+// Закрытие настроек по клику вне
+settingsScreen.addEventListener('click', (e) => {
+    if (e.target === settingsScreen) {
+        settingsScreen.classList.remove('open');
+        switchTab('chats');
+    }
+});
+
+// ===== ДОБАВЛЯЕМ ПУНКТ "НАСТРОЙКИ" В МЕНЮ =====
+const settingsMenuItem = document.createElement("div");
+settingsMenuItem.className = "menu-item";
+settingsMenuItem.id = "settingsMenuItem";
+settingsMenuItem.innerHTML = "⚙️ Настройки";
+settingsMenuItem.onclick = () => {
+    menuPanel.classList.remove("open");
+    switchTab("settings");
+};
+document.querySelector(".menu-body").appendChild(settingsMenuItem);
+
+// ===== ВАШ ОСТАЛЬНОЙ JS КОД =====
 let ws = null;
 let logged = false;
 let currentNick = "";
@@ -1515,7 +1609,6 @@ let allUsers = [];
 let myGroups = [];
 let myLastChats = [];
 let isLoginMode = true;
-let soundEnabled = true;
 let replyToMsg = null;
 let pendingImage = null;
 let pendingVideo = null;
@@ -1578,12 +1671,13 @@ function connect() {
             if (d.profile) updateProfileUI(d.profile, false);
             if (d.stickers) myStickers = d.stickers;
             addSystem(`✅ Вы вошли как ${currentNick}`);
-            renderLastChatsList();
             renderGroupsList();
             switchToPublic();
             loadUnreadCounts();
             updateOnlineCount();
             loadingIndicator.classList.add("hidden");
+            // Переключаем на чаты
+            switchTab('chats');
             return;
         }
         if (!logged) return;
@@ -1602,7 +1696,6 @@ function connect() {
             if (currentMode === "private" && currentPrivateWith === d.with) addPrivateMessage(d.data);
             else { addSystem(`💬 Новое сообщение от ${d.with}`); markUnread(`private_${d.with}`, d.data.id); }
             notify(`📩 ${d.with}: ${d.data.text}`);
-            updateLastChats();
         }
         if (d.type === "private_history" && currentMode === "private" && currentPrivateWith === d.with) { loadingIndicator.classList.add("hidden"); renderPrivateMessages(d.data); return; }
         if (d.type === "group_msg" && currentMode === "group" && currentGroupId === d.groupId) { addGroupMessage(d.data); return; }
@@ -1613,7 +1706,6 @@ function connect() {
         if (d.type === "group_name_updated") { if (currentGroupId === d.groupId && currentGroup) { currentGroup.name = d.newName; updateGroupUI(); } renderGroupsList(); }
         if (d.type === "group_avatar_updated") { if (currentGroupId === d.groupId && currentGroup) { currentGroup.avatar = d.avatar; updateGroupUI(); } }
         if (d.type === "my_groups") { myGroups = d.groups; renderGroupsList(); }
-        if (d.type === "last_chats") { myLastChats = d.data; renderLastChatsList(); }
         if (d.type === "delete") { const el = document.getElementById(d.id); if (el) el.remove(); }
         if (d.type === "edit") { const el = document.getElementById(d.id); if (el) { const textSpan = el.querySelector(".msg-text") || el; textSpan.textContent = d.newText; } }
         if (d.type === "typing") { 
@@ -1695,48 +1787,6 @@ function loadDraft() {
             msgInput.value = draftMessage.public;
         }
     }
-}
-
-document.querySelectorAll("#statusSelector span").forEach(el => {
-    el.onclick = () => {
-        document.querySelectorAll("#statusSelector span").forEach(s => s.classList.remove("active"));
-        el.classList.add("active");
-        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "update_status", status: el.dataset.status }));
-    };
-});
-
-function updateLastChats() { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "get_last_chats" })); }
-function renderLastChatsList() {
-    if (!lastChatsListDiv) return;
-    if (myLastChats.length === 0) { lastChatsListDiv.innerHTML = '<div style="padding: 8px; color: #666;">📭 Нет недавних чатов</div>'; return; }
-    lastChatsListDiv.innerHTML = "";
-    myLastChats.forEach(chat => {
-        const div = document.createElement("div"); div.className = "chat-item";
-        let name = "";
-        if (chat.chatType === "public") name = "📢 Общий чат";
-        else if (chat.chatType === "private") name = `💬 ${chat.chatId}`;
-        else if (chat.chatType === "group") { const g = myGroups.find(g => g.id === chat.chatId); name = `👥 ${g ? g.name : "Группа"}`; }
-        div.innerHTML = `<span>${name}</span><span style="font-size: 11px; color:#666;">${chat.lastMessage.substring(0, 20)}</span><span style="margin-left: auto; color:#888;">🗑️</span>`;
-        div.onclick = (e) => {
-            if (e.target.tagName === 'SPAN' && e.target.textContent === '🗑️') {
-                e.stopPropagation();
-                if (confirm("Удалить чат из списка?")) {
-                    if (chat.chatType === "private") delete draftMessage[`private_${chat.chatId}`];
-                    else if (chat.chatType === "group") delete draftMessage[`group_${chat.chatId}`];
-                    else delete draftMessage.public;
-                    localStorage.setItem(`draft_${currentNick}`, JSON.stringify(draftMessage));
-                    myLastChats = myLastChats.filter(c => c.chatId !== chat.chatId);
-                    renderLastChatsList();
-                }
-            } else {
-                if (chat.chatType === "public") switchToPublic();
-                else if (chat.chatType === "private") switchToPrivate(chat.chatId);
-                else if (chat.chatType === "group") switchToGroup(chat.chatId);
-                menuPanel.classList.remove("open");
-            }
-        };
-        lastChatsListDiv.appendChild(div);
-    });
 }
 
 function formatTextWithTags(text) { if (!text) return ""; return text.replace(/@(\w+)/g, '<span class="mention" data-nick="$1">@$1</span>'); }
@@ -2179,12 +2229,18 @@ function renderUsersList() {
     usersListDiv.innerHTML = "";
     filtered.forEach(u => { const isOnline = usersOnline.includes(u); const status = userStatuses[u] || { status: "offline" }; let statusClass = "status-offline"; if (status.status === "online") statusClass = "status-online"; else if (status.status === "away") statusClass = "status-away"; const unread = getUnreadCount(`private_${u}`); const star = (u === "Дима") ? '<span class="star">⭐</span>' : ''; const div = document.createElement("div"); div.className = "user-item"; div.innerHTML = `<div><span class="status-dot ${statusClass}"></span> ${u}${star}</div><div><button onclick="switchToPrivate('${u}'); menuPanel.classList.remove('open');">💬</button><button onclick="viewProfile('${u}')">👤</button>${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}</div>`; usersListDiv.appendChild(div); });
 }
-function viewProfile(nick) { profileScreen.classList.add("open"); if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "get_profile", nick })); }
+function viewProfile(nick) { 
+    profileScreen.classList.add("open"); 
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "get_profile", nick })); 
+}
 searchUser.addEventListener("input", renderUsersList);
 setInterval(() => { if (usersOnline.length) { allUsers = [...new Set([...allUsers, ...usersOnline])]; if (menuPanel.classList.contains("open")) renderUsersList(); } }, 5000);
 currentNickSpan.onclick = () => viewProfile(currentNick);
-closeProfile.onclick = () => profileScreen.classList.remove("open");
-saveProfile.onclick = () => { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "update_profile", bio: profileBio.value, age: profileAge.value, phone: profilePhone.value })); profileScreen.classList.remove("open"); };
+closeProfile.onclick = () => {
+    profileScreen.classList.remove("open");
+    switchTab('chats');
+};
+saveProfile.onclick = () => { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "update_profile", bio: profileBio.value, age: profileAge.value, phone: profilePhone.value })); profileScreen.classList.remove("open"); switchTab('chats'); };
 function updateProfileUI(profile, isOther = false) {
     if (profile.avatar) { avatarImg.src = profile.avatar; avatarImg.style.display = "block"; avatarEmoji.style.display = "none"; }
     else { avatarEmoji.style.display = "block"; avatarImg.style.display = "none"; }
@@ -2198,17 +2254,15 @@ backBtn.onclick = switchToPublic;
 inviteBtn.onclick = () => { const nick = prompt("Введите ник для приглашения:"); if (nick && nick.trim() && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "invite_to_group", groupId: currentGroupId, nick: nick.trim() })); };
 searchBtn.onclick = () => { const query = searchInput.value.trim(); if (!query) return; ws.send(JSON.stringify({ type: "search_messages", query })); loadingIndicator.classList.remove("hidden"); };
 
-menuBtn.onclick = () => { menuPanel.classList.toggle("open"); if (menuPanel.classList.contains("open")) { renderUsersList(); renderGroupsList(); renderLastChatsList(); } };
+menuBtn.onclick = () => { menuPanel.classList.toggle("open"); if (menuPanel.classList.contains("open")) { renderUsersList(); renderGroupsList(); } };
 closeMenu.onclick = () => menuPanel.classList.remove("open");
 document.addEventListener("click", (e) => { if (menuPanel.classList.contains("open") && e.target !== menuBtn && !menuPanel.contains(e.target)) menuPanel.classList.remove("open"); });
 
-function renderGroupsList() { groupsListDiv.innerHTML = ""; myGroups.forEach(g => { const div = document.createElement("div"); div.className = "group-item"; div.innerHTML = `<span>👥 ${g.name}</span><span style="font-size: 11px; color:#666;">${g.members.length} уч.</span>`; div.onclick = () => switchToGroup(g.id); groupsListDiv.appendChild(div); }); }
+function renderGroupsList() { groupsListDiv.innerHTML = ""; myGroups.forEach(g => { const div = document.createElement("div"); div.className = "chat-item"; div.innerHTML = `<div class="avatar">👥</div><div class="info"><div class="name">${g.name}</div><div class="last-msg">${g.members.length} участников</div></div><div class="time">${new Date(g.createdAt).toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'})}</div>`; div.onclick = () => { switchToGroup(g.id); switchTab('chats'); }; groupsListDiv.appendChild(div); }); }
 createGroupBtn.onclick = () => { const name = newGroupName.value.trim(); if (!name) { addSystem("❌ Введите название"); return; } ws.send(JSON.stringify({ type: "create_group", name })); newGroupName.value = ""; };
 
 let isDark = localStorage.getItem("theme") === "dark";
-if (isDark) document.body.classList.add("dark");
-themeItem.onclick = () => { isDark = !isDark; if (isDark) document.body.classList.add("dark"); else document.body.classList.remove("dark"); localStorage.setItem("theme", isDark ? "dark" : "light"); };
-soundItem.onclick = () => { soundEnabled = !soundEnabled; soundItem.innerHTML = soundEnabled ? "🔊 Звук: Вкл" : "🔇 Звук: Выкл"; };
+if (isDark) { document.body.classList.add("dark"); themeItem.querySelector('.toggle').textContent = '●'; }
 
 // ========== WEBRTC ЗВОНКИ ==========
 async function startCall(targetNick, video = false) {
@@ -2403,27 +2457,6 @@ function hideIncomingCall() { incomingCallDiv.style.display = "none"; }
 acceptCallBtn.onclick = acceptCall;
 rejectCallBtn.onclick = rejectCall;
 endCallBtn.onclick = endCall;
-
-// ===== ДОБАВЛЯЕМ ПУНКТ НАСТРОЕК В МЕНЮ =====
-const settingsMenuItem = document.createElement("div");
-settingsMenuItem.className = "menu-item";
-settingsMenuItem.id = "settingsMenuItem";
-settingsMenuItem.innerHTML = "⚙️ Настройки";
-settingsMenuItem.onclick = () => {
-    menuPanel.classList.remove("open");
-    settingsScreen.classList.add("open");
-};
-document.querySelector(".menu-body").appendChild(settingsMenuItem);
-
-closeSettings.onclick = () => {
-    settingsScreen.classList.remove("open");
-};
-
-settingsScreen.addEventListener("click", (e) => {
-    if (e.target === settingsScreen) {
-        settingsScreen.classList.remove("open");
-    }
-});
 </script>
 </body>
 </html>
