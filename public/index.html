@@ -64,7 +64,7 @@ body.dark .chat .system { color: #333; }
     display: flex;
     flex-direction: column;
     gap: 8px;
-    background-image: url('/public/images/bg.jpg');
+    background-image: url('/images/bg.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -692,65 +692,94 @@ body.dark .message-menu span { color: #eee; }
 .message-menu span:hover { background: rgba(0,0,0,0.04); }
 body.dark .message-menu span:hover { background: rgba(255,255,255,0.04); }
 
-/* ===== БОКОВОЕ МЕНЮ ===== */
+/* ===== МЕНЮ (ВЕСЬ ЭКРАН) ===== */
 .menu-panel {
     position: fixed;
-    top: 60px;
+    top: 0;
     left: 0;
-    width: 280px;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
     background: rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
-    border-radius: 20px;
     display: none;
     z-index: 300;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    max-height: calc(100vh - 70px);
-    overflow-y: auto;
-    border: 1px solid rgba(0,0,0,0.04);
+    flex-direction: column;
+    border: none;
 }
-body.dark .menu-panel { background: rgba(0, 0, 0, 0.4); border-color: rgba(255,255,255,0.04); }
-.menu-panel.open { display: block; }
+body.dark .menu-panel { background: rgba(0, 0, 0, 0.4); }
+.menu-panel.open { display: flex; }
+
 .menu-header {
-    padding: 14px 16px;
+    padding: 16px 20px;
     background: rgba(255,255,255,0.1);
     color: #111;
     font-weight: bold;
-    border-radius: 20px 20px 0 0;
     display: flex;
     justify-content: space-between;
-    position: sticky;
-    top: 0;
-    backdrop-filter: blur(10px);
+    align-items: center;
+    flex-shrink: 0;
     border-bottom: 1px solid rgba(0,0,0,0.04);
 }
-body.dark .menu-header { background: rgba(0,0,0,0.2); color: #eee; border-color: rgba(255,255,255,0.04); }
-.menu-header button { background: none; border: none; color: #111; font-size: 20px; cursor: pointer; }
+body.dark .menu-header { 
+    background: rgba(0,0,0,0.2); 
+    color: #eee; 
+    border-color: rgba(255,255,255,0.04); 
+}
+.menu-header button { 
+    background: none; 
+    border: none; 
+    color: #111; 
+    font-size: 24px; 
+    cursor: pointer; 
+}
 body.dark .menu-header button { color: #eee; }
-.menu-body { padding: 12px; }
+
+.menu-body {
+    flex: 1;
+    padding: 16px 20px;
+    overflow-y: auto;
+}
+.menu-body::-webkit-scrollbar { width: 4px; }
+.menu-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+body.dark .menu-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+
 .menu-item {
-    padding: 10px 12px;
+    padding: 12px 14px;
     background: rgba(0,0,0,0.03);
     border-radius: 12px;
     margin-bottom: 6px;
     cursor: pointer;
     display: flex;
-    gap: 10px;
+    align-items: center;
+    gap: 12px;
     color: #111;
+    font-size: 15px;
     transition: 0.15s;
     border: 1px solid rgba(0,0,0,0.02);
 }
-body.dark .menu-item { background: rgba(255,255,255,0.02); color: #eee; border-color: rgba(255,255,255,0.02); }
+body.dark .menu-item { 
+    background: rgba(255,255,255,0.02); 
+    color: #eee; 
+    border-color: rgba(255,255,255,0.02); 
+}
 .menu-item:active { transform: scale(0.97); }
+
 .section-title { 
     font-weight: 600; 
-    padding: 6px 4px; 
-    margin-top: 8px; 
+    padding: 8px 4px; 
+    margin-top: 12px; 
     color: #444; 
-    font-size: 12px;
+    font-size: 13px;
 }
 body.dark .section-title { color: #aaa; }
-.user-list { max-height: 200px; overflow-y: auto; }
+
+.user-list { 
+    overflow-y: auto; 
+    max-height: 200px;
+}
 .user-list::-webkit-scrollbar { width: 3px; }
 .user-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
 body.dark .user-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
@@ -767,8 +796,18 @@ body.dark .user-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1
     border: 1px solid rgba(0,0,0,0.02);
     color: #111;
 }
-body.dark .user-item { background: rgba(255,255,255,0.02); color: #eee; border-color: rgba(255,255,255,0.02); }
-.user-item .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+body.dark .user-item { 
+    background: rgba(255,255,255,0.02); 
+    color: #eee; 
+    border-color: rgba(255,255,255,0.02); 
+}
+.user-item .status-dot { 
+    width: 8px; 
+    height: 8px; 
+    border-radius: 50%; 
+    display: inline-block; 
+    margin-right: 6px; 
+}
 .user-item .status-online { background: #2e7d32; }
 .user-item .status-offline { background: #888; }
 .user-item .status-away { background: #e65100; }
@@ -798,7 +837,11 @@ body.dark .user-item { background: rgba(255,255,255,0.02); color: #eee; border-c
     margin-left: 4px; 
     transition: 0.2s;
 }
-body.dark .user-item button { color: #eee; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.04); }
+body.dark .user-item button { 
+    color: #eee; 
+    background: rgba(255,255,255,0.04); 
+    border-color: rgba(255,255,255,0.04); 
+}
 .user-item button:active { transform: scale(0.9); }
 
 .chat-item, .group-item {
@@ -814,7 +857,11 @@ body.dark .user-item button { color: #eee; background: rgba(255,255,255,0.04); b
     color: #111;
     transition: 0.15s;
 }
-body.dark .chat-item, body.dark .group-item { background: rgba(255,255,255,0.02); color: #eee; border-color: rgba(255,255,255,0.02); }
+body.dark .chat-item, body.dark .group-item { 
+    background: rgba(255,255,255,0.02); 
+    color: #eee; 
+    border-color: rgba(255,255,255,0.02); 
+}
 .chat-item:active, .group-item:active { transform: scale(0.97); }
 
 .group-create { 
@@ -833,7 +880,11 @@ body.dark .chat-item, body.dark .group-item { background: rgba(255,255,255,0.02)
     background: rgba(255,255,255,0.4);
     color: #111;
 }
-body.dark .group-create input { background: rgba(255,255,255,0.06); color: #eee; border-color: rgba(255,255,255,0.04); }
+body.dark .group-create input { 
+    background: rgba(255,255,255,0.06); 
+    color: #eee; 
+    border-color: rgba(255,255,255,0.04); 
+}
 .group-create input::placeholder { color: #666; }
 body.dark .group-create input::placeholder { color: #888; }
 .group-create button { 
@@ -845,7 +896,11 @@ body.dark .group-create input::placeholder { color: #888; }
     cursor: pointer; 
     transition: 0.2s;
 }
-body.dark .group-create button { color: #eee; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.04); }
+body.dark .group-create button { 
+    color: #eee; 
+    background: rgba(255,255,255,0.04); 
+    border-color: rgba(255,255,255,0.04); 
+}
 .group-create button:active { transform: scale(0.95); }
 
 .status-selector { 
@@ -893,7 +948,11 @@ body.dark .status-selector span.active {
     border: 1px solid rgba(0,0,0,0.04);
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
-body.dark .incoming-call { background: rgba(0,0,0,0.3); color: #eee; border-color: rgba(255,255,255,0.04); }
+body.dark .incoming-call { 
+    background: rgba(0,0,0,0.3); 
+    color: #eee; 
+    border-color: rgba(255,255,255,0.04); 
+}
 .incoming-call button {
     background: rgba(0,0,0,0.04);
     border: 1px solid rgba(0,0,0,0.04);
@@ -905,12 +964,28 @@ body.dark .incoming-call { background: rgba(0,0,0,0.3); color: #eee; border-colo
     color: #111;
     transition: 0.2s;
 }
-body.dark .incoming-call button { color: #eee; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.04); }
+body.dark .incoming-call button { 
+    color: #eee; 
+    background: rgba(255,255,255,0.04); 
+    border-color: rgba(255,255,255,0.04); 
+}
 .incoming-call button:active { transform: scale(0.95); }
-.incoming-call .accept-btn { background: rgba(46, 125, 50, 0.15); border-color: rgba(46, 125, 50, 0.1); }
-.incoming-call .reject-btn { background: rgba(198, 40, 40, 0.15); border-color: rgba(198, 40, 40, 0.1); }
-body.dark .incoming-call .accept-btn { background: rgba(76, 175, 80, 0.15); border-color: rgba(76, 175, 80, 0.1); }
-body.dark .incoming-call .reject-btn { background: rgba(244, 67, 54, 0.15); border-color: rgba(244, 67, 54, 0.1); }
+.incoming-call .accept-btn { 
+    background: rgba(46, 125, 50, 0.15); 
+    border-color: rgba(46, 125, 50, 0.1); 
+}
+.incoming-call .reject-btn { 
+    background: rgba(198, 40, 40, 0.15); 
+    border-color: rgba(198, 40, 40, 0.1); 
+}
+body.dark .incoming-call .accept-btn { 
+    background: rgba(76, 175, 80, 0.15); 
+    border-color: rgba(76, 175, 80, 0.1); 
+}
+body.dark .incoming-call .reject-btn { 
+    background: rgba(244, 67, 54, 0.15); 
+    border-color: rgba(244, 67, 54, 0.1); 
+}
 
 .call-status {
     position: fixed;
@@ -929,7 +1004,11 @@ body.dark .incoming-call .reject-btn { background: rgba(244, 67, 54, 0.15); bord
     z-index: 150;
     border: 1px solid rgba(0,0,0,0.04);
 }
-body.dark .call-status { background: rgba(0,0,0,0.3); color: #eee; border-color: rgba(255,255,255,0.04); }
+body.dark .call-status { 
+    background: rgba(0,0,0,0.3); 
+    color: #eee; 
+    border-color: rgba(255,255,255,0.04); 
+}
 .call-status button { 
     background: rgba(198, 40, 40, 0.15);
     border: 1px solid rgba(198, 40, 40, 0.1);
@@ -939,7 +1018,11 @@ body.dark .call-status { background: rgba(0,0,0,0.3); color: #eee; border-color:
     cursor: pointer;
     transition: 0.2s;
 }
-body.dark .call-status button { color: #eee; background: rgba(244, 67, 54, 0.15); border-color: rgba(244, 67, 54, 0.1); }
+body.dark .call-status button { 
+    color: #eee; 
+    background: rgba(244, 67, 54, 0.15); 
+    border-color: rgba(244, 67, 54, 0.1); 
+}
 .call-status button:active { transform: scale(0.95); }
 
 /* ===== УЧАСТНИКИ ГРУППЫ ===== */
@@ -962,7 +1045,11 @@ body.dark .call-status button { color: #eee; background: rgba(244, 67, 54, 0.15)
     border: 1px solid rgba(0,0,0,0.04);
     box-shadow: 0 4px 20px rgba(0,0,0,0.06);
 }
-body.dark .group-members-panel { background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.04); color: #eee; }
+body.dark .group-members-panel { 
+    background: rgba(0,0,0,0.3); 
+    border-color: rgba(255,255,255,0.04); 
+    color: #eee; 
+}
 .group-members-panel.open { display: flex; }
 .group-members-panel .member {
     display: flex;
@@ -972,7 +1059,10 @@ body.dark .group-members-panel { background: rgba(0,0,0,0.3); border-color: rgba
     border-bottom: 1px solid rgba(0,0,0,0.04);
     color: #111;
 }
-body.dark .group-members-panel .member { color: #eee; border-color: rgba(255,255,255,0.04); }
+body.dark .group-members-panel .member { 
+    color: #eee; 
+    border-color: rgba(255,255,255,0.04); 
+}
 .group-members-panel .member button { 
     background: rgba(198, 40, 40, 0.1);
     color: #111;
@@ -982,7 +1072,11 @@ body.dark .group-members-panel .member { color: #eee; border-color: rgba(255,255
     cursor: pointer;
     transition: 0.2s;
 }
-body.dark .group-members-panel .member button { color: #eee; background: rgba(244, 67, 54, 0.1); border-color: rgba(244, 67, 54, 0.06); }
+body.dark .group-members-panel .member button { 
+    color: #eee; 
+    background: rgba(244, 67, 54, 0.1); 
+    border-color: rgba(244, 67, 54, 0.06); 
+}
 .group-members-panel .member button:active { transform: scale(0.95); }
 
 /* ===== МОДАЛ ===== */
@@ -1033,8 +1127,17 @@ body.dark .profile-screen { background: rgba(0, 0, 0, 0.4); }
     gap: 16px;
     border-bottom: 1px solid rgba(0,0,0,0.04);
 }
-body.dark .profile-header { color: #eee; border-color: rgba(255,255,255,0.04); }
-.profile-header button { background: none; border: none; color: #111; font-size: 22px; cursor: pointer; }
+body.dark .profile-header { 
+    color: #eee; 
+    border-color: rgba(255,255,255,0.04); 
+}
+.profile-header button { 
+    background: none; 
+    border: none; 
+    color: #111; 
+    font-size: 22px; 
+    cursor: pointer; 
+}
 body.dark .profile-header button { color: #eee; }
 .profile-avatar {
     width: 72px;
@@ -1049,7 +1152,10 @@ body.dark .profile-header button { color: #eee; }
     cursor: pointer;
     border: 2px solid rgba(0,0,0,0.06);
 }
-body.dark .profile-avatar { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.04); }
+body.dark .profile-avatar { 
+    background: rgba(255,255,255,0.04); 
+    border-color: rgba(255,255,255,0.04); 
+}
 .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .profile-body { padding: 20px; }
 .profile-field { margin-bottom: 16px; }
@@ -1094,12 +1200,21 @@ body.dark .profile-field input:focus, body.dark .profile-field textarea:focus {
     width: 100%;
     transition: 0.2s;
 }
-body.dark .profile-save { color: #eee; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.04); }
+body.dark .profile-save { 
+    color: #eee; 
+    background: rgba(255,255,255,0.04); 
+    border-color: rgba(255,255,255,0.04); 
+}
 .profile-save:active { transform: scale(0.97); }
-.profile-reputation { text-align: center; padding: 6px; font-size: 14px; color: #444; }
+.profile-reputation { 
+    text-align: center; 
+    padding: 6px; 
+    font-size: 14px; 
+    color: #444; 
+}
 body.dark .profile-reputation { color: #aaa; }
 
-/* ===== НАСТРОЙКИ (пока белый экран) ===== */
+/* ===== НАСТРОЙКИ ===== */
 .settings-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -1120,11 +1235,30 @@ body.dark .settings-screen { background: rgba(0, 0, 0, 0.8); }
     gap: 16px;
     border-bottom: 1px solid rgba(0,0,0,0.04);
 }
-.settings-header button { background: none; border: none; font-size: 22px; cursor: pointer; }
-.settings-header span { font-size: 20px; font-weight: 600; }
-body.dark .settings-header { border-color: rgba(255,255,255,0.04); color: #eee; }
+.settings-header button { 
+    background: none; 
+    border: none; 
+    font-size: 22px; 
+    cursor: pointer; 
+}
+.settings-header span { 
+    font-size: 20px; 
+    font-weight: 600; 
+}
+body.dark .settings-header { 
+    border-color: rgba(255,255,255,0.04); 
+    color: #eee; 
+}
 body.dark .settings-header button { color: #eee; }
-.settings-body { padding: 20px; display: flex; align-items: center; justify-content: center; flex: 1; color: #444; font-size: 16px; }
+.settings-body { 
+    padding: 20px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    flex: 1; 
+    color: #444; 
+    font-size: 16px; 
+}
 body.dark .settings-body { color: #aaa; }
 
 .hidden { display: none; }
@@ -1147,7 +1281,6 @@ body.dark .settings-body { color: #aaa; }
 </div>
 
 <div class="main-app hidden" id="mainApp">
-    <!-- ШАПКА КАК В TELEGRAM -->
     <div class="header">
         <div class="nav-left">
             <button class="menu-btn" id="menuBtn">☰</button>
@@ -1161,13 +1294,11 @@ body.dark .settings-body { color: #aaa; }
         </div>
     </div>
 
-    <!-- ПОИСК -->
     <div class="top-bar">
         <input type="text" id="searchInput" placeholder="🔍 Поиск сообщений или контактов...">
         <button id="searchBtn">Найти</button>
     </div>
 
-    <!-- РЕЖИМНАЯ ПАНЕЛЬ -->
     <div class="mode-bar hidden" id="modeBar">
         <button id="backBtn">← Назад</button>
         <span id="modeTitle"></span>
@@ -1180,13 +1311,11 @@ body.dark .settings-body { color: #aaa; }
         <button id="groupSettingsBtn" class="hidden">⚙️</button>
     </div>
 
-    <!-- ЧАТ С ОБОЯМИ -->
     <div class="chat" id="chat">
         <div class="loading-indicator" id="loadingIndicator">Загрузка сообщений...</div>
         <div id="typingIndicator" class="typing-indicator hidden"></div>
     </div>
 
-    <!-- ПАНЕЛЬ ВВОДА -->
     <div class="input-bar" id="inputBar">
         <input type="text" id="msgInput" placeholder="Сообщение..." autocomplete="off">
         <button id="sendBtn">➤</button>
@@ -1194,7 +1323,6 @@ body.dark .settings-body { color: #aaa; }
     </div>
 </div>
 
-<!-- ===== ВСЕ ОСТАЛЬНЫЕ ЭЛЕМЕНТЫ ===== -->
 <div class="attach-panel" id="attachPanel">
     <div class="attach-item" id="attachPhoto"><span>🖼️</span><span>Фото</span></div>
     <div class="attach-item" id="attachVideo"><span>🎥</span><span>Видео</span></div>
@@ -1218,7 +1346,10 @@ body.dark .settings-body { color: #aaa; }
 </div>
 
 <div class="menu-panel" id="menuPanel">
-    <div class="menu-header"><span>Меню</span><button id="closeMenu">✕</button></div>
+    <div class="menu-header">
+        <span>Меню</span>
+        <button id="closeMenu">✕</button>
+    </div>
     <div class="menu-body">
         <div class="status-selector" id="statusSelector">
             <span data-status="online" class="active">🟢 Онлайн</span>
@@ -1259,7 +1390,6 @@ body.dark .settings-body { color: #aaa; }
 
 <div class="modal" id="modal"><span class="close">&times;</span><img id="modalImg" src=""></div>
 
-<!-- ПРОФИЛЬ -->
 <div class="profile-screen" id="profileScreen">
     <div class="profile-header">
         <button id="closeProfile">←</button>
@@ -1289,7 +1419,6 @@ body.dark .settings-body { color: #aaa; }
     </div>
 </div>
 
-<!-- НАСТРОЙКИ (пока белый экран) -->
 <div class="settings-screen" id="settingsScreen">
     <div class="settings-header">
         <button id="closeSettings">←</button>
@@ -1301,9 +1430,7 @@ body.dark .settings-body { color: #aaa; }
 </div>
 
 <script>
-// ===== ВАШ ВЕСЬ ОРИГИНАЛЬНЫЙ JS КОД =====
-// (весь JS остаётся без изменений, добавляем только переход на настройки)
-
+// ===== ВЕСЬ ВАШ JS КОД (БЕЗ ИЗМЕНЕНИЙ) =====
 const authScreen = document.getElementById("authScreen");
 const authTitle = document.getElementById("authTitle");
 const authNick = document.getElementById("authNick");
@@ -2277,8 +2404,7 @@ acceptCallBtn.onclick = acceptCall;
 rejectCallBtn.onclick = rejectCall;
 endCallBtn.onclick = endCall;
 
-// ===== ОТКРЫТИЕ НАСТРОЕК =====
-// Добавляем пункт "Настройки" в меню
+// ===== ДОБАВЛЯЕМ ПУНКТ НАСТРОЕК В МЕНЮ =====
 const settingsMenuItem = document.createElement("div");
 settingsMenuItem.className = "menu-item";
 settingsMenuItem.id = "settingsMenuItem";
@@ -2289,12 +2415,10 @@ settingsMenuItem.onclick = () => {
 };
 document.querySelector(".menu-body").appendChild(settingsMenuItem);
 
-// Закрытие настроек
 closeSettings.onclick = () => {
     settingsScreen.classList.remove("open");
 };
 
-// Закрытие настроек по клику вне (опционально)
 settingsScreen.addEventListener("click", (e) => {
     if (e.target === settingsScreen) {
         settingsScreen.classList.remove("open");
