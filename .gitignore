@@ -1,14 +1,11 @@
-# Данные (не коммитить!)
-users.json
-db.json
-private.json
-groups.json
-
-# Папки с файлами
-files/
-music/
-voice/
-stickers/
-
-# Node modules
 node_modules/
+*.json
+!package.json
+!package-lock.json
+/files/
+/music/
+/voice/
+/stickers/
+/avatars/
+/backups/
+.DS_Store

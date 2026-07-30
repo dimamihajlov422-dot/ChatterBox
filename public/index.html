@@ -6,7 +6,6 @@
 <title>Мессенджер</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
 :root {
     --bg: #f0f2f5;
     --bg-dark: #0e0e0e;
@@ -20,7 +19,6 @@
     --radius: 28px;
     --radius-sm: 16px;
 }
-
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     height: 100vh;
@@ -29,20 +27,35 @@ body {
     background: var(--bg);
     color: var(--text);
     transition: background 0.3s, color 0.3s;
-    overflow: hidden;
 }
 body.dark {
     background: var(--bg-dark);
     color: var(--text-dark);
 }
-body.dark .auth-card { background: rgba(30,30,30,0.85); color: white; backdrop-filter: blur(20px); }
-body.dark .auth-card input { background: rgba(45,45,45,0.9); color: white; border-color: #444; }
-body.dark .auth-card input:focus { border-color: #00c853; }
-body.dark .auth-card button { background: linear-gradient(135deg, #0084ff, #00c853); }
-body.dark .auth-card .switch-btn { color: #66bb6a; border-color: #66bb6a; }
-body.dark .auth-card .remember { color: #aaa; }
+body.dark .auth-card { background: #1e1e1e; color: white; }
+body.dark .auth-card input { background: #2d2d2d; color: white; border-color: #444; }
+body.dark .header { background: #1b5e20; }
+body.dark .top-bar { background: #1b5e20; }
+body.dark .mode-bar { background: #1b5e20; }
+body.dark .menu-header { background: #1b5e20; }
+body.dark .message.own { background: #2e7d32; }
+body.dark .message .author { color: #66bb6a; }
+body.dark .input-bar { background: #1e1e1e; border-color: #333; }
+body.dark .input-bar input { background: #2d2d2d; color: white; border-color: #444; }
+body.dark .menu-panel { background: #1e1e1e; }
+body.dark .menu-item { background: #2d2d2d; color: white; }
+body.dark .user-item { background: #2d2d2d; }
+body.dark .chat-item, body.dark .group-item, body.dark .channel-item { background: #2d2d2d; }
+body.dark .attach-panel { background: #2d2d2d; }
+body.dark .message-menu { background: #2d2d2d; color: white; }
+body.dark .section-title { color: #66bb6a; }
+body.dark .system { background: #2d2d2d; color: #aaa; }
+body.dark .call-indicator { background: #2e7d32; }
+body.dark .profile-screen { background: #121212; color: white; }
+body.dark .group-members-panel { background: #2d2d2d; }
+body.dark .complaint-modal { background: #1e1e1e; color: white; }
+body.dark .complaint-modal input, body.dark .complaint-modal textarea { background: #2d2d2d; color: white; border-color: #444; }
 
-/* ===== ЭКРАН ВХОДА С ВОЛНАМИ ===== */
 .auth-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -52,138 +65,25 @@ body.dark .auth-card .remember { color: #aaa; }
     align-items: center;
     padding: 20px;
     z-index: 1000;
-    overflow: hidden;
 }
 .auth-screen.hidden { display: none; }
-
-/* ВОЛНЫ */
-.waves {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    overflow: hidden;
-}
-.wave {
-    position: absolute;
-    bottom: -10%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: rgba(255,255,255,0.04);
-    border-radius: 40%;
-    animation: waveMove 15s infinite ease-in-out;
-}
-.wave:nth-child(2) {
-    background: rgba(255,255,255,0.06);
-    animation-duration: 18s;
-    animation-delay: -2s;
-}
-.wave:nth-child(3) {
-    background: rgba(255,255,255,0.03);
-    animation-duration: 20s;
-    animation-delay: -5s;
-}
-.wave:nth-child(4) {
-    background: rgba(255,255,255,0.08);
-    animation-duration: 12s;
-    animation-delay: -3s;
-}
-@keyframes waveMove {
-    0% { transform: translate(0, 0) rotate(0deg); }
-    50% { transform: translate(-5%, -5%) rotate(3deg); }
-    100% { transform: translate(0, 0) rotate(0deg); }
-}
-
 .auth-card {
-    position: relative;
-    z-index: 10;
-    background: rgba(255,255,255,0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: white;
     border-radius: 32px;
     padding: 40px 28px;
     width: 100%;
     max-width: 340px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
 }
-.auth-card h2 {
-    text-align: center;
-    margin-bottom: 24px;
-    font-size: 26px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #0084ff, #00c853);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-}
-.auth-card input {
-    width: 100%;
-    padding: 14px 18px;
-    margin-bottom: 12px;
-    border: 1px solid rgba(0,0,0,0.08);
-    border-radius: 28px;
-    font-size: 16px;
-    outline: none;
-    background: rgba(255,255,255,0.8);
-    backdrop-filter: blur(10px);
-    transition: all 0.2s;
-}
-.auth-card input:focus {
-    border-color: #0084ff;
-    box-shadow: 0 0 0 3px rgba(0,132,255,0.15);
-    background: rgba(255,255,255,0.95);
-}
-.auth-card button {
-    width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, #0084ff, #00c853);
-    color: white;
-    border: none;
-    border-radius: 28px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-bottom: 12px;
-    transition: transform 0.1s;
-    box-shadow: 0 4px 12px rgba(0,132,255,0.25);
-}
+.auth-card h2 { text-align: center; margin-bottom: 24px; font-size: 26px; font-weight: 700; background: linear-gradient(135deg, #0084ff, #00c853); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.auth-card input { width: 100%; padding: 14px 18px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 28px; font-size: 16px; outline: none; background: white; }
+.auth-card input:focus { border-color: #0084ff; box-shadow: 0 0 0 2px rgba(0,132,255,0.2); }
+.auth-card button { width: 100%; padding: 14px; background: linear-gradient(135deg, #0084ff, #00c853); color: white; border: none; border-radius: 28px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 12px; }
 .auth-card button:active { transform: scale(0.98); }
-.auth-card .switch-btn {
-    background: transparent;
-    color: #0084ff;
-    border: 1px solid #0084ff;
-    box-shadow: none;
-    margin-bottom: 0;
-}
-.auth-card .switch-btn:active { transform: scale(0.98); }
-.auth-card .remember {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
-    font-size: 14px;
-    color: #555;
-}
-.auth-card .remember input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: #0084ff;
-    margin: 0;
-    padding: 0;
-}
-.error-msg {
-    color: #f44336;
-    text-align: center;
-    font-size: 13px;
-    margin-top: 8px;
-    min-height: 20px;
-}
+.auth-card .switch-btn { background: transparent; color: #0084ff; border: 1px solid #0084ff; margin-bottom: 0; }
+.auth-card .remember { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 14px; color: #666; }
+.error-msg { color: #f44336; text-align: center; font-size: 13px; margin-top: 8px; }
 
-/* ===== ОСТАЛЬНЫЕ СТИЛИ (сохраняем как были) ===== */
 .main-app { display: flex; flex-direction: column; height: 100%; }
 .main-app.hidden { display: none; }
 
@@ -195,7 +95,6 @@ body.dark .auth-card .remember { color: #aaa; }
     gap: 10px;
     flex-shrink: 0;
 }
-body.dark .header { background: #1b5e20; }
 .menu-btn { background: rgba(255,255,255,0.2); border: none; width: 40px; height: 40px; border-radius: 50%; color: white; font-size: 20px; cursor: pointer; flex-shrink: 0; }
 .header .nick { color: white; font-weight: 600; flex: 1; font-size: 17px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 .header .nick .star { color: gold; font-size: 14px; }
@@ -206,11 +105,9 @@ body.dark .header { background: #1b5e20; }
 .logout-btn { background: rgba(255,255,255,0.15); border: none; padding: 6px 12px; border-radius: 30px; color: white; font-size: 13px; cursor: pointer; }
 
 .top-bar { background: #0084ff; padding: 6px 12px 10px; display: flex; gap: 8px; flex-shrink: 0; }
-body.dark .top-bar { background: #1b5e20; }
 .top-bar input { flex: 1; padding: 8px 16px; border: none; border-radius: 30px; font-size: 14px; outline: none; background: rgba(255,255,255,0.9); }
 .top-bar input:focus { background: white; }
 .top-bar button { background: rgba(255,255,255,0.9); color: #0084ff; border: none; padding: 8px 18px; border-radius: 30px; font-weight: 600; font-size: 13px; cursor: pointer; }
-body.dark .top-bar button { background: #2e7d32; color: white; }
 
 .mode-bar {
     background: #0084ff;
@@ -221,7 +118,6 @@ body.dark .top-bar button { background: #2e7d32; color: white; }
     flex-shrink: 0;
     overflow-x: auto;
 }
-body.dark .mode-bar { background: #1b5e20; }
 .mode-bar button { background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 14px; border-radius: 30px; font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .mode-bar button:hover { background: rgba(255,255,255,0.3); }
 .mode-bar span { color: white; font-weight: 600; flex: 1; text-align: center; font-size: 14px; }
@@ -249,21 +145,16 @@ body.dark .mode-bar { background: #1b5e20; }
 .poll .option { padding: 6px; background: rgba(0,0,0,0.05); margin: 4px 0; border-radius: 8px; cursor: pointer; }
 .typing-indicator { font-size: 12px; color: #666; padding: 4px 12px; font-style: italic; }
 .system { text-align: center; font-size: 11px; color: #888; background: #e4e6eb; padding: 4px 12px; border-radius: 30px; align-self: center; max-width: 85%; }
-body.dark .system { background: #2d2d2d; color: #aaa; }
 .loading-indicator { text-align: center; padding: 20px; color: #999; font-style: italic; font-size: 14px; }
 
 .input-bar { background: white; padding: 8px 12px; display: flex; gap: 6px; border-top: 1px solid #e4e6eb; flex-shrink: 0; align-items: center; }
-body.dark .input-bar { background: #1e1e1e; border-color: #333; }
 .input-bar input { flex: 1; padding: 10px 16px; border: 1px solid #ddd; border-radius: 30px; font-size: 16px; background: #f9f9f9; outline: none; }
-body.dark .input-bar input { background: #2d2d2d; color: white; border-color: #444; }
 .input-bar input:focus { border-color: #0084ff; }
 .input-bar button { width: 44px; height: 44px; border-radius: 50%; background: #0084ff; border: none; color: white; font-size: 18px; cursor: pointer; flex-shrink: 0; }
 .input-bar button:active { transform: scale(0.95); }
-body.dark .input-bar button { background: #2e7d32; }
 #attachBtn { background: #6c757d; }
 
 .attach-panel { position: fixed; bottom: 80px; left: 16px; right: 16px; background: white; border-radius: 28px; padding: 12px; display: none; gap: 12px; overflow-x: auto; z-index: 250; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
-body.dark .attach-panel { background: #2d2d2d; }
 .attach-panel.open { display: flex; }
 .attach-item { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; flex-shrink: 0; padding: 4px 8px; border-radius: 12px; }
 .attach-item:hover { background: rgba(0,0,0,0.05); }
@@ -271,25 +162,19 @@ body.dark .attach-panel { background: #2d2d2d; }
 .attach-item span:last-child { font-size: 10px; color: #666; }
 
 .message-menu { position: fixed; background: white; border-radius: 16px; padding: 6px; display: none; gap: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 1000; flex-direction: column; min-width: 150px; }
-body.dark .message-menu { background: #2d2d2d; color: white; }
 .message-menu span { padding: 10px 16px; cursor: pointer; font-size: 14px; border-radius: 12px; display: flex; align-items: center; gap: 10px; }
 .message-menu span:hover { background: rgba(0,0,0,0.05); }
 
 .menu-panel { position: fixed; top: 0; left: 0; width: 280px; height: 100%; background: white; transform: translateX(-100%); transition: transform 0.25s ease; z-index: 300; box-shadow: 2px 0 12px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
 .menu-panel.open { transform: translateX(0); }
-body.dark .menu-panel { background: #1e1e1e; }
 .menu-header { padding: 18px 20px; background: #0084ff; color: white; font-weight: 600; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-body.dark .menu-header { background: #1b5e20; }
 .menu-header button { background: none; border: none; color: white; font-size: 22px; cursor: pointer; }
 .menu-body { flex: 1; padding: 12px 16px; overflow-y: auto; }
 .menu-item { padding: 12px 14px; background: #f0f2f5; border-radius: 12px; margin-bottom: 6px; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 14px; }
-body.dark .menu-item { background: #2d2d2d; color: white; }
 .menu-item:hover { background: #e4e6eb; }
 .section-title { font-weight: 600; padding: 8px 4px; margin-top: 12px; color: #0084ff; font-size: 13px; }
-body.dark .section-title { color: #66bb6a; }
 .user-list { overflow-y: auto; }
 .user-item { padding: 10px 12px; background: #f0f2f5; margin-bottom: 4px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; position: relative; }
-body.dark .user-item { background: #2d2d2d; }
 .user-item .status-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 6px; }
 .user-item .status-online { background: #4caf50; }
 .user-item .status-offline { background: #999; }
@@ -299,20 +184,16 @@ body.dark .user-item { background: #2d2d2d; }
 .user-item button { background: #4caf50; border: none; padding: 4px 10px; border-radius: 30px; color: white; font-size: 11px; cursor: pointer; margin-left: 4px; }
 .user-item .complaint-btn { background: #ff9800; }
 .chat-item, .group-item, .channel-item { padding: 10px 12px; background: #f0f2f5; margin-bottom: 4px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-body.dark .chat-item, body.dark .group-item, body.dark .channel-item { background: #2d2d2d; }
 .channel-item .live-badge { background: #f44336; color: white; font-size: 9px; padding: 2px 6px; border-radius: 30px; margin-left: 8px; }
+
 .group-create { display: flex; gap: 6px; margin-bottom: 8px; }
 .group-create input { flex: 1; padding: 8px 14px; border: 1px solid #ddd; border-radius: 30px; font-size: 14px; outline: none; }
-body.dark .group-create input { background: #2d2d2d; color: white; border-color: #444; }
 .group-create button { background: #0084ff; color: white; border: none; padding: 8px 16px; border-radius: 30px; cursor: pointer; }
 .status-selector { display: flex; gap: 4px; padding: 6px; background: #f0f2f5; border-radius: 30px; margin-bottom: 8px; }
-body.dark .status-selector { background: #2d2d2d; }
 .status-selector span { cursor: pointer; padding: 4px 12px; border-radius: 30px; font-size: 12px; }
 .status-selector span.active { background: #0084ff; color: white; }
-body.dark .status-selector span.active { background: #2e7d32; }
 
 .incoming-call { position: fixed; bottom: 90px; left: 16px; right: 16px; background: #0084ff; color: white; padding: 14px 18px; border-radius: 28px; display: none; align-items: center; justify-content: space-between; z-index: 400; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-body.dark .incoming-call { background: #1b5e20; }
 .incoming-call button { background: white; border: none; padding: 6px 18px; border-radius: 30px; font-weight: 600; cursor: pointer; }
 .incoming-call .accept-btn { background: #4caf50; color: white; }
 .incoming-call .reject-btn { background: #f44336; color: white; }
@@ -320,30 +201,64 @@ body.dark .incoming-call { background: #1b5e20; }
 .call-status button { background: #f44336; border: none; padding: 4px 14px; border-radius: 30px; color: white; cursor: pointer; }
 
 .group-members-panel { position: fixed; bottom: 90px; left: 16px; right: 16px; background: white; border-radius: 28px; padding: 16px; display: none; flex-direction: column; gap: 8px; z-index: 350; max-height: 60vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
-body.dark .group-members-panel { background: #2d2d2d; }
 .group-members-panel.open { display: flex; }
 .group-members-panel .member { display: flex; justify-content: space-between; align-items: center; padding: 8px 4px; border-bottom: 1px solid #eee; }
-body.dark .group-members-panel .member { border-color: #444; }
 .group-members-panel .member button { background: #f44336; color: white; border: none; padding: 4px 12px; border-radius: 30px; cursor: pointer; }
 
-.complaint-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 2500; padding: 20px; }
+.complaint-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2500;
+    padding: 20px;
+}
 .complaint-modal.open { display: flex; }
-.complaint-card { background: white; border-radius: 28px; padding: 28px 24px; width: 100%; max-width: 380px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-body.dark .complaint-card { background: #1e1e1e; color: white; }
+.complaint-card {
+    background: white;
+    border-radius: 28px;
+    padding: 28px 24px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
 .complaint-card h3 { text-align: center; margin-bottom: 16px; font-size: 20px; }
-.complaint-card input, .complaint-card textarea { width: 100%; padding: 12px 14px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 12px; font-size: 15px; outline: none; }
-body.dark .complaint-card input, body.dark .complaint-card textarea { background: #2d2d2d; color: white; border-color: #444; }
+.complaint-card input, .complaint-card textarea {
+    width: 100%;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    font-size: 15px;
+    outline: none;
+}
 .complaint-card textarea { min-height: 80px; resize: vertical; }
-.complaint-card button { width: 100%; padding: 12px; border: none; border-radius: 28px; font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 8px; }
+.complaint-card button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 28px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 8px;
+}
 .complaint-card .submit-btn { background: #f44336; color: white; }
 .complaint-card .cancel-btn { background: #e4e6eb; color: #333; }
-body.dark .complaint-card .cancel-btn { background: #2d2d2d; color: #aaa; }
 
-.profile-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 1500; display: none; flex-direction: column; overflow-y: auto; }
-body.dark .profile-screen { background: #121212; color: white; }
+.profile-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: white;
+    z-index: 1500;
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+}
 .profile-screen.open { display: flex; }
 .profile-header { background: #0084ff; padding: 20px; color: white; display: flex; align-items: center; gap: 16px; }
-body.dark .profile-header { background: #1b5e20; }
 .profile-header button { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
 .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #ccc; display: flex; align-items: center; justify-content: center; font-size: 40px; overflow: hidden; cursor: pointer; }
 .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -351,11 +266,8 @@ body.dark .profile-header { background: #1b5e20; }
 .profile-field { margin-bottom: 16px; }
 .profile-field label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 13px; }
 .profile-field input, .profile-field textarea { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 12px; font-size: 15px; }
-body.dark .profile-field input, body.dark .profile-field textarea { background: #2d2d2d; color: white; border-color: #444; }
 .profile-save { background: #0084ff; color: white; border: none; padding: 12px; border-radius: 30px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; }
-body.dark .profile-save { background: #2e7d32; }
 .profile-reputation { text-align: center; padding: 8px; font-size: 14px; color: #666; }
-body.dark .profile-reputation { color: #aaa; }
 
 .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 2000; }
 .modal.open { display: flex; }
@@ -373,7 +285,6 @@ body.dark .profile-reputation { color: #aaa; }
     .attach-item span:first-child { font-size: 22px; }
     .header .nick { font-size: 15px; }
     .input-bar input { font-size: 15px; }
-    .auth-card { padding: 28px 20px; }
 }
 </style>
 </head>
@@ -381,22 +292,11 @@ body.dark .profile-reputation { color: #aaa; }
 <body>
 
 <div class="auth-screen" id="authScreen">
-    <!-- ВОЛНЫ -->
-    <div class="waves">
-        <div class="wave"></div>
-        <div class="wave"></div>
-        <div class="wave"></div>
-        <div class="wave"></div>
-    </div>
-
     <div class="auth-card">
         <h2 id="authTitle">Добро пожаловать</h2>
         <input type="text" id="authNick" placeholder="Ник (2-16 символов)" autocomplete="off">
         <input type="password" id="authPassword" placeholder="Пароль">
-        <div class="remember">
-            <input type="checkbox" id="rememberMe" checked>
-            <label>Запомнить меня</label>
-        </div>
+        <div class="remember"><input type="checkbox" id="rememberMe" checked> <label>Запомнить меня</label></div>
         <button id="authActionBtn">Войти</button>
         <button id="authSwitchBtn" class="switch-btn">Нет аккаунта? Регистрация</button>
         <div id="authError" class="error-msg"></div>
@@ -443,10 +343,112 @@ body.dark .profile-reputation { color: #aaa; }
     </div>
 </div>
 
-<!-- Остальные элементы (меню, панели, профиль и т.д.) остаются без изменений -->
-<!-- ... (все остальные элементы из предыдущей версии) ... -->
+<div class="attach-panel" id="attachPanel">
+    <div class="attach-item" id="attachPhoto"><span>🖼️</span><span>Фото</span></div>
+    <div class="attach-item" id="attachVideo"><span>🎥</span><span>Видео</span></div>
+    <div class="attach-item" id="attachMusic"><span>🎵</span><span>Музыка</span></div>
+    <div class="attach-item" id="attachVoice"><span>🎙️</span><span>Голос</span></div>
+    <div class="attach-item" id="attachLocation"><span>📍</span><span>Гео</span></div>
+    <div class="attach-item" id="attachFile"><span>📁</span><span>Файл</span></div>
+    <div class="attach-item" id="attachSticker"><span>😊</span><span>Стикер</span></div>
+    <div class="attach-item" id="attachPoll"><span>📊</span><span>Опрос</span></div>
+</div>
 
-<!-- СКРИПТ -->
+<div class="message-menu" id="messageMenu">
+    <span id="menuEdit">✏️ Редактировать</span>
+    <span id="menuCopy">📋 Копировать</span>
+    <span id="menuReply">↩️ Ответить</span>
+    <span id="menuForward">➡️ Переслать</span>
+    <span id="menuReaction">👍 Реакция</span>
+    <span id="menuProfile">👤 Профиль</span>
+    <span id="menuBlock">🚫 Заблокировать</span>
+    <span id="menuComplaint">⚠️ Пожаловаться</span>
+    <span id="menuDelete">🗑️ Удалить</span>
+</div>
+
+<div class="menu-panel" id="menuPanel">
+    <div class="menu-header"><span>Меню</span><button id="closeMenu">✕</button></div>
+    <div class="menu-body">
+        <div class="status-selector" id="statusSelector">
+            <span data-status="online" class="active">🟢 Онлайн</span>
+            <span data-status="away">🟡 Отошёл</span>
+            <span data-status="offline">⚫ Офлайн</span>
+        </div>
+        <div class="menu-item" id="themeItem">🌓 Сменить тему</div>
+        <div class="menu-item" id="soundItem">🔊 Звук: Вкл</div>
+        <div class="section-title">📋 Последние чаты</div>
+        <div id="lastChatsList" class="user-list"></div>
+        <div class="section-title">👥 Группы</div>
+        <div class="group-create"><input type="text" id="newGroupName" placeholder="Название группы"><button id="createGroupBtn">Создать</button></div>
+        <div id="groupsList" class="user-list"></div>
+        <div class="section-title">📢 Каналы</div>
+        <div class="group-create"><input type="text" id="newChannelName" placeholder="Название канала"><button id="createChannelBtn">Создать</button></div>
+        <div id="channelsList" class="user-list"></div>
+        <div class="section-title">👤 Пользователи</div>
+        <div id="usersList" class="user-list"></div>
+    </div>
+</div>
+
+<div class="group-members-panel" id="groupMembersPanel">
+    <div style="font-weight: bold; text-align: center;">Участники</div>
+    <div id="membersList"></div>
+    <button id="closeMembersPanel" style="margin-top: 8px; padding: 8px; border-radius: 30px; background: #0084ff; color: white; border: none; cursor: pointer;">Закрыть</button>
+</div>
+
+<div class="complaint-modal" id="complaintModal">
+    <div class="complaint-card">
+        <h3>⚠️ Пожаловаться</h3>
+        <input type="text" id="complaintTarget" placeholder="На кого жалоба?" readonly>
+        <textarea id="complaintReason" placeholder="Причина жалобы..."></textarea>
+        <button class="submit-btn" id="submitComplaintBtn">Отправить жалобу</button>
+        <button class="cancel-btn" id="cancelComplaintBtn">Отмена</button>
+    </div>
+</div>
+
+<div class="incoming-call" id="incomingCall">
+    <span id="incomingCaller">📞 Звонит...</span>
+    <div>
+        <button class="accept-btn" id="acceptCallBtn">Ответить</button>
+        <button class="reject-btn" id="rejectCallBtn">Отклонить</button>
+    </div>
+</div>
+
+<div class="call-status" id="callStatus">
+    <span id="callStatusText">📞 В звонке...</span>
+    <button id="endCallBtn">Завершить</button>
+</div>
+
+<div class="modal" id="modal"><span class="close">&times;</span><img id="modalImg" src=""></div>
+
+<div class="profile-screen" id="profileScreen">
+    <div class="profile-header">
+        <button id="closeProfile">←</button>
+        <span id="profileTitle">Мой профиль</span>
+    </div>
+    <div class="profile-body">
+        <div class="profile-reputation" id="profileReputation">⭐ Репутация: 0</div>
+        <div class="profile-field" style="text-align: center;">
+            <div class="profile-avatar" id="avatarPicker">
+                <span id="avatarEmoji">👤</span>
+                <img id="avatarImg" style="display: none;">
+            </div>
+        </div>
+        <div class="profile-field">
+            <label>О себе</label>
+            <textarea id="profileBio" rows="3" placeholder="Расскажите о себе..."></textarea>
+        </div>
+        <div class="profile-field">
+            <label>Возраст</label>
+            <input type="number" id="profileAge" placeholder="Например: 25">
+        </div>
+        <div class="profile-field">
+            <label>Телефон</label>
+            <input type="tel" id="profilePhone" placeholder="+7 XXX XXX XX XX">
+        </div>
+        <button class="profile-save" id="saveProfile">Сохранить</button>
+    </div>
+</div>
+
 <script>
 // ========== DOM ЭЛЕМЕНТЫ ==========
 const authScreen = document.getElementById("authScreen");
@@ -561,19 +563,29 @@ let draftMessage = {};
 let myReputation = 0;
 let deviceId = localStorage.getItem("deviceId") || null;
 
+// ICE очередь для звонков
 let iceQueue = [];
 let remoteDescriptionSet = false;
+
 let pc = null;
 let localStream = null;
 let currentCallUser = null;
 let pendingOffer = null;
 let isVideoCall = false;
 let reconnectTimer = null;
+
 const servers = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }] };
 
 function isDima() { return currentNick === "Дима"; }
-function updateConnectionStatus(status, emoji) { connectionStatus.textContent = emoji || "🟢"; }
-function updateReputationBadge(rep) { myReputation = rep || 0; reputationBadge.textContent = `⭐ ${myReputation}`; }
+
+function updateConnectionStatus(status, emoji) {
+    connectionStatus.textContent = emoji || "🟢";
+}
+
+function updateReputationBadge(rep) {
+    myReputation = rep || 0;
+    reputationBadge.textContent = `⭐ ${myReputation}`;
+}
 
 // ========== ПОДКЛЮЧЕНИЕ ==========
 function connect() {
@@ -1492,22 +1504,10 @@ async function handleOffer(msg) {
     remoteDescriptionSet = false;
     incomingCallerSpan.innerHTML = `${msg.video ? "📹" : "📞"} ${msg.from} звонит...`;
     incomingCallDiv.style.display = "flex";
-    playRingtone();
 }
-function playRingtone() {
-    if (!soundEnabled) return;
-    try {
-        let ringtone = new Audio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3");
-        ringtone.loop = true;
-        ringtone.play().catch(e => console.log("ringtone error", e));
-        window.currentRingtone = ringtone;
-    } catch(e) {}
-}
-function stopRingtone() { if (window.currentRingtone) { window.currentRingtone.pause(); window.currentRingtone.currentTime = 0; window.currentRingtone = null; } }
 async function acceptCall() {
     if (!pendingOffer) return;
     hideIncomingCall();
-    stopRingtone();
     currentCallUser = pendingOffer.from;
     isVideoCall = pendingOffer.video || false;
     showCallStatus(currentCallUser);
@@ -1576,7 +1576,7 @@ async function acceptCall() {
     } catch(e) { addSystem("❌ Ошибка ответа на звонок: " + e.message); endCall(); }
 }
 function rejectCall() {
-    if (pendingOffer) { ws.send(JSON.stringify({ type: "call_reject", to: pendingOffer.from })); hideIncomingCall(); stopRingtone(); pendingOffer = null; }
+    if (pendingOffer) { ws.send(JSON.stringify({ type: "call_reject", to: pendingOffer.from })); hideIncomingCall(); pendingOffer = null; }
 }
 async function handleAnswer(msg) { if (!pc) return; await pc.setRemoteDescription(msg.answer); remoteDescriptionSet = true; }
 async function handleIce(msg) { 
@@ -1597,7 +1597,7 @@ function endCall() {
     let audio = document.getElementById("remoteAudio");
     if (audio) audio.remove();
     if (currentCallUser) { addSystem(`📴 Звонок с ${currentCallUser} завершён`); currentCallUser = null; }
-    hideCallStatus(); hideIncomingCall(); stopRingtone(); pendingOffer = null;
+    hideCallStatus(); hideIncomingCall(); pendingOffer = null;
     iceQueue = [];
     remoteDescriptionSet = false;
 }
