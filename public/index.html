@@ -1,10 +1,16 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ChatterBox</title>
-<style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0084ff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <title>ChatterBox</title>
+    <style>
+        /* ===== ВЕСЬ CSS (ТАКОЙ ЖЕ КАК БЫЛ) ===== */
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 :root {
@@ -34,6 +40,9 @@ body {
     overflow: hidden;
     color: var(--text);
     font-size: var(--font-size);
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
 }
 
 body.dark {
@@ -199,7 +208,16 @@ body.dark .error-msg { color: #ef9a9a; }
 body.dark .header { background: var(--card-bg-dark); border-bottom-color: var(--border-dark); }
 
 .header .nav-left { display: flex; align-items: center; gap: 8px; }
-.header .nav-center { flex: 1; text-align: center; font-size: 18px; font-weight: 700; color: var(--text); }
+.header .nav-center { 
+    flex: 1; 
+    text-align: center; 
+    font-size: 18px; 
+    font-weight: 700; 
+    color: var(--text);
+    cursor: pointer;
+    transition: 0.2s;
+}
+.header .nav-center:active { transform: scale(0.95); }
 .header .nav-right { display: flex; align-items: center; gap: 6px; }
 
 .menu-btn, .dots-btn {
@@ -238,18 +256,6 @@ body.dark .header { background: var(--card-bg-dark); border-bottom-color: var(--
 body.dark .connection-status.online { color: #66bb6a; }
 body.dark .connection-status.offline { color: #ef5350; }
 body.dark .connection-status.connecting { color: #ffca28; }
-
-.logout-btn {
-    background: var(--border);
-    border: 1px solid var(--border);
-    padding: 4px 12px;
-    border-radius: 16px;
-    color: var(--text);
-    font-size: 12px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-.logout-btn:active { transform: scale(0.95); }
 
 /* ===== ПОИСК ===== */
 .search-overlay {
@@ -365,6 +371,14 @@ body.dark .message { background: var(--msg-bg); border-color: rgba(255,255,255,0
 .message.own .author { color: rgba(255,255,255,0.8); }
 .message .author .star { color: gold; margin-left: 4px; font-size: 10px; }
 .message .msg-text { display: block; line-height: 1.4; }
+.message .edited-text { 
+    font-size: 11px; 
+    opacity: 0.5; 
+    margin-top: 2px; 
+    font-style: italic; 
+    display: block;
+    color: #888;
+}
 .message .time { font-size: 10px; opacity: 0.6; margin-top: 4px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; color: inherit; }
 .message .read-status { font-size: 10px; }
 .message .read-status.read { color: #4caf50; }
@@ -411,14 +425,6 @@ body.dark .message { background: var(--msg-bg); border-color: rgba(255,255,255,0
     font-size: 10px;
     padding: 2px 6px;
     border-radius: 8px;
-}
-.message .video-message .progress-ring {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
 }
 
 .message img, .message video:not(.video-message video) {
@@ -475,18 +481,6 @@ body.dark .message { background: var(--msg-bg); border-color: rgba(255,255,255,0
 .message .reactions { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
 .message .reaction { font-size: 14px; cursor: pointer; padding: 2px 6px; background: rgba(0,0,0,0.04); border-radius: 16px; transition: 0.2s; }
 .message .reaction:active { transform: scale(0.9); }
-
-/* ===== КРУЖОЧКИ — КНОПКА В ПАНЕЛИ ВЛОЖЕНИЙ ===== */
-.attach-item .circle-icon {
-    display: inline-block;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: rgba(255,50,50,0.15);
-    line-height: 36px;
-    text-align: center;
-    font-size: 18px;
-}
 
 /* ===== ДАТА-РАЗДЕЛИТЕЛИ ===== */
 .date-divider {
@@ -1094,7 +1088,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
 .chat-item .avatar {
     border-radius: 12px !important;
 }
-</style>
+    </style>
 </head>
 <body>
 
@@ -1116,12 +1110,11 @@ body.dark .group-members-panel .member button { color: var(--text); }
             <button class="menu-btn" id="menuBtn">☰</button>
             <span class="nick" id="currentNick">--</span>
         </div>
-        <div class="nav-center">ChatterBox</div>
+        <div class="nav-center" id="navCenter">ChatterBox</div>
         <div class="nav-right">
             <button class="dots-btn" id="dotsBtn">⋮</button>
             <span class="online-count" id="onlineCount">0</span>
             <span class="connection-status" id="connectionStatus">🟢</span>
-            <button class="logout-btn" id="logoutBtn">Выйти</button>
         </div>
     </div>
 
@@ -1424,6 +1417,7 @@ const endCallBtn = document.getElementById("endCallBtn");
 const modal = document.getElementById("modal");
 const modalImg = document.getElementById("modalImg");
 const modalClose = document.querySelector(".modal .close");
+const navCenter = document.getElementById("navCenter");
 
 // ===== ПЕРЕМЕННЫЕ =====
 let ws = null;
@@ -1549,6 +1543,14 @@ function getCurrentChatId() {
     if (currentMode === "group") return `group_${currentGroupId}`;
     if (currentMode === "channel") return `channel_${currentChannelId}`;
     return "public";
+}
+
+function getChatTitle() {
+    if (currentMode === "public") return "Общий чат";
+    if (currentMode === "private") return currentPrivateWith;
+    if (currentMode === "group") return currentGroup?.name || "Группа";
+    if (currentMode === "channel") return currentChannel?.name || "Канал";
+    return "ChatterBox";
 }
 
 // ============================================================
@@ -1698,11 +1700,10 @@ function connect() {
         if (d.type === "edit") {
             const el = document.getElementById(d.id);
             if (el) {
-                const textSpan = el.querySelector(".msg-text") || el;
-                textSpan.textContent = d.newText;
-                // Если это видео-сообщение, обновляем текст
-                const msgText = el.querySelector(".msg-text");
-                if (msgText) msgText.textContent = d.newText || "📹 Видеосообщение";
+                const textSpan = el.querySelector(".msg-text");
+                const editedSpan = el.querySelector(".edited-text");
+                if (textSpan) textSpan.textContent = d.newText;
+                if (editedSpan) editedSpan.textContent = `✏️ было: ${d.oldText || ""}`;
             }
         }
         if (d.type === "typing") {
@@ -1767,11 +1768,7 @@ authActionBtn.onclick = () => {
     ws.send(JSON.stringify({ type: isLoginMode ? "login" : "register", nick, password, remember: rememberMe.checked }));
 };
 
-logoutBtn.onclick = () => {
-    localStorage.removeItem("chat_token");
-    if (ws) ws.close();
-    location.reload();
-};
+// ===== УБРАЛИ КНОПКУ ВЫЙТИ ИЗ ШАПКИ =====
 
 // ============================================================
 // ЧАТЫ
@@ -1792,6 +1789,7 @@ function switchToPublic() {
     chatDiv.innerHTML = "";
     loadingIndicator.classList.remove("hidden");
     if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "get_history" }));
+    navCenter.textContent = "ChatterBox";
 }
 
 function switchToPrivate(withNick) {
@@ -1812,6 +1810,7 @@ function switchToPrivate(withNick) {
     if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "get_private_history", with: withNick }));
     clearUnread(`private_${withNick}`);
     loadDraft();
+    navCenter.textContent = withNick;
 }
 
 function switchToGroup(groupId) {
@@ -1834,6 +1833,7 @@ function switchToGroup(groupId) {
     }
     clearUnread(`group_${groupId}`);
     loadDraft();
+    navCenter.textContent = currentGroup?.name || "Группа";
 }
 
 function switchToChannel(channelId) {
@@ -1856,15 +1856,20 @@ function switchToChannel(channelId) {
     }
     clearUnread(`channel_${channelId}`);
     loadDraft();
+    navCenter.textContent = currentChannel?.name || "Канал";
 }
 
 function updateGroupUI() {
-    if (currentGroup) { modeTitle.textContent = currentGroup.name; }
+    if (currentGroup) { 
+        modeTitle.textContent = currentGroup.name;
+        navCenter.textContent = currentGroup.name;
+    }
 }
 
 function updateChannelUI() {
     if (currentChannel) {
         modeTitle.textContent = currentChannel.name;
+        navCenter.textContent = currentChannel.name;
     }
 }
 
@@ -1872,6 +1877,13 @@ backBtn.onclick = () => {
     if (currentMode === "channel") switchToPublic();
     else if (currentMode === "group") switchToPublic();
     else switchToPublic();
+};
+
+// ===== КЛИК ПО ChatterBox ВОЗВРАЩАЕТ В ОБЩИЙ ЧАТ =====
+navCenter.onclick = () => {
+    if (currentMode !== "public") {
+        switchToPublic();
+    }
 };
 
 // ============================================================
@@ -2048,6 +2060,14 @@ function addMessage(m) {
     }
     div.appendChild(textSpan);
     
+    // ===== ПОКАЗЫВАЕМ СТАРЫЙ ТЕКСТ ПРИ РЕДАКТИРОВАНИИ =====
+    if (m.edited && m.oldText) {
+        const editedSpan = document.createElement("span");
+        editedSpan.className = "edited-text";
+        editedSpan.textContent = `✏️ было: ${m.oldText}`;
+        div.appendChild(editedSpan);
+    }
+    
     const readSpan = document.createElement("span");
     readSpan.className = "read-status";
     readSpan.innerHTML = m.readBy?.includes(currentNick) ? '✓✓' : '✓';
@@ -2139,12 +2159,14 @@ function attachMessageMenu(div, msg, chatType, chatId) {
 
 document.getElementById("menuEdit").onclick = () => {
     if (currentMsgTarget) {
-        const newText = prompt("Редактировать сообщение:", currentMsgTarget.msg.text);
+        const oldText = currentMsgTarget.msg.text || "";
+        const newText = prompt("Редактировать сообщение:", oldText);
         if (newText && newText.trim() && ws && ws.readyState === 1) {
             ws.send(JSON.stringify({ 
                 type: "edit", 
                 id: currentMsgTarget.msg.id, 
-                text: newText.trim(), 
+                text: newText.trim(),
+                oldText: oldText,
                 chatType: currentMsgTarget.chatType, 
                 chatId: currentMsgTarget.chatId 
             }));
@@ -3000,10 +3022,8 @@ document.getElementById("attachVideo").onclick = () => {
 // ===== КРУЖОЧЕК (ВИДЕОСООБЩЕНИЕ) =====
 document.getElementById("attachCircle").onclick = () => {
     attachPanel.classList.remove("open");
-    // Запрашиваем доступ к камере
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 480, height: 480 }, audio: true })
         .then(stream => {
-            // Создаём видео-элемент для предпросмотра
             const video = document.createElement("video");
             video.srcObject = stream;
             video.autoplay = true;
@@ -3021,7 +3041,6 @@ document.getElementById("attachCircle").onclick = () => {
             video.style.border = "3px solid #0084ff";
             document.body.appendChild(video);
             
-            // Кнопки
             const controls = document.createElement("div");
             controls.style.position = "fixed";
             controls.style.bottom = "100px";
@@ -3063,7 +3082,6 @@ document.getElementById("attachCircle").onclick = () => {
             
             recordBtn.onclick = () => {
                 if (!isRecordingCircle) {
-                    // Начинаем запись
                     chunks = [];
                     mediaRecorderCircle = new MediaRecorder(stream, { mimeType: "video/webm" });
                     mediaRecorderCircle.ondataavailable = (e) => chunks.push(e.data);
@@ -3073,7 +3091,6 @@ document.getElementById("attachCircle").onclick = () => {
                         reader.onload = () => {
                             pendingCircle = reader.result;
                             sendText();
-                            // Очищаем
                             document.body.removeChild(video);
                             document.body.removeChild(controls);
                             stream.getTracks().forEach(t => t.stop());
@@ -3085,7 +3102,6 @@ document.getElementById("attachCircle").onclick = () => {
                     recordBtn.textContent = "⏹ Остановить";
                     recordBtn.style.background = "#ff8800";
                 } else {
-                    // Останавливаем запись
                     if (mediaRecorderCircle && mediaRecorderCircle.state === "recording") {
                         mediaRecorderCircle.stop();
                         isRecordingCircle = false;
@@ -3102,7 +3118,6 @@ document.getElementById("attachCircle").onclick = () => {
                 stream.getTracks().forEach(t => t.stop());
             };
             
-            // Авто-остановка через 30 секунд
             setTimeout(() => {
                 if (isRecordingCircle && mediaRecorderCircle && mediaRecorderCircle.state === "recording") {
                     mediaRecorderCircle.stop();
