@@ -37,6 +37,10 @@ let userBlocks = new Map();
 let userReputation = new Map();
 let complaints = [];
 let deviceTokens = {};
+let pinnedMessages = [];
+let scheduledMessages = [];
+let ipAttempts = new Map(); // Для защиты от брутфорса
+let ipBlockedUntil = new Map(); // Блокировка IP
 
 // ===== ФАЙЛЫ =====
 const DB_FILE = "db.json";
@@ -48,6 +52,8 @@ const SESSIONS_FILE = "sessions.json";
 const COMPLAINTS_FILE = "complaints.json";
 const REPUTATION_FILE = "reputation.json";
 const DEVICES_FILE = "devices.json";
+const PINNED_FILE = "pinned.json";
+const SCHEDULED_FILE = "scheduled.json";
 
 // ============================================================
 // ЗАГРУЗКА ДАННЫХ
@@ -144,6 +150,26 @@ function loadData() {
             fs.writeFileSync(DEVICES_FILE, JSON.stringify({}, null, 2));
         }
     } catch (e) { deviceTokens = {}; }
+
+    try {
+        if (fs.existsSync(PINNED_FILE)) {
+            pinnedMessages = JSON.parse(fs.readFileSync(PINNED_FILE, "utf8")) || [];
+            console.log(`✅ Загружено ${pinnedMessages.length} закреплённых сообщений`);
+        } else {
+            pinnedMessages = [];
+            fs.writeFileSync(PINNED_FILE, JSON.stringify([], null, 2));
+        }
+    } catch (e) { pinnedMessages = []; }
+
+    try {
+        if (fs.existsSync(SCHEDULED_FILE)) {
+            scheduledMessages = JSON.parse(fs.readFileSync(SCHEDULED_FILE, "utf8")) || [];
+            console.log(`✅ Загружено ${scheduledMessages.length} запланированных сообщений`);
+        } else {
+            scheduledMessages = [];
+            fs.writeFileSync(SCHEDULED_FILE, JSON.stringify([], null, 2));
+        }
+    } catch (e) { scheduledMessages = []; }
 }
 
 loadData();
@@ -161,6 +187,8 @@ function saveSessions() { try { fs.writeFileSync(SESSIONS_FILE, JSON.stringify(O
 function saveComplaints() { try { fs.writeFileSync(COMPLAINTS_FILE, JSON.stringify(complaints, null, 2)); } catch(e){} }
 function saveReputation() { try { fs.writeFileSync(REPUTATION_FILE, JSON.stringify(Object.fromEntries(userReputation), null, 2)); } catch(e){} }
 function saveDevices() { try { fs.writeFileSync(DEVICES_FILE, JSON.stringify(deviceTokens, null, 2)); } catch(e){} }
+function savePinned() { try { fs.writeFileSync(PINNED_FILE, JSON.stringify(pinnedMessages, null, 2)); } catch(e){} }
+function saveScheduled() { try { fs.writeFileSync(SCHEDULED_FILE, JSON.stringify(scheduledMessages, null, 2)); } catch(e){} }
 
 // ============================================================
 // УТИЛИТЫ
@@ -170,10 +198,8 @@ function hashPassword(p) { return crypto.createHash("sha256").update(p).digest("
 function generateToken() { return crypto.randomBytes(32).toString("hex"); }
 function generateDeviceId() { return crypto.randomBytes(16).toString("hex"); }
 function formatTime(t) { const d = new Date(t); d.setHours(d.getHours() + 3); return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }); }
+function formatFullTime(t) { const d = new Date(t); d.setHours(d.getHours() + 3); return d.toLocaleString("ru-RU"); }
 function escapeHtml(s) { if (!s) return ""; return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-function checkRate(ws) { const now = Date.now(); if (!rate.has(ws)) rate.set(ws, []); const arr = rate.get(ws).filter(t => now - t < 1000); arr.push(now); rate.set(ws, arr); return arr.length <= 10; }
-function broadcast(obj) { const data = JSON.stringify(obj); for (const c of wss.clients) if (c.readyState === 1) c.send(data); }
-function sendUsers() { broadcast({ type: "users", users: Array.from(usersOnline.values()), statuses: Object.fromEntries(userStatus), lastSeen: Object.fromEntries(userLastSeen), reputation: Object.fromEntries(userReputation) }); }
 function validNick(n) { n = n?.trim(); if (!n || n.length < 2 || n.length > 16) return false; return /^[a-zA-Zа-яА-Я0-9_]+$/.test(n); }
 function nickExistsInDB(n) { return !!usersDB[n]; }
 function getPrivateKey(u1, u2) { return [u1, u2].sort().join("_"); }
@@ -186,6 +212,64 @@ function sendToUser(nick, obj) {
         }
     }
     return false;
+}
+
+function broadcast(obj) {
+    const data = JSON.stringify(obj);
+    for (const c of wss.clients) {
+        if (c.readyState === 1) c.send(data);
+    }
+}
+
+function sendUsers() {
+    broadcast({ 
+        type: "users", 
+        users: Array.from(usersOnline.values()), 
+        statuses: Object.fromEntries(userStatus), 
+        lastSeen: Object.fromEntries(userLastSeen), 
+        reputation: Object.fromEntries(userReputation) 
+    });
+}
+
+function checkRate(ws) {
+    const now = Date.now();
+    if (!rate.has(ws)) rate.set(ws, []);
+    const arr = rate.get(ws).filter(t => now - t < 1000);
+    arr.push(now);
+    rate.set(ws, arr);
+    return arr.length <= 10;
+}
+
+// ============================================================
+// ЗАЩИТА ОТ БРУТФОРСА (5 попыток → 5 минут блокировки)
+// ============================================================
+
+function checkIPBlock(ip) {
+    if (ipBlockedUntil.has(ip)) {
+        if (Date.now() < ipBlockedUntil.get(ip)) {
+            return true; // Заблокирован
+        } else {
+            ipBlockedUntil.delete(ip);
+            ipAttempts.delete(ip);
+        }
+    }
+    return false;
+}
+
+function recordIPAttempt(ip) {
+    if (!ipAttempts.has(ip)) ipAttempts.set(ip, 0);
+    ipAttempts.set(ip, ipAttempts.get(ip) + 1);
+    if (ipAttempts.get(ip) >= 5) {
+        ipBlockedUntil.set(ip, Date.now() + 5 * 60 * 1000); // 5 минут
+        console.log(`🚫 IP ${ip} заблокирован на 5 минут за превышение попыток`);
+        return true;
+    }
+    return false;
+}
+
+function resetIPAttempts(ip) {
+    ipAttempts.delete(ip);
+    ipBlockedUntil.delete(ip);
 }
 
 // ============================================================
@@ -219,14 +303,6 @@ function subscribeToChannel(channelId, nick) {
     return true;
 }
 
-function unsubscribeFromChannel(channelId, nick) {
-    if (!channels[channelId]) return false;
-    channels[channelId].subscribers = channels[channelId].subscribers.filter(s => s !== nick);
-    saveChannels();
-    broadcast({ type: "channel_update", channel: channels[channelId] });
-    return true;
-}
-
 function sendChannelMessage(channelId, from, msgData) {
     if (!channels[channelId]) return;
     if (channels[channelId].creator !== from) return;
@@ -245,7 +321,8 @@ function sendChannelMessage(channelId, from, msgData) {
         time: Date.now(),
         timeFormatted: formatTime(Date.now()),
         reactions: {},
-        readBy: []
+        readBy: [],
+        chatId: `channel_${channelId}`
     };
     channels[channelId].messages.push(m);
     if (channels[channelId].messages.length > 500) {
@@ -283,29 +360,9 @@ function createGroup(name, creator) {
     return id;
 }
 
-function addToGroup(groupId, nick, inviter = null) {
+function addToGroup(groupId, nick) {
     if (!groups[groupId] || groups[groupId].members.includes(nick)) return false;
     groups[groupId].members.push(nick);
-    saveGroups();
-    broadcast({ type: "group_update", group: groups[groupId] });
-    return true;
-}
-
-function removeFromGroup(groupId, nick, remover) {
-    if (!groups[groupId]) return false;
-    if (groups[groupId].creator !== remover && !groups[groupId].admins.includes(remover) && remover !== "Дима") return false;
-    if (nick === groups[groupId].creator && remover !== "Дима") return false;
-    groups[groupId].members = groups[groupId].members.filter(m => m !== nick);
-    groups[groupId].admins = groups[groupId].admins.filter(a => a !== nick);
-    saveGroups();
-    broadcast({ type: "group_update", group: groups[groupId] });
-    return true;
-}
-
-function leaveGroup(groupId, nick) {
-    if (!groups[groupId] || !groups[groupId].members.includes(nick)) return false;
-    groups[groupId].members = groups[groupId].members.filter(m => m !== nick);
-    groups[groupId].admins = groups[groupId].admins.filter(a => a !== nick);
     saveGroups();
     broadcast({ type: "group_update", group: groups[groupId] });
     return true;
@@ -329,7 +386,8 @@ function sendGroupMessage(groupId, from, msgData) {
         time: Date.now(),
         timeFormatted: formatTime(Date.now()),
         reactions: {},
-        readBy: [from]
+        readBy: [from],
+        chatId: `group_${groupId}`
     };
     groups[groupId].messages.push(m);
     if (groups[groupId].messages.length > 500) {
@@ -369,6 +427,257 @@ function voteInPoll(groupId, pollId, option, voter) {
     saveGroups();
     broadcast({ type: "poll_update", groupId, poll });
     return true;
+}
+
+// ============================================================
+// ЗАКРЕПЛЁННЫЕ СООБЩЕНИЯ
+// ============================================================
+
+function pinMessage(chatId, msgId, user) {
+    // Ищем сообщение во всех хранилищах
+    let target = null;
+    let source = null;
+    
+    // Поиск в публичных
+    target = history.find(m => m.id === msgId);
+    if (target) source = "public";
+    
+    // Поиск в приватных
+    if (!target) {
+        for (const key in privateHistory) {
+            const found = privateHistory[key].find(m => m.id === msgId);
+            if (found) { target = found; source = "private"; break; }
+        }
+    }
+    
+    // Поиск в группах
+    if (!target) {
+        for (const gid in groups) {
+            const found = groups[gid].messages.find(m => m.id === msgId);
+            if (found) { target = found; source = `group_${gid}`; break; }
+        }
+    }
+    
+    // Поиск в каналах
+    if (!target) {
+        for (const cid in channels) {
+            const found = channels[cid].messages.find(m => m.id === msgId);
+            if (found) { target = found; source = `channel_${cid}`; break; }
+        }
+    }
+    
+    if (!target) return false;
+    if (target.owner !== user && target.from !== user && user !== "Дима") return false;
+    
+    // Проверяем, не закреплено ли уже
+    if (pinnedMessages.find(m => m.id === msgId)) return false;
+    
+    const pinned = {
+        ...target,
+        chatId: chatId,
+        pinnedBy: user,
+        pinnedAt: Date.now()
+    };
+    pinnedMessages.push(pinned);
+    savePinned();
+    broadcast({ type: "pinned_updated", message: pinned });
+    return true;
+}
+
+function unpinMessage(msgId, user) {
+    const index = pinnedMessages.findIndex(m => m.id === msgId);
+    if (index === -1) return false;
+    if (pinnedMessages[index].owner !== user && pinnedMessages[index].from !== user && user !== "Дима") return false;
+    pinnedMessages.splice(index, 1);
+    savePinned();
+    broadcast({ type: "pinned_updated", unpinId: msgId });
+    return true;
+}
+
+function getPinnedMessages(chatId) {
+    return pinnedMessages.filter(m => m.chatId === chatId);
+}
+
+// ============================================================
+// ПЛАНИРОВЩИК СООБЩЕНИЙ
+// ============================================================
+
+function scheduleMessage(chatId, text, scheduledTime, from) {
+    const msg = {
+        id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
+        chatId: chatId,
+        text: escapeHtml(text.slice(0, 500)),
+        from: from,
+        scheduledTime: scheduledTime,
+        createdAt: Date.now(),
+        sent: false
+    };
+    scheduledMessages.push(msg);
+    saveScheduled();
+    return msg;
+}
+
+function checkScheduledMessages() {
+    const now = Date.now();
+    let sent = 0;
+    for (const msg of scheduledMessages) {
+        if (!msg.sent && msg.scheduledTime <= now) {
+            // Отправляем сообщение
+            const chatId = msg.chatId;
+            const from = msg.from;
+            const text = msg.text;
+            
+            // Определяем тип чата и отправляем
+            if (chatId === "public") {
+                const m = {
+                    id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
+                    text: text,
+                    owner: from,
+                    time: Date.now(),
+                    timeFormatted: formatTime(Date.now()),
+                    reactions: {},
+                    readBy: [from],
+                    chatId: "public"
+                };
+                history.push(m);
+                if (history.length > 500) history = history.slice(-500);
+                savePublic();
+                broadcast({ type: "msg", data: m });
+            } else if (chatId.startsWith("private_")) {
+                const target = chatId.replace("private_", "");
+                const key = getPrivateKey(from, target);
+                if (!privateHistory[key]) privateHistory[key] = [];
+                const m = {
+                    id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
+                    from: from,
+                    to: target,
+                    text: text,
+                    time: Date.now(),
+                    timeFormatted: formatTime(Date.now()),
+                    reactions: {},
+                    readBy: [from],
+                    chatId: chatId
+                };
+                privateHistory[key].push(m);
+                if (privateHistory[key].length > 500) privateHistory[key] = privateHistory[key].slice(-500);
+                savePrivate();
+                sendToUser(from, { type: "private_msg", data: m, with: target });
+                sendToUser(target, { type: "private_msg", data: m, with: from });
+            } else if (chatId.startsWith("group_")) {
+                const gid = chatId.replace("group_", "");
+                if (groups[gid]) {
+                    const m = {
+                        id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
+                        from: from,
+                        text: text,
+                        time: Date.now(),
+                        timeFormatted: formatTime(Date.now()),
+                        reactions: {},
+                        readBy: [from],
+                        chatId: chatId
+                    };
+                    groups[gid].messages.push(m);
+                    if (groups[gid].messages.length > 500) groups[gid].messages = groups[gid].messages.slice(-500);
+                    saveGroups();
+                    for (const member of groups[gid].members) {
+                        sendToUser(member, { type: "group_msg", groupId: gid, data: m });
+                    }
+                }
+            } else if (chatId.startsWith("channel_")) {
+                const cid = chatId.replace("channel_", "");
+                if (channels[cid] && channels[cid].creator === from) {
+                    const m = {
+                        id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
+                        from: from,
+                        text: text,
+                        time: Date.now(),
+                        timeFormatted: formatTime(Date.now()),
+                        reactions: {},
+                        readBy: [],
+                        chatId: chatId
+                    };
+                    channels[cid].messages.push(m);
+                    if (channels[cid].messages.length > 500) channels[cid].messages = channels[cid].messages.slice(-500);
+                    saveChannels();
+                    for (const sub of channels[cid].subscribers) {
+                        sendToUser(sub, { type: "channel_msg", channelId: cid, data: m });
+                    }
+                }
+            }
+            
+            msg.sent = true;
+            sent++;
+        }
+    }
+    if (sent > 0) {
+        saveScheduled();
+        // Удаляем отправленные
+        scheduledMessages = scheduledMessages.filter(m => !m.sent);
+        saveScheduled();
+    }
+}
+
+// Проверка запланированных сообщений каждые 10 секунд
+setInterval(checkScheduledMessages, 10000);
+
+// ============================================================
+// ПЕРЕВОД (заглушка для демонстрации)
+// ============================================================
+
+function translateText(text, targetLang) {
+    // Простая заглушка для демонстрации
+    const translations = {
+        ru: {
+            "hello": "привет",
+            "how are you": "как дела",
+            "good morning": "доброе утро",
+            "good night": "спокойной ночи",
+            "thank you": "спасибо",
+            "yes": "да",
+            "no": "нет",
+            "maybe": "возможно",
+            "ok": "хорошо",
+            "help": "помощь"
+        },
+        en: {
+            "привет": "hello",
+            "как дела": "how are you",
+            "доброе утро": "good morning",
+            "спокойной ночи": "good night",
+            "спасибо": "thank you",
+            "да": "yes",
+            "нет": "no",
+            "возможно": "maybe",
+            "хорошо": "ok",
+            "помощь": "help"
+        },
+        zh: {
+            "привет": "你好",
+            "как дела": "你好吗",
+            "спасибо": "谢谢",
+            "да": "是",
+            "нет": "不是",
+            "хорошо": "好",
+            "помощь": "帮助"
+        }
+    };
+    
+    const lower = text.toLowerCase();
+    const langMap = translations[targetLang] || translations.ru;
+    
+    // Простой поиск по словарю
+    let result = text;
+    for (const [key, value] of Object.entries(langMap)) {
+        if (lower.includes(key)) {
+            result = result.replace(new RegExp(key, "gi"), value);
+        }
+    }
+    
+    // Если ничего не найдено, возвращаем оригинал с пометкой
+    if (result === text) {
+        return `[Перевод на ${targetLang}] ${text}`;
+    }
+    return result;
 }
 
 // ============================================================
@@ -447,11 +756,7 @@ function updateReaction(type, id, from, reaction, remove) {
     broadcast({ type: "reaction_update", id, from, reaction, remove });
 }
 
-// ============================================================
-// РЕДАКТИРОВАНИЕ (С СОХРАНЕНИЕМ СТАРОГО ТЕКСТА)
-// ============================================================
-
-function editMessage(chatType, chatId, msgId, newText, oldText, editor) {
+function editMessage(chatType, chatId, msgId, newText, editor) {
     let target = null;
     let targetArray = null;
     
@@ -478,28 +783,17 @@ function editMessage(chatType, chatId, msgId, newText, oldText, editor) {
     if (!target) return false;
     if (target.owner !== editor && target.from !== editor && editor !== "Дима") return false;
     
-    const oldTextValue = target.text || "";
     target.text = escapeHtml(newText.slice(0, 500));
     target.edited = true;
-    target.oldText = oldTextValue;
     
     if (chatType === "public") savePublic();
     else if (chatType === "private") savePrivate();
     else if (chatType === "group") saveGroups();
     else if (chatType === "channel") saveChannels();
     
-    broadcast({ 
-        type: "edit", 
-        id: msgId, 
-        newText: target.text,
-        oldText: oldTextValue
-    });
+    broadcast({ type: "edit", id: msgId, newText: target.text });
     return true;
 }
-
-// ============================================================
-// УДАЛЕНИЕ
-// ============================================================
 
 function deleteMessage(chatType, chatId, msgId, deleter) {
     let target = null;
@@ -538,18 +832,6 @@ function deleteMessage(chatType, chatId, msgId, deleter) {
     return false;
 }
 
-function saveData() {
-    saveUsers();
-    savePublic();
-    savePrivate();
-    saveGroups();
-    saveChannels();
-    saveSessions();
-    saveComplaints();
-    saveReputation();
-    saveDevices();
-}
-
 // ============================================================
 // ЗАГРУЗКА ФАЙЛОВ
 // ============================================================
@@ -576,6 +858,9 @@ function handleUpload(ws, msg, folder, type) {
 wss.on("connection", (ws) => {
     ws.isAlive = true;
     ws.on("pong", () => ws.isAlive = true);
+    
+    // Получаем IP для защиты от брутфорса
+    const ip = ws._socket.remoteAddress || "unknown";
 
     ws.send(JSON.stringify({
         type: "history",
@@ -587,6 +872,12 @@ wss.on("connection", (ws) => {
         statuses: Object.fromEntries(userStatus),
         lastSeen: Object.fromEntries(userLastSeen),
         reputation: Object.fromEntries(userReputation)
+    }));
+    
+    // Отправляем закреплённые сообщения
+    ws.send(JSON.stringify({
+        type: "pinned_messages",
+        messages: pinnedMessages
     }));
 
     ws.on("message", (raw) => {
@@ -631,6 +922,7 @@ wss.on("connection", (ws) => {
                     deviceId: deviceId
                 }));
                 sendUsers();
+                resetIPAttempts(ip);
             } else {
                 ws.send(JSON.stringify({ type: "error", text: "Сессия устарела, войдите заново" }));
             }
@@ -639,18 +931,27 @@ wss.on("connection", (ws) => {
 
         // ===== РЕГИСТРАЦИЯ =====
         if (msg.type === "register") {
+            // Проверка на блокировку IP
+            if (checkIPBlock(ip)) {
+                ws.send(JSON.stringify({ type: "error", text: "Слишком много попыток. Подождите 5 минут." }));
+                return;
+            }
+            
             const nick = msg.nick?.trim();
             const password = msg.password?.trim();
             if (!validNick(nick)) {
                 ws.send(JSON.stringify({ type: "error", text: "Ник 2-16 символов" }));
+                recordIPAttempt(ip);
                 return;
             }
             if (!password || password.length < 3) {
                 ws.send(JSON.stringify({ type: "error", text: "Пароль минимум 3 символа" }));
+                recordIPAttempt(ip);
                 return;
             }
             if (nickExistsInDB(nick)) {
                 ws.send(JSON.stringify({ type: "error", text: "Пользователь уже существует" }));
+                recordIPAttempt(ip);
                 return;
             }
             usersDB[nick] = {
@@ -660,32 +961,44 @@ wss.on("connection", (ws) => {
                 lastChats: []
             };
             saveUsers();
+            resetIPAttempts(ip);
             ws.send(JSON.stringify({ type: "register_success", text: "✅ Регистрация успешна! Теперь войдите." }));
             return;
         }
 
         // ===== ЛОГИН =====
         if (msg.type === "login") {
+            // Проверка на блокировку IP
+            if (checkIPBlock(ip)) {
+                ws.send(JSON.stringify({ type: "error", text: "Слишком много попыток. Подождите 5 минут." }));
+                return;
+            }
+            
             const nick = msg.nick?.trim();
             const password = msg.password?.trim();
             const remember = msg.remember || false;
             const deviceId = msg.deviceId;
             if (!validNick(nick)) {
                 ws.send(JSON.stringify({ type: "error", text: "Неверный ник" }));
+                recordIPAttempt(ip);
                 return;
             }
             if (!password) {
                 ws.send(JSON.stringify({ type: "error", text: "Введите пароль" }));
+                recordIPAttempt(ip);
                 return;
             }
             if (!nickExistsInDB(nick)) {
                 ws.send(JSON.stringify({ type: "error", text: "Пользователь не найден" }));
+                recordIPAttempt(ip);
                 return;
             }
             if (usersDB[nick].password !== hashPassword(password)) {
                 ws.send(JSON.stringify({ type: "error", text: "Неверный пароль" }));
+                recordIPAttempt(ip);
                 return;
             }
+            
             ws.nick = nick;
             usersOnline.set(ws, nick);
             userStatus.set(nick, { status: "online", lastSeen: Date.now() });
@@ -700,6 +1013,7 @@ wss.on("connection", (ws) => {
                 deviceTokens[finalDeviceId] = nick;
                 saveDevices();
             }
+            resetIPAttempts(ip);
             ws.send(JSON.stringify({
                 type: "login_success",
                 nick: nick,
@@ -787,14 +1101,6 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        if (msg.type === "unsubscribe_channel") {
-            if (unsubscribeFromChannel(msg.channelId, currentUser)) {
-                ws.send(JSON.stringify({ type: "channel_unsubscribed", channelId: msg.channelId }));
-                broadcast({ type: "channel_update", channel: channels[msg.channelId] });
-            }
-            return;
-        }
-
         if (msg.type === "channel_chat") {
             if (!checkRate(ws)) {
                 ws.send(JSON.stringify({ type: "error", text: "Слишком много сообщений" }));
@@ -850,25 +1156,11 @@ wss.on("connection", (ws) => {
                 ws.send(JSON.stringify({ type: "error", text: `Пользователь "${msg.nick}" не найден` }));
                 return;
             }
-            if (addToGroup(msg.groupId, msg.nick, currentUser)) {
+            if (addToGroup(msg.groupId, msg.nick)) {
                 ws.send(JSON.stringify({ type: "invite_sent", groupId: msg.groupId, nick: msg.nick }));
                 sendToUser(msg.nick, { type: "group_invite", groupId: msg.groupId, from: currentUser });
             } else {
                 ws.send(JSON.stringify({ type: "error", text: "Пользователь уже в группе" }));
-            }
-            return;
-        }
-
-        if (msg.type === "remove_from_group") {
-            if (removeFromGroup(msg.groupId, msg.nick, currentUser)) {
-                ws.send(JSON.stringify({ type: "remove_sent", groupId: msg.groupId, nick: msg.nick }));
-            }
-            return;
-        }
-
-        if (msg.type === "leave_group") {
-            if (leaveGroup(msg.groupId, currentUser)) {
-                ws.send(JSON.stringify({ type: "leave_sent", groupId: msg.groupId }));
             }
             return;
         }
@@ -955,7 +1247,7 @@ wss.on("connection", (ws) => {
                 readBy: [currentUser],
                 replyTo: msg.replyTo || null,
                 edited: false,
-                oldText: null
+                chatId: "public"
             };
             history.push(m);
             if (history.length > 500) history = history.slice(-500);
@@ -1000,7 +1292,7 @@ wss.on("connection", (ws) => {
                 readBy: [currentUser],
                 replyTo: msg.replyTo || null,
                 edited: false,
-                oldText: null
+                chatId: `private_${msg.target}`
             };
             privateHistory[key].push(m);
             if (privateHistory[key].length > 500) privateHistory[key] = privateHistory[key].slice(-500);
@@ -1014,7 +1306,7 @@ wss.on("connection", (ws) => {
 
         // ===== РЕДАКТИРОВАНИЕ =====
         if (msg.type === "edit") {
-            if (editMessage(msg.chatType, msg.chatId, msg.id, msg.text, msg.oldText, currentUser)) {
+            if (editMessage(msg.chatType, msg.chatId, msg.id, msg.text, currentUser)) {
                 ws.send(JSON.stringify({ type: "edit_success", id: msg.id }));
             }
             return;
@@ -1025,6 +1317,48 @@ wss.on("connection", (ws) => {
             if (deleteMessage(msg.chatType, msg.chatId, msg.id, currentUser)) {
                 ws.send(JSON.stringify({ type: "delete_success", id: msg.id }));
             }
+            return;
+        }
+
+        // ===== ЗАКРЕПЛЕНИЕ =====
+        if (msg.type === "pin_message") {
+            if (pinMessage(msg.chatId, msg.msgId, currentUser)) {
+                ws.send(JSON.stringify({ type: "pin_success", id: msg.msgId }));
+            }
+            return;
+        }
+
+        if (msg.type === "unpin_message") {
+            if (unpinMessage(msg.msgId, currentUser)) {
+                ws.send(JSON.stringify({ type: "unpin_success", id: msg.msgId }));
+            }
+            return;
+        }
+
+        // ===== ПЛАНИРОВЩИК =====
+        if (msg.type === "schedule_message") {
+            if (!msg.text || !msg.scheduledTime) {
+                ws.send(JSON.stringify({ type: "error", text: "Укажите текст и время" }));
+                return;
+            }
+            if (msg.scheduledTime < Date.now()) {
+                ws.send(JSON.stringify({ type: "error", text: "Время должно быть в будущем" }));
+                return;
+            }
+            const scheduled = scheduleMessage(msg.chatId, msg.text, msg.scheduledTime, currentUser);
+            ws.send(JSON.stringify({ type: "scheduled_message", data: scheduled }));
+            return;
+        }
+
+        // ===== ПЕРЕВОД =====
+        if (msg.type === "translate") {
+            const translated = translateText(msg.text, msg.targetLang || "ru");
+            ws.send(JSON.stringify({
+                type: "translation",
+                translatedText: translated,
+                originalText: msg.text,
+                targetLang: msg.targetLang
+            }));
             return;
         }
 
@@ -1225,4 +1559,6 @@ server.listen(PORT, () => {
     console.log(`   - Сообщений: ${history.length}`);
     console.log(`   - Групп: ${Object.keys(groups).length}`);
     console.log(`   - Каналов: ${Object.keys(channels).length}`);
+    console.log(`   - Закреплённых: ${pinnedMessages.length}`);
+    console.log(`   - Запланированных: ${scheduledMessages.length}`);
 });
