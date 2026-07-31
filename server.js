@@ -49,7 +49,10 @@ const COMPLAINTS_FILE = "complaints.json";
 const REPUTATION_FILE = "reputation.json";
 const DEVICES_FILE = "devices.json";
 
-// ===== ЗАГРУЗКА =====
+// ============================================================
+// ЗАГРУЗКА ДАННЫХ
+// ============================================================
+
 function loadData() {
     try {
         if (fs.existsSync(USERS_FILE)) {
@@ -145,7 +148,10 @@ function loadData() {
 
 loadData();
 
-// ===== СОХРАНЕНИЕ =====
+// ============================================================
+// СОХРАНЕНИЕ
+// ============================================================
+
 function saveUsers() { try { fs.writeFileSync(USERS_FILE, JSON.stringify(usersDB, null, 2)); } catch(e){} }
 function savePublic() { try { fs.writeFileSync(DB_FILE, JSON.stringify(history.slice(-500), null, 2)); } catch(e){} }
 function savePrivate() { try { fs.writeFileSync(PRIVATE_FILE, JSON.stringify(privateHistory, null, 2)); } catch(e){} }
@@ -156,7 +162,10 @@ function saveComplaints() { try { fs.writeFileSync(COMPLAINTS_FILE, JSON.stringi
 function saveReputation() { try { fs.writeFileSync(REPUTATION_FILE, JSON.stringify(Object.fromEntries(userReputation), null, 2)); } catch(e){} }
 function saveDevices() { try { fs.writeFileSync(DEVICES_FILE, JSON.stringify(deviceTokens, null, 2)); } catch(e){} }
 
-// ===== УТИЛИТЫ =====
+// ============================================================
+// УТИЛИТЫ
+// ============================================================
+
 function hashPassword(p) { return crypto.createHash("sha256").update(p).digest("hex"); }
 function generateToken() { return crypto.randomBytes(32).toString("hex"); }
 function generateDeviceId() { return crypto.randomBytes(16).toString("hex"); }
@@ -469,11 +478,10 @@ function editMessage(chatType, chatId, msgId, newText, oldText, editor) {
     if (!target) return false;
     if (target.owner !== editor && target.from !== editor && editor !== "Дима") return false;
     
-    // Сохраняем старый текст перед редактированием
     const oldTextValue = target.text || "";
     target.text = escapeHtml(newText.slice(0, 500));
     target.edited = true;
-    target.oldText = oldTextValue; // Сохраняем старый текст
+    target.oldText = oldTextValue;
     
     if (chatType === "public") savePublic();
     else if (chatType === "private") savePrivate();
@@ -838,7 +846,6 @@ wss.on("connection", (ws) => {
         }
 
         if (msg.type === "invite_to_group") {
-            // Проверяем, существует ли пользователь
             if (!nickExistsInDB(msg.nick)) {
                 ws.send(JSON.stringify({ type: "error", text: `Пользователь "${msg.nick}" не найден` }));
                 return;
@@ -1005,7 +1012,7 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // ===== РЕДАКТИРОВАНИЕ (С СОХРАНЕНИЕМ СТАРОГО ТЕКСТА) =====
+        // ===== РЕДАКТИРОВАНИЕ =====
         if (msg.type === "edit") {
             if (editMessage(msg.chatType, msg.chatId, msg.id, msg.text, msg.oldText, currentUser)) {
                 ws.send(JSON.stringify({ type: "edit_success", id: msg.id }));
@@ -1129,7 +1136,7 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // ===== WEBRTC =====
+        // ===== WEBRTC ЗВОНКИ =====
         if (msg.type === "offer" || msg.type === "answer" || msg.type === "ice") {
             let targetWs = null;
             for (const [c, nick] of usersOnline.entries()) {
@@ -1193,7 +1200,10 @@ wss.on("connection", (ws) => {
     });
 });
 
-// ===== ПИНГИ =====
+// ============================================================
+// ПИНГИ
+// ============================================================
+
 setInterval(() => {
     wss.clients.forEach(ws => {
         if (!ws.isAlive) return ws.terminate();
@@ -1202,7 +1212,10 @@ setInterval(() => {
     });
 }, 30000);
 
-// ===== ЗАПУСК =====
+// ============================================================
+// ЗАПУСК
+// ============================================================
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`✅ Сервер запущен на порту ${PORT}`);
