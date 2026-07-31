@@ -169,15 +169,22 @@ function validNick(n) { n = n?.trim(); if (!n || n.length < 2 || n.length > 16) 
 function nickExistsInDB(n) { return !!usersDB[n]; }
 function getPrivateKey(u1, u2) { return [u1, u2].sort().join("_"); }
 function isBlocked(user, target) { return (userBlocks.get(user) || []).includes(target); }
+function sendToUser(nick, obj) {
+    for (const [c, n] of usersOnline.entries()) {
+        if (n === nick && c.readyState === 1) {
+            c.send(JSON.stringify(obj));
+            return true;
+        }
+    }
+    return false;
+}
 
 // ============================================================
 // КАНАЛЫ
 // ============================================================
 
 function createChannel(name, creator) {
-    // Только Дима может создавать каналы
     if (creator !== "Дима") return null;
-    
     const id = Date.now().toString() + "-" + Math.random().toString(36).substr(2, 6);
     channels[id] = {
         id,
@@ -191,13 +198,12 @@ function createChannel(name, creator) {
         description: ""
     };
     saveChannels();
-    console.log(`📣 Канал "${name}" создан пользователем ${creator}`);
+    console.log(`📣 Канал "${name}" создан`);
     return id;
 }
 
 function subscribeToChannel(channelId, nick) {
-    if (!channels[channelId]) return false;
-    if (channels[channelId].subscribers.includes(nick)) return false;
+    if (!channels[channelId] || channels[channelId].subscribers.includes(nick)) return false;
     channels[channelId].subscribers.push(nick);
     saveChannels();
     broadcast({ type: "channel_update", channel: channels[channelId] });
@@ -214,15 +220,14 @@ function unsubscribeFromChannel(channelId, nick) {
 
 function sendChannelMessage(channelId, from, msgData) {
     if (!channels[channelId]) return;
-    // Только создатель канала может писать
     if (channels[channelId].creator !== from) return;
-    
     const m = {
         id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
         from,
         text: escapeHtml((msgData.text || "").slice(0, 500)),
         image: msgData.image || null,
         video: msgData.video || null,
+        circle: msgData.circle || null,  // ← КРУЖОЧЕК
         file: msgData.file || null,
         music: msgData.music || null,
         voice: msgData.voice || null,
@@ -233,31 +238,17 @@ function sendChannelMessage(channelId, from, msgData) {
         reactions: {},
         readBy: []
     };
-    
     channels[channelId].messages.push(m);
     if (channels[channelId].messages.length > 500) {
         channels[channelId].messages = channels[channelId].messages.slice(-500);
     }
     saveChannels();
-    
-    // Отправляем всем подписчикам
     for (const sub of channels[channelId].subscribers) {
         sendToUser(sub, { type: "channel_msg", channelId, data: m });
     }
 }
 
-function sendToUser(nick, obj) {
-    for (const [c, n] of usersOnline.entries()) {
-        if (n === nick && c.readyState === 1) {
-            c.send(JSON.stringify(obj));
-            return true;
-        }
-    }
-    return false;
-}
-
 function getChannelsForUser(nick) {
-    // Все каналы видны всем пользователям
     return Object.values(channels);
 }
 
@@ -314,13 +305,13 @@ function leaveGroup(groupId, nick) {
 function sendGroupMessage(groupId, from, msgData) {
     if (!groups[groupId]) return;
     if (!groups[groupId].members.includes(from)) return;
-    
     const m = {
         id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
         from,
         text: escapeHtml((msgData.text || "").slice(0, 500)),
         image: msgData.image || null,
         video: msgData.video || null,
+        circle: msgData.circle || null,  // ← КРУЖОЧЕК
         file: msgData.file || null,
         music: msgData.music || null,
         voice: msgData.voice || null,
@@ -331,13 +322,11 @@ function sendGroupMessage(groupId, from, msgData) {
         reactions: {},
         readBy: [from]
     };
-    
     groups[groupId].messages.push(m);
     if (groups[groupId].messages.length > 500) {
         groups[groupId].messages = groups[groupId].messages.slice(-500);
     }
     saveGroups();
-    
     for (const member of groups[groupId].members) {
         sendToUser(member, { type: "group_msg", groupId, data: m });
         updateLastChat(member, "group", groupId, m.text || "📎 Вложение");
@@ -466,7 +455,10 @@ function editMessage(chatType, chatId, msgId, newText, editor) {
     if (target.owner !== editor && target.from !== editor && editor !== "Дима") return false;
     target.text = escapeHtml(newText.slice(0, 500));
     target.edited = true;
-    saveData();
+    if (chatType === "public") savePublic();
+    else if (chatType === "private") savePrivate();
+    else if (chatType === "group") saveGroups();
+    else if (chatType === "channel") saveChannels();
     broadcast({ type: "edit", id: msgId, newText: target.text });
     return true;
 }
@@ -498,7 +490,10 @@ function deleteMessage(chatType, chatId, msgId, deleter) {
     const index = targetArray.indexOf(target);
     if (index !== -1) {
         targetArray.splice(index, 1);
-        saveData();
+        if (chatType === "public") savePublic();
+        else if (chatType === "private") savePrivate();
+        else if (chatType === "group") saveGroups();
+        else if (chatType === "channel") saveChannels();
         broadcast({ type: "delete", id: msgId });
         return true;
     }
@@ -515,6 +510,25 @@ function saveData() {
     saveComplaints();
     saveReputation();
     saveDevices();
+}
+
+// ============================================================
+// ЗАГРУЗКА ФАЙЛОВ (включая кружочки)
+// ============================================================
+
+function handleUpload(ws, msg, folder, type) {
+    if (msg.data && msg.data.length > 10 * 1024 * 1024) {
+        ws.send(JSON.stringify({ type: "error", text: "Файл слишком большой (макс 10MB)" }));
+        return;
+    }
+    const filename = Date.now() + "_" + ws.nick + "_" + (msg.filename || "video.webm");
+    const filepath = path.join(folder, filename);
+    try {
+        fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
+        ws.send(JSON.stringify({ type: type, url: `/${folder}/${filename}`, filename: msg.filename || filename }));
+    } catch(e) {
+        ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения файла" }));
+    }
 }
 
 // ============================================================
@@ -579,7 +593,6 @@ wss.on("connection", (ws) => {
                     deviceId: deviceId
                 }));
                 sendUsers();
-                // Системные сообщения скрыты
             } else {
                 ws.send(JSON.stringify({ type: "error", text: "Сессия устарела, войдите заново" }));
             }
@@ -662,7 +675,6 @@ wss.on("connection", (ws) => {
                 reputation: userReputation.get(nick) || 0
             }));
             sendUsers();
-            // Системные сообщения скрыты
             return;
         }
 
@@ -724,7 +736,6 @@ wss.on("connection", (ws) => {
             const channelId = createChannel(msg.name, currentUser);
             if (channelId) {
                 ws.send(JSON.stringify({ type: "channel_created", channel: channels[channelId] }));
-                // Отправляем всем обновление
                 broadcast({ type: "channel_update", channel: channels[channelId] });
             }
             return;
@@ -733,7 +744,6 @@ wss.on("connection", (ws) => {
         if (msg.type === "subscribe_channel") {
             if (subscribeToChannel(msg.channelId, currentUser)) {
                 ws.send(JSON.stringify({ type: "channel_subscribed", channelId: msg.channelId }));
-                // Отправляем обновление всем
                 broadcast({ type: "channel_update", channel: channels[msg.channelId] });
             }
             return;
@@ -819,11 +829,6 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        if (msg.type === "update_group_name") {
-            // Заглушка — полная реализация в оригинале
-            return;
-        }
-
         if (msg.type === "group_chat") {
             if (!checkRate(ws)) {
                 ws.send(JSON.stringify({ type: "error", text: "Слишком много сообщений" }));
@@ -893,6 +898,7 @@ wss.on("connection", (ws) => {
                 text: escapeHtml((msg.text || "").slice(0, 500)),
                 image: msg.image || null,
                 video: msg.video || null,
+                circle: msg.circle || null,  // ← КРУЖОЧЕК
                 file: msg.file || null,
                 music: msg.music || null,
                 voice: msg.voice || null,
@@ -936,6 +942,7 @@ wss.on("connection", (ws) => {
                 text: escapeHtml((msg.text || "").slice(0, 500)),
                 image: msg.image || null,
                 video: msg.video || null,
+                circle: msg.circle || null,  // ← КРУЖОЧЕК
                 file: msg.file || null,
                 music: msg.music || null,
                 voice: msg.voice || null,
@@ -1031,34 +1038,12 @@ wss.on("connection", (ws) => {
 
         // ===== ЗАГРУЗКА ФАЙЛОВ =====
         if (msg.type === "upload_file") {
-            if (msg.data && msg.data.length > 10 * 1024 * 1024) {
-                ws.send(JSON.stringify({ type: "error", text: "Файл слишком большой (макс 10MB)" }));
-                return;
-            }
-            const filename = Date.now() + "_" + currentUser + "_" + msg.filename;
-            const filepath = path.join("files", filename);
-            try {
-                fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
-                ws.send(JSON.stringify({ type: "file_uploaded", url: `/files/${filename}`, filename: msg.filename }));
-            } catch(e) {
-                ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения файла" }));
-            }
+            handleUpload(ws, msg, "files", "file_uploaded");
             return;
         }
 
         if (msg.type === "upload_music") {
-            if (msg.data && msg.data.length > 10 * 1024 * 1024) {
-                ws.send(JSON.stringify({ type: "error", text: "Файл слишком большой (макс 10MB)" }));
-                return;
-            }
-            const filename = Date.now() + "_" + currentUser + "_" + msg.filename;
-            const filepath = path.join("music", filename);
-            try {
-                fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
-                ws.send(JSON.stringify({ type: "music_uploaded", url: `/music/${filename}`, filename: msg.filename }));
-            } catch(e) {
-                ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения файла" }));
-            }
+            handleUpload(ws, msg, "music", "music_uploaded");
             return;
         }
 
@@ -1162,7 +1147,6 @@ wss.on("connection", (ws) => {
             userStatus.set(ws.nick, { status: "offline", lastSeen: Date.now() });
             userLastSeen.set(ws.nick, Date.now());
             sendUsers();
-            // Системные сообщения скрыты
         }
         rate.delete(ws);
     });
