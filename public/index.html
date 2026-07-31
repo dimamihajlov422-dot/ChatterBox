@@ -95,7 +95,8 @@ body.dark .chat::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
 /* ===== ОБЩИЕ СТИЛИ ===== */
 .auth-screen, .main-app, .attach-panel, .message-menu, .menu-panel, 
 .incoming-call, .call-status, .group-members-panel, .modal, .profile-screen,
-.settings-screen, .channels-screen {
+.settings-screen, .channels-screen, .contacts-screen, .groups-screen,
+.privacy-screen {
     position: relative;
     z-index: 1;
 }
@@ -174,7 +175,13 @@ body.dark .auth-card .remember { color: #aaa; }
 body.dark .error-msg { color: #ef9a9a; }
 
 /* ===== ОСНОВНОЕ ПРИЛОЖЕНИЕ ===== */
-.main-app { display: flex; flex-direction: column; height: 100%; position: relative; z-index: 1; }
+.main-app { 
+    display: flex; 
+    flex-direction: column; 
+    height: 100%; 
+    position: relative;
+    z-index: 1;
+}
 .main-app.hidden { display: none; }
 
 /* ===== ШАПКА ===== */
@@ -244,7 +251,7 @@ body.dark .connection-status.connecting { color: #ffca28; }
 }
 .logout-btn:active { transform: scale(0.95); }
 
-/* ===== ПОИСК (появляется по трём точкам) ===== */
+/* ===== ПОИСК ===== */
 .search-overlay {
     position: fixed;
     top: 0;
@@ -362,7 +369,67 @@ body.dark .message { background: var(--msg-bg); border-color: rgba(255,255,255,0
 .message .read-status { font-size: 10px; }
 .message .read-status.read { color: #4caf50; }
 .message .mention { background: rgba(0,132,255,0.15); border-radius: 12px; padding: 2px 6px; cursor: pointer; display: inline-block; }
-.message img, .message video { max-width: 100%; border-radius: 12px; margin-top: 4px; cursor: pointer; max-height: 200px; object-fit: cover; }
+
+/* ===== ВИДЕОСООБЩЕНИЯ (КРУЖОЧКИ) ===== */
+.message .video-message {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-top: 4px;
+    cursor: pointer;
+    position: relative;
+    border: 2px solid rgba(255,255,255,0.1);
+}
+.message .video-message video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.message .video-message .play-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+}
+.message .video-message .duration {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 8px;
+}
+.message .video-message .progress-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.message img, .message video:not(.video-message video) {
+    max-width: 100%;
+    border-radius: 12px;
+    margin-top: 4px;
+    cursor: pointer;
+    max-height: 200px;
+    object-fit: cover;
+}
+
 .message .voice-note {
     display: flex;
     align-items: center;
@@ -408,15 +475,18 @@ body.dark .message { background: var(--msg-bg); border-color: rgba(255,255,255,0
 .message .reactions { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
 .message .reaction { font-size: 14px; cursor: pointer; padding: 2px 6px; background: rgba(0,0,0,0.04); border-radius: 16px; transition: 0.2s; }
 .message .reaction:active { transform: scale(0.9); }
-.message .checkbox-wrap {
-    position: absolute;
-    left: -30px;
-    top: 50%;
-    transform: translateY(-50%);
-    display: none;
+
+/* ===== КРУЖОЧКИ — КНОПКА В ПАНЕЛИ ВЛОЖЕНИЙ ===== */
+.attach-item .circle-icon {
+    display: inline-block;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255,50,50,0.15);
+    line-height: 36px;
+    text-align: center;
+    font-size: 18px;
 }
-.message.select-mode .checkbox-wrap { display: block; }
-.message .checkbox-wrap input[type="checkbox"] { width: 18px; height: 18px; accent-color: #0084ff; cursor: pointer; }
 
 /* ===== ДАТА-РАЗДЕЛИТЕЛИ ===== */
 .date-divider {
@@ -427,9 +497,6 @@ body.dark .message { background: var(--msg-bg); border-color: rgba(255,255,255,0
     opacity: 0.7;
 }
 body.dark .date-divider { color: #aaa; }
-
-/* ===== СИСТЕМНЫЕ СООБЩЕНИЯ (скрыты) ===== */
-.system { display: none !important; }
 
 /* ===== ТАЙПИНГ ===== */
 .typing-indicator { font-size: 12px; color: #666; padding: 4px 12px; font-style: italic; }
@@ -584,7 +651,7 @@ body.dark .menu-header { background: rgba(0,0,0,0.2); border-color: var(--border
 .menu-header .user-info .avatar {
     width: 44px;
     height: 44px;
-    border-radius: var(--radius);
+    border-radius: 12px;
     background: var(--border);
     display: flex;
     align-items: center;
@@ -627,39 +694,6 @@ body.dark .menu-item { background: var(--border-dark); }
     margin: 8px 0;
 }
 body.dark .menu-divider { background: var(--border-dark); }
-
-/* ===== НИЖНЯЯ НАВИГАЦИЯ ===== */
-.bottom-nav {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 8px 0 12px;
-    background: var(--card-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-top: 1px solid var(--border);
-    flex-shrink: 0;
-}
-body.dark .bottom-nav { background: var(--card-bg-dark); border-color: var(--border-dark); }
-.nav-tab {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    padding: 4px 16px;
-    cursor: pointer;
-    color: #888;
-    transition: 0.2s;
-    border: none;
-    background: none;
-    font-family: inherit;
-}
-body.dark .nav-tab { color: #666; }
-.nav-tab.active { color: #0084ff; }
-body.dark .nav-tab.active { color: #66b0ff; }
-.nav-tab .icon { font-size: 22px; }
-.nav-tab .label { font-size: 10px; font-weight: 500; }
-.nav-tab:active { transform: scale(0.95); }
 
 /* ===== НАСТРОЙКИ ===== */
 .settings-screen {
@@ -738,7 +772,7 @@ body.dark .profile-header { background: rgba(0,0,0,0.2); border-color: var(--bor
 .profile-avatar {
     width: 72px;
     height: 72px;
-    border-radius: var(--radius);
+    border-radius: 12px;
     background: var(--border);
     display: flex;
     align-items: center;
@@ -854,7 +888,7 @@ body.dark .contact-item { background: var(--border-dark); }
 .contact-item .avatar {
     width: 40px;
     height: 40px;
-    border-radius: var(--radius);
+    border-radius: 12px;
     background: var(--border);
     display: flex;
     align-items: center;
@@ -892,6 +926,35 @@ body.dark .groups-header { background: rgba(0,0,0,0.2); border-color: var(--bord
 .groups-header button { background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
 .groups-header span { font-size: 18px; font-weight: 600; }
 .groups-body { flex: 1; padding: 16px 20px; }
+
+/* ===== ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ ===== */
+.privacy-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--card-bg);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    z-index: 1650;
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+}
+body.dark .privacy-screen { background: var(--card-bg-dark); }
+.privacy-screen.open { display: flex; }
+.privacy-header {
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+}
+body.dark .privacy-header { background: rgba(0,0,0,0.2); border-color: var(--border-dark); }
+.privacy-header button { background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
+.privacy-header span { font-size: 18px; font-weight: 600; }
+.privacy-body { flex: 1; padding: 20px; }
+.privacy-body p { margin-bottom: 12px; line-height: 1.6; font-size: 15px; color: var(--text); }
 
 /* ===== ОСТАЛЬНЫЕ ЭЛЕМЕНТЫ ===== */
 .incoming-call {
@@ -1015,6 +1078,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     .header .nav-center { font-size: 16px; }
     .auth-card { padding: 30px 20px; }
     .settings-item, .menu-item { font-size: 14px; padding: 10px 12px; }
+    .message .video-message { width: 120px; height: 120px; }
 }
 
 /* ===== ШРИФТЫ ===== */
@@ -1022,39 +1086,18 @@ body.dark .group-members-panel .member button { color: var(--text); }
 .font-medium { --font-size: 15px; }
 .font-large { --font-size: 17px; }
 
-/* ===== ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ ===== */
-.privacy-screen {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: var(--card-bg);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    z-index: 1650;
-    display: none;
-    flex-direction: column;
-    overflow-y: auto;
+/* ===== КВАДРАТНЫЕ АВАТАРКИ ===== */
+.profile-avatar,
+.avatar,
+.menu-header .user-info .avatar,
+.contact-item .avatar,
+.chat-item .avatar {
+    border-radius: 12px !important;
 }
-body.dark .privacy-screen { background: var(--card-bg-dark); }
-.privacy-screen.open { display: flex; }
-.privacy-header {
-    padding: 16px 20px;
-    background: rgba(255,255,255,0.05);
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    border-bottom: 1px solid var(--border);
-}
-body.dark .privacy-header { background: rgba(0,0,0,0.2); border-color: var(--border-dark); }
-.privacy-header button { background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
-.privacy-header span { font-size: 18px; font-weight: 600; }
-.privacy-body { flex: 1; padding: 20px; }
-.privacy-body p { margin-bottom: 12px; line-height: 1.6; font-size: 15px; color: var(--text); }
 </style>
 </head>
 <body>
 
-<!-- ===== ЭКРАН ВХОДА ===== -->
 <div class="auth-screen" id="authScreen">
     <div class="auth-card">
         <h2 id="authTitle">Добро пожаловать</h2>
@@ -1067,9 +1110,7 @@ body.dark .privacy-header { background: rgba(0,0,0,0.2); border-color: var(--bor
     </div>
 </div>
 
-<!-- ===== ОСНОВНОЕ ПРИЛОЖЕНИЕ ===== -->
 <div class="main-app hidden" id="mainApp">
-    <!-- ШАПКА -->
     <div class="header">
         <div class="nav-left">
             <button class="menu-btn" id="menuBtn">☰</button>
@@ -1084,7 +1125,6 @@ body.dark .privacy-header { background: rgba(0,0,0,0.2); border-color: var(--bor
         </div>
     </div>
 
-    <!-- РЕЖИМНАЯ ПАНЕЛЬ -->
     <div class="mode-bar hidden" id="modeBar">
         <button id="backBtn">← Назад</button>
         <span id="modeTitle"></span>
@@ -1097,37 +1137,19 @@ body.dark .privacy-header { background: rgba(0,0,0,0.2); border-color: var(--bor
         <button id="groupSettingsBtn" class="hidden">⚙️</button>
     </div>
 
-    <!-- ЧАТ -->
     <div class="chat" id="chat">
         <div class="loading-indicator" id="loadingIndicator">Загрузка сообщений...</div>
         <div id="typingIndicator" class="typing-indicator hidden"></div>
     </div>
 
-    <!-- ПАНЕЛЬ ВВОДА -->
     <div class="input-bar" id="inputBar">
         <input type="text" id="msgInput" placeholder="Сообщение..." autocomplete="off">
         <button id="sendBtn">➤</button>
         <button id="attachBtn">📎</button>
     </div>
-
-    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
-    <div class="bottom-nav" id="bottomNav">
-        <button class="nav-tab active" data-tab="chats">
-            <span class="icon">💬</span>
-            <span class="label">Чаты</span>
-        </button>
-        <button class="nav-tab" data-tab="profile">
-            <span class="icon">👤</span>
-            <span class="label">Профиль</span>
-        </button>
-        <button class="nav-tab" data-tab="settings">
-            <span class="icon">⚙️</span>
-            <span class="label">Настройки</span>
-        </button>
-    </div>
 </div>
 
-<!-- ===== ПОИСК ПО ТРЁМ ТОЧКАМ ===== -->
+<!-- ===== ПОИСК ===== -->
 <div class="search-overlay" id="searchOverlay">
     <div class="search-box">
         <input type="text" id="searchInputGlobal" placeholder="🔍 Поиск пользователей, групп, каналов...">
@@ -1140,6 +1162,7 @@ body.dark .privacy-header { background: rgba(0,0,0,0.2); border-color: var(--bor
 <div class="attach-panel" id="attachPanel">
     <div class="attach-item" id="attachPhoto"><span>🖼️</span><span>Фото</span></div>
     <div class="attach-item" id="attachVideo"><span>🎥</span><span>Видео</span></div>
+    <div class="attach-item" id="attachCircle"><span class="circle-icon">🔄</span><span>Кружок</span></div>
     <div class="attach-item" id="attachMusic"><span>🎵</span><span>Музыка</span></div>
     <div class="attach-item" id="attachVoice"><span>🎙️</span><span>Голос</span></div>
     <div class="attach-item" id="attachLocation"><span>📍</span><span>Гео</span></div>
@@ -1154,7 +1177,6 @@ body.dark .privacy-header { background: rgba(0,0,0,0.2); border-color: var(--bor
     <span id="menuCopy">📋 Копировать</span>
     <span id="menuReply">↩️ Ответить</span>
     <span id="menuForward">➡️ Переслать</span>
-    <span id="menuSelect">✅ Выбрать</span>
     <span id="menuReaction">👍 Реакция</span>
     <span id="menuProfile">👤 Профиль</span>
     <span id="menuBlock">🚫 Заблокировать</span>
@@ -1176,6 +1198,9 @@ body.dark .privacy-header { background: rgba(0,0,0,0.2); border-color: var(--bor
         <div class="menu-item" id="menuGroupsBtn"><span class="icon">📢</span> Группы <span class="arrow">›</span></div>
         <div class="menu-item" id="menuChannelsBtn"><span class="icon">📣</span> Каналы <span class="arrow">›</span></div>
         <div class="menu-divider"></div>
+        <div class="menu-item" id="menuCreateGroup"><span class="icon">➕</span> Создать группу <span class="arrow">›</span></div>
+        <div class="menu-item" id="menuCreateChannel"><span class="icon">📣</span> Создать канал <span class="arrow">›</span></div>
+        <div class="menu-divider"></div>
         <div class="menu-item" id="menuTheme"><span class="icon">🌓</span> Сменить тему <span class="arrow">○</span></div>
         <div class="menu-item" id="menuSound"><span class="icon">🔊</span> Звук: Вкл <span class="arrow">●</span></div>
         <div class="menu-item" id="menuFontSize"><span class="icon">📏</span> Размер шрифта <span class="arrow">Средний</span></div>
@@ -1186,52 +1211,6 @@ body.dark .privacy-header { background: rgba(0,0,0,0.2); border-color: var(--bor
         <div class="menu-item" id="menuPrivacy"><span class="icon">🔒</span> Политика конфиденциальности <span class="arrow">›</span></div>
         <div class="menu-divider"></div>
         <div class="menu-item" id="menuLogout" style="color:#d32f2f;"><span class="icon">🚪</span> Выйти <span class="arrow">→</span></div>
-    </div>
-</div>
-
-<!-- ===== КАНАЛЫ ===== -->
-<div class="channels-screen" id="channelsScreen">
-    <div class="channels-header">
-        <button id="closeChannels">←</button>
-        <span>📣 Каналы</span>
-    </div>
-    <div class="channels-body" id="channelsList"></div>
-</div>
-
-<!-- ===== КОНТАКТЫ ===== -->
-<div class="contacts-screen" id="contactsScreen">
-    <div class="contacts-header">
-        <button id="closeContacts">←</button>
-        <span>👥 Контакты</span>
-    </div>
-    <div class="contacts-body" id="contactsList"></div>
-</div>
-
-<!-- ===== ГРУППЫ (отдельный экран) ===== -->
-<div class="groups-screen" id="groupsScreen">
-    <div class="groups-header">
-        <button id="closeGroups">←</button>
-        <span>📢 Группы</span>
-    </div>
-    <div class="groups-body" id="groupsListScreen"></div>
-</div>
-
-<!-- ===== ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ ===== -->
-<div class="privacy-screen" id="privacyScreen">
-    <div class="privacy-header">
-        <button id="closePrivacy">←</button>
-        <span>🔒 Политика конфиденциальности</span>
-    </div>
-    <div class="privacy-body">
-        <p><strong>📋 Сбор данных</strong></p>
-        <p>Мы собираем только те данные, которые необходимы для работы мессенджера: ваше имя пользователя, сообщения и настройки.</p>
-        <p><strong>🔐 Безопасность</strong></p>
-        <p>Ваши пароли хранятся в зашифрованном виде. Все сообщения передаются по защищённому соединению.</p>
-        <p><strong>📤 Передача данных</strong></p>
-        <p>Мы не передаём ваши данные третьим лицам. Вся информация хранится на наших серверах.</p>
-        <p><strong>🗑️ Удаление данных</strong></p>
-        <p>Вы можете удалить свой аккаунт в любой момент, все данные будут безвозвратно удалены.</p>
-        <p style="margin-top:20px; font-size:13px; opacity:0.5;">Последнее обновление: 2024</p>
     </div>
 </div>
 
@@ -1277,6 +1256,52 @@ body.dark .privacy-header { background: rgba(0,0,0,0.2); border-color: var(--bor
     </div>
 </div>
 
+<!-- ===== КАНАЛЫ ===== -->
+<div class="channels-screen" id="channelsScreen">
+    <div class="channels-header">
+        <button id="closeChannels">←</button>
+        <span>📣 Каналы</span>
+    </div>
+    <div class="channels-body" id="channelsList"></div>
+</div>
+
+<!-- ===== КОНТАКТЫ ===== -->
+<div class="contacts-screen" id="contactsScreen">
+    <div class="contacts-header">
+        <button id="closeContacts">←</button>
+        <span>👥 Контакты</span>
+    </div>
+    <div class="contacts-body" id="contactsList"></div>
+</div>
+
+<!-- ===== ГРУППЫ ===== -->
+<div class="groups-screen" id="groupsScreen">
+    <div class="groups-header">
+        <button id="closeGroups">←</button>
+        <span>📢 Группы</span>
+    </div>
+    <div class="groups-body" id="groupsListScreen"></div>
+</div>
+
+<!-- ===== ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ ===== -->
+<div class="privacy-screen" id="privacyScreen">
+    <div class="privacy-header">
+        <button id="closePrivacy">←</button>
+        <span>🔒 Политика конфиденциальности</span>
+    </div>
+    <div class="privacy-body">
+        <p><strong>📋 Сбор данных</strong></p>
+        <p>Мы собираем только те данные, которые необходимы для работы мессенджера: ваше имя пользователя, сообщения и настройки.</p>
+        <p><strong>🔐 Безопасность</strong></p>
+        <p>Ваши пароли хранятся в зашифрованном виде. Все сообщения передаются по защищённому соединению.</p>
+        <p><strong>📤 Передача данных</strong></p>
+        <p>Мы не передаём ваши данные третьим лицам. Вся информация хранится на наших серверах.</p>
+        <p><strong>🗑️ Удаление данных</strong></p>
+        <p>Вы можете удалить свой аккаунт в любой момент, все данные будут безвозвратно удалены.</p>
+        <p style="margin-top:20px; font-size:13px; opacity:0.5;">Последнее обновление: 2024</p>
+    </div>
+</div>
+
 <!-- ===== ОСТАЛЬНЫЕ ЭЛЕМЕНТЫ ===== -->
 <div class="group-members-panel" id="groupMembersPanel">
     <div style="font-weight: bold; text-align: center;">👥 Участники группы</div>
@@ -1301,9 +1326,10 @@ body.dark .privacy-header { background: rgba(0,0,0,0.2); border-color: var(--bor
 
 <script>
 // ============================================================
-// ВЕСЬ JS КОД (оригинальный + новые функции)
+// ПОЛНЫЙ JS КОД
 // ============================================================
 
+// ===== DOM ЭЛЕМЕНТЫ =====
 const authScreen = document.getElementById("authScreen");
 const authTitle = document.getElementById("authTitle");
 const authNick = document.getElementById("authNick");
@@ -1348,6 +1374,8 @@ const menuProfileBtn = document.getElementById("menuProfileBtn");
 const menuContactsBtn = document.getElementById("menuContactsBtn");
 const menuGroupsBtn = document.getElementById("menuGroupsBtn");
 const menuChannelsBtn = document.getElementById("menuChannelsBtn");
+const menuCreateGroup = document.getElementById("menuCreateGroup");
+const menuCreateChannel = document.getElementById("menuCreateChannel");
 const menuTheme = document.getElementById("menuTheme");
 const menuSound = document.getElementById("menuSound");
 const menuFontSize = document.getElementById("menuFontSize");
@@ -1396,7 +1424,6 @@ const endCallBtn = document.getElementById("endCallBtn");
 const modal = document.getElementById("modal");
 const modalImg = document.getElementById("modalImg");
 const modalClose = document.querySelector(".modal .close");
-const bottomNav = document.getElementById("bottomNav");
 
 // ===== ПЕРЕМЕННЫЕ =====
 let ws = null;
@@ -1422,6 +1449,7 @@ let fontSize = localStorage.getItem("fontSize") || "medium";
 let replyToMsg = null;
 let pendingImage = null;
 let pendingVideo = null;
+let pendingCircle = null;
 let pendingFile = null;
 let pendingMusic = null;
 let pendingVoice = null;
@@ -1435,8 +1463,6 @@ let isRecording = false;
 let myStickers = [];
 let isDimaUser = false;
 let draftMessage = {};
-let selectedMessages = [];
-let selectMode = false;
 
 // WebRTC
 let iceQueue = [];
@@ -1579,7 +1605,6 @@ function connect() {
             loadUnreadCounts();
             updateOnlineCount();
             loadingIndicator.classList.add("hidden");
-            switchTab('chats');
             updateMenuUI();
             return;
         }
@@ -1666,12 +1691,18 @@ function connect() {
             renderChannelMessages(d.data);
             return;
         }
-        if (d.type === "delete") { const el = document.getElementById(d.id); if (el) el.remove(); }
+        if (d.type === "delete") { 
+            const el = document.getElementById(d.id); 
+            if (el) el.remove(); 
+        }
         if (d.type === "edit") {
             const el = document.getElementById(d.id);
             if (el) {
                 const textSpan = el.querySelector(".msg-text") || el;
                 textSpan.textContent = d.newText;
+                // Если это видео-сообщение, обновляем текст
+                const msgText = el.querySelector(".msg-text");
+                if (msgText) msgText.textContent = d.newText || "📹 Видеосообщение";
             }
         }
         if (d.type === "typing") {
@@ -1884,6 +1915,51 @@ function addMessage(m) {
         div.appendChild(replyDiv);
     }
     
+    // ===== ВИДЕОСООБЩЕНИЕ (КРУЖОК) =====
+    if (m.circle) {
+        const circleDiv = document.createElement("div");
+        circleDiv.className = "video-message";
+        const video = document.createElement("video");
+        video.src = m.circle;
+        video.muted = true;
+        video.playsInline = true;
+        video.loop = false;
+        const playBtn = document.createElement("div");
+        playBtn.className = "play-btn";
+        playBtn.textContent = "▶";
+        const duration = document.createElement("div");
+        duration.className = "duration";
+        duration.textContent = "0:05";
+        
+        video.onloadedmetadata = () => {
+            const mins = Math.floor(video.duration / 60);
+            const secs = Math.floor(video.duration % 60);
+            duration.textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
+        };
+        
+        let isPlaying = false;
+        circleDiv.onclick = () => {
+            if (isPlaying) {
+                video.pause();
+                playBtn.textContent = "▶";
+                isPlaying = false;
+            } else {
+                video.play();
+                playBtn.textContent = "⏸";
+                isPlaying = true;
+                video.onended = () => {
+                    playBtn.textContent = "▶";
+                    isPlaying = false;
+                };
+            }
+        };
+        
+        circleDiv.appendChild(video);
+        circleDiv.appendChild(playBtn);
+        circleDiv.appendChild(duration);
+        div.appendChild(circleDiv);
+    }
+    
     if (m.image) {
         const img = document.createElement("img");
         img.src = m.image;
@@ -1965,7 +2041,11 @@ function addMessage(m) {
     
     const textSpan = document.createElement("span");
     textSpan.className = "msg-text";
-    textSpan.innerHTML = formatTextWithTags(m.text || "");
+    if (m.circle) {
+        textSpan.textContent = "📹 Видеосообщение";
+    } else {
+        textSpan.innerHTML = formatTextWithTags(m.text || "");
+    }
     div.appendChild(textSpan);
     
     const readSpan = document.createElement("span");
@@ -2008,13 +2088,6 @@ function addMessage(m) {
         ws.send(JSON.stringify({ type: "mark_read", chatType: currentMode === "private" ? "private" : currentMode === "group" ? "group" : "channel", chatId: currentMode === "private" ? currentPrivateWith : currentMode === "group" ? currentGroupId : currentChannelId, msgId: m.id }));
     }
 }
-
-// Остальные функции для сообщений (private, group, channel) аналогичны
-// Я их сокращу для экономии места, но они есть в оригинале
-
-// ============================================================
-// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-// ============================================================
 
 function formatTextWithTags(text) {
     if (!text) return "";
@@ -2061,38 +2134,123 @@ function attachMessageMenu(div, msg, chatType, chatId) {
 }
 
 // ============================================================
-// НАВИГАЦИЯ (вкладки)
+// МЕНЮ СООБЩЕНИЯ - ДЕЙСТВИЯ
 // ============================================================
 
-let currentTab = "chats";
-
-function switchTab(tab) {
-    currentTab = tab;
-    document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
-    document.querySelector(`.nav-tab[data-tab="${tab}"]`).classList.add("active");
-    
-    if (tab === "chats") {
-        chatDiv.style.display = "flex";
-        inputBar.style.display = "flex";
-        modeBar.classList.add("hidden");
-    } else if (tab === "profile") {
-        viewProfile(currentNick);
-        chatDiv.style.display = "none";
-        inputBar.style.display = "none";
-        modeBar.classList.add("hidden");
-    } else if (tab === "settings") {
-        settingsScreen.classList.add("open");
-        chatDiv.style.display = "none";
-        inputBar.style.display = "none";
-        modeBar.classList.add("hidden");
+document.getElementById("menuEdit").onclick = () => {
+    if (currentMsgTarget) {
+        const newText = prompt("Редактировать сообщение:", currentMsgTarget.msg.text);
+        if (newText && newText.trim() && ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ 
+                type: "edit", 
+                id: currentMsgTarget.msg.id, 
+                text: newText.trim(), 
+                chatType: currentMsgTarget.chatType, 
+                chatId: currentMsgTarget.chatId 
+            }));
+        }
     }
+    document.getElementById("messageMenu").style.display = "none";
+};
+
+document.getElementById("menuDelete").onclick = () => {
+    if (currentMsgTarget) {
+        if (confirm("Удалить сообщение?")) {
+            if (ws && ws.readyState === 1) {
+                ws.send(JSON.stringify({ 
+                    type: "delete", 
+                    id: currentMsgTarget.msg.id, 
+                    chatType: currentMsgTarget.chatType, 
+                    chatId: currentMsgTarget.chatId 
+                }));
+            }
+        }
+    }
+    document.getElementById("messageMenu").style.display = "none";
+};
+
+document.getElementById("menuCopy").onclick = () => {
+    if (currentMsgTarget) {
+        navigator.clipboard.writeText(currentMsgTarget.msg.text || "");
+    }
+    document.getElementById("messageMenu").style.display = "none";
+};
+
+document.getElementById("menuReply").onclick = () => {
+    if (currentMsgTarget) {
+        replyToMessage(currentMsgTarget.msg);
+    }
+    document.getElementById("messageMenu").style.display = "none";
+};
+
+document.getElementById("menuForward").onclick = () => {
+    if (currentMsgTarget) {
+        msgInput.value = currentMsgTarget.msg.text || "";
+        msgInput.focus();
+    }
+    document.getElementById("messageMenu").style.display = "none";
+};
+
+document.getElementById("menuReaction").onclick = () => {
+    if (currentMsgTarget) {
+        showQuickReactionPicker(currentMsgTarget.msg, currentMsgTarget.chatType);
+    }
+    document.getElementById("messageMenu").style.display = "none";
+};
+
+document.getElementById("menuProfile").onclick = () => {
+    if (currentMsgTarget) {
+        viewProfile(currentMsgTarget.msg.from || currentMsgTarget.msg.owner);
+    }
+    document.getElementById("messageMenu").style.display = "none";
+};
+
+document.getElementById("menuBlock").onclick = () => {
+    if (currentMsgTarget) {
+        if (confirm(`Заблокировать пользователя ${currentMsgTarget.msg.from || currentMsgTarget.msg.owner}?`)) {
+            ws.send(JSON.stringify({ type: "block_user", target: currentMsgTarget.msg.from || currentMsgTarget.msg.owner }));
+        }
+    }
+    document.getElementById("messageMenu").style.display = "none";
+};
+
+function showQuickReactionPicker(msg, chatType) {
+    const picker = document.createElement("div");
+    picker.style.position = "fixed";
+    picker.style.bottom = "100px";
+    picker.style.left = "16px";
+    picker.style.right = "16px";
+    picker.style.background = "rgba(255,255,255,0.9)";
+    picker.style.borderRadius = "30px";
+    picker.style.padding = "12px";
+    picker.style.display = "flex";
+    picker.style.gap = "16px";
+    picker.style.justifyContent = "center";
+    picker.style.zIndex = "1001";
+    picker.style.boxShadow = "0 4px 20px rgba(0,0,0,0.1)";
+    const reactions = ["👍", "❤️", "😂", "😮", "😢", "😡"];
+    reactions.forEach(r => {
+        const span = document.createElement("span");
+        span.textContent = r;
+        span.style.fontSize = "32px";
+        span.style.cursor = "pointer";
+        span.onclick = () => { 
+            ws.send(JSON.stringify({ type: "reaction", chatType, id: msg.id, reaction: r })); 
+            picker.remove(); 
+        };
+        picker.appendChild(span);
+    });
+    document.body.appendChild(picker);
+    setTimeout(() => { 
+        document.addEventListener("click", () => picker.remove(), { once: true }); 
+    }, 100);
 }
 
-document.querySelectorAll(".nav-tab").forEach(tab => {
-    tab.addEventListener("click", () => {
-        switchTab(tab.dataset.tab);
-    });
-});
+function replyToMessage(msg) {
+    replyToMsg = msg;
+    msgInput.placeholder = `↩️ Ответ: ${(msg.text || "").substring(0, 30)}...`;
+    msgInput.focus();
+}
 
 // ============================================================
 // МЕНЮ
@@ -2120,11 +2278,10 @@ document.addEventListener("click", (e) => {
     }
 });
 
-// Пункты меню
+// ===== ПУНКТЫ МЕНЮ =====
 menuProfileBtn.onclick = () => {
     menuPanel.classList.remove("open");
     viewProfile(currentNick);
-    switchTab("profile");
 };
 
 menuContactsBtn.onclick = () => {
@@ -2143,6 +2300,32 @@ menuChannelsBtn.onclick = () => {
     menuPanel.classList.remove("open");
     channelsScreen.classList.add("open");
     renderChannelsScreen();
+};
+
+// ===== СОЗДАНИЕ ГРУПП =====
+menuCreateGroup.onclick = () => {
+    menuPanel.classList.remove("open");
+    const name = prompt("Введите название группы:");
+    if (name && name.trim()) {
+        if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: "create_group", name: name.trim() }));
+        }
+    }
+};
+
+// ===== СОЗДАНИЕ КАНАЛОВ (только Дима) =====
+menuCreateChannel.onclick = () => {
+    menuPanel.classList.remove("open");
+    if (!isDima()) {
+        alert("❌ Только администратор (Дима) может создавать каналы");
+        return;
+    }
+    const name = prompt("Введите название канала:");
+    if (name && name.trim()) {
+        if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: "create_channel", name: name.trim() }));
+        }
+    }
 };
 
 menuTheme.onclick = () => {
@@ -2170,12 +2353,12 @@ menuFontSize.onclick = () => {
 
 menuStats.onclick = () => {
     menuPanel.classList.remove("open");
-    alert(`📊 Статистика ChatterBox\n\n👤 Пользователей онлайн: ${usersOnline.length}\n👥 Всего пользователей: ${allUsers.length}\n💬 Групп: ${myGroups.length}\n📣 Каналов: ${myChannels.length}\n💬 Сообщений в общем чате: загружаются...`);
+    alert(`📊 Статистика ChatterBox\n\n👤 Пользователей онлайн: ${usersOnline.length}\n👥 Всего пользователей: ${allUsers.length}\n💬 Групп: ${myGroups.length}\n📣 Каналов: ${myChannels.length}`);
 };
 
 menuHelp.onclick = () => {
     menuPanel.classList.remove("open");
-    alert("❓ Помощь\n\n📌 Основные функции:\n• 💬 Чаты — общение в группах и лично\n• 📣 Каналы — публичные каналы\n• 👥 Контакты — список пользователей\n• ⚙️ Настройки — тема, звук, шрифт\n\n🔍 Поиск — нажмите ⋮ в шапке\n\n📱 Сделано с ❤️");
+    alert("❓ Помощь\n\n📌 Основные функции:\n• 💬 Чаты — общение в группах и лично\n• 📣 Каналы — публичные каналы\n• 👥 Контакты — список пользователей\n• ⚙️ Настройки — тема, звук, шрифт\n• 🔄 Кружочки — видеосообщения\n\n🔍 Поиск — нажмите ⋮ в шапке");
 };
 
 menuPrivacy.onclick = () => {
@@ -2220,7 +2403,6 @@ settingsFontSize.innerHTML = `📏 Размер шрифта <span class="sub">$
 
 closeSettings.onclick = () => {
     settingsScreen.classList.remove("open");
-    switchTab("chats");
 };
 
 settingsTheme.onclick = toggleTheme;
@@ -2244,7 +2426,6 @@ settingsLogout.onclick = () => {
 settingsScreen.addEventListener("click", (e) => {
     if (e.target === settingsScreen) {
         settingsScreen.classList.remove("open");
-        switchTab("chats");
     }
 });
 
@@ -2268,11 +2449,8 @@ searchInputGlobal.addEventListener("input", () => {
     searchResults.innerHTML = "";
     if (!query) return;
     
-    // Поиск пользователей
     const users = allUsers.filter(u => u.toLowerCase().includes(query));
-    // Поиск групп
     const groups = myGroups.filter(g => g.name.toLowerCase().includes(query));
-    // Поиск каналов
     const channels = myChannels.filter(c => c.name.toLowerCase().includes(query));
     
     if (users.length === 0 && groups.length === 0 && channels.length === 0) {
@@ -2333,7 +2511,7 @@ searchInputGlobal.addEventListener("input", () => {
 });
 
 // ============================================================
-// КАНАЛЫ
+// КАНАЛЫ, КОНТАКТЫ, ГРУППЫ (отдельные экраны)
 // ============================================================
 
 function renderChannelsScreen() {
@@ -2370,10 +2548,6 @@ closeChannels.onclick = () => {
     channelsScreen.classList.remove("open");
 };
 
-// ============================================================
-// КОНТАКТЫ
-// ============================================================
-
 function renderContactsList() {
     contactsList.innerHTML = "";
     const contacts = allUsers.filter(u => u !== currentNick);
@@ -2404,10 +2578,6 @@ function renderContactsList() {
 closeContacts.onclick = () => {
     contactsScreen.classList.remove("open");
 };
-
-// ============================================================
-// ГРУППЫ (отдельный экран)
-// ============================================================
 
 function renderGroupsScreen() {
     groupsListScreen.innerHTML = "";
@@ -2454,7 +2624,6 @@ function viewProfile(nick) {
 
 closeProfile.onclick = () => {
     profileScreen.classList.remove("open");
-    switchTab("chats");
 };
 
 saveProfile.onclick = () => {
@@ -2462,7 +2631,6 @@ saveProfile.onclick = () => {
         ws.send(JSON.stringify({ type: "update_profile", bio: profileBio.value, age: profileAge.value, phone: profilePhone.value }));
     }
     profileScreen.classList.remove("open");
-    switchTab("chats");
 };
 
 function updateProfileUI(profile, isOther = false) {
@@ -2545,7 +2713,6 @@ document.querySelector(".menu-body").insertBefore(searchUserInput, document.getE
 
 searchUserInput.addEventListener("input", renderUsersList);
 
-// Группы в меню
 function renderGroupsList() {
     const container = document.getElementById("groupsList");
     if (!container) return;
@@ -2560,14 +2727,12 @@ function renderGroupsList() {
         div.innerHTML = `<div class="avatar">👥</div><div class="info"><div class="name">${g.name}</div><div class="last-msg">${g.members.length} участников</div></div>`;
         div.onclick = () => {
             switchToGroup(g.id);
-            switchTab("chats");
             menuPanel.classList.remove("open");
         };
         container.appendChild(div);
     });
 }
 
-// Каналы в меню
 function renderChannelsList() {
     const container = document.getElementById("channelsList");
     if (!container) return;
@@ -2584,7 +2749,6 @@ function renderChannelsList() {
         div.onclick = () => {
             if (isSubscribed) {
                 switchToChannel(c.id);
-                switchTab("chats");
                 menuPanel.classList.remove("open");
             } else {
                 if (ws && ws.readyState === 1) {
@@ -2670,7 +2834,7 @@ function updateOnlineCount() {
 }
 
 // ============================================================
-// ДРУГИЕ ФУНКЦИИ (заглушки для совместимости)
+// ОСТАЛЬНЫЕ ФУНКЦИИ (заглушки)
 // ============================================================
 
 function renderSearchResults(results) {
@@ -2721,28 +2885,6 @@ function sendTyping(isTyping) {
     }
 }
 
-function replyToMessage(msg) {
-    replyToMsg = msg;
-    msgInput.placeholder = `↩️ Ответ: ${(msg.text || "").substring(0, 30)}...`;
-    msgInput.focus();
-}
-
-function editMessage(msg, chatType, chatId) {
-    const newText = prompt("Редактировать сообщение:", msg.text);
-    if (newText && newText.trim() && ws && ws.readyState === 1) {
-        ws.send(JSON.stringify({ type: "edit", id: msg.id, text: newText.trim(), chatType, chatId }));
-    }
-}
-
-function copyMessage(msg) {
-    navigator.clipboard.writeText(msg.text || "");
-}
-
-function forwardMessage(msg) {
-    msgInput.value = msg.text || "";
-    msgInput.focus();
-}
-
 function loadDraft() {
     try {
         const saved = localStorage.getItem(`draft_${currentNick}`);
@@ -2781,13 +2923,19 @@ function sendText() {
         return;
     }
     let text = msgInput.value.trim();
-    if (!text && !pendingImage && !pendingVideo && !pendingFile && !pendingMusic && !pendingVoice && !pendingSticker) return;
+    if (!text && !pendingImage && !pendingVideo && !pendingCircle && !pendingFile && !pendingMusic && !pendingVoice && !pendingSticker) return;
     const replyId = replyToMsg ? replyToMsg.id : null;
     const replyText = replyToMsg ? replyToMsg.text : null;
     
     const data = {
-        text, image: pendingImage, video: pendingVideo, file: pendingFile,
-        music: pendingMusic, voice: pendingVoice, sticker: pendingSticker,
+        text, 
+        image: pendingImage, 
+        video: pendingVideo, 
+        circle: pendingCircle,
+        file: pendingFile,
+        music: pendingMusic, 
+        voice: pendingVoice, 
+        sticker: pendingSticker,
         replyTo: replyId ? { id: replyId, text: replyText } : null
     };
     
@@ -2805,6 +2953,7 @@ function sendText() {
     replyToMsg = null;
     pendingImage = null;
     pendingVideo = null;
+    pendingCircle = null;
     pendingFile = null;
     pendingMusic = null;
     pendingVoice = null;
@@ -2846,6 +2995,124 @@ document.getElementById("attachVideo").onclick = () => {
         reader.readAsDataURL(file);
     };
     input.click();
+};
+
+// ===== КРУЖОЧЕК (ВИДЕОСООБЩЕНИЕ) =====
+document.getElementById("attachCircle").onclick = () => {
+    attachPanel.classList.remove("open");
+    // Запрашиваем доступ к камере
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 480, height: 480 }, audio: true })
+        .then(stream => {
+            // Создаём видео-элемент для предпросмотра
+            const video = document.createElement("video");
+            video.srcObject = stream;
+            video.autoplay = true;
+            video.muted = true;
+            video.playsInline = true;
+            video.style.position = "fixed";
+            video.style.top = "50%";
+            video.style.left = "50%";
+            video.style.transform = "translate(-50%, -50%)";
+            video.style.width = "300px";
+            video.style.height = "300px";
+            video.style.borderRadius = "50%";
+            video.style.objectFit = "cover";
+            video.style.zIndex = "9999";
+            video.style.border = "3px solid #0084ff";
+            document.body.appendChild(video);
+            
+            // Кнопки
+            const controls = document.createElement("div");
+            controls.style.position = "fixed";
+            controls.style.bottom = "100px";
+            controls.style.left = "50%";
+            controls.style.transform = "translateX(-50%)";
+            controls.style.zIndex = "9999";
+            controls.style.display = "flex";
+            controls.style.gap = "20px";
+            
+            const recordBtn = document.createElement("button");
+            recordBtn.textContent = "⏺ Записать";
+            recordBtn.style.padding = "14px 30px";
+            recordBtn.style.borderRadius = "30px";
+            recordBtn.style.border = "none";
+            recordBtn.style.background = "#ff4444";
+            recordBtn.style.color = "white";
+            recordBtn.style.fontWeight = "bold";
+            recordBtn.style.fontSize = "16px";
+            recordBtn.style.cursor = "pointer";
+            
+            const cancelBtn = document.createElement("button");
+            cancelBtn.textContent = "✕ Отмена";
+            cancelBtn.style.padding = "14px 30px";
+            cancelBtn.style.borderRadius = "30px";
+            cancelBtn.style.border = "none";
+            cancelBtn.style.background = "rgba(0,0,0,0.5)";
+            cancelBtn.style.color = "white";
+            cancelBtn.style.fontWeight = "bold";
+            cancelBtn.style.fontSize = "16px";
+            cancelBtn.style.cursor = "pointer";
+            
+            controls.appendChild(recordBtn);
+            controls.appendChild(cancelBtn);
+            document.body.appendChild(controls);
+            
+            let mediaRecorderCircle = null;
+            let chunks = [];
+            let isRecordingCircle = false;
+            
+            recordBtn.onclick = () => {
+                if (!isRecordingCircle) {
+                    // Начинаем запись
+                    chunks = [];
+                    mediaRecorderCircle = new MediaRecorder(stream, { mimeType: "video/webm" });
+                    mediaRecorderCircle.ondataavailable = (e) => chunks.push(e.data);
+                    mediaRecorderCircle.onstop = () => {
+                        const blob = new Blob(chunks, { type: "video/webm" });
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            pendingCircle = reader.result;
+                            sendText();
+                            // Очищаем
+                            document.body.removeChild(video);
+                            document.body.removeChild(controls);
+                            stream.getTracks().forEach(t => t.stop());
+                        };
+                        reader.readAsDataURL(blob);
+                    };
+                    mediaRecorderCircle.start();
+                    isRecordingCircle = true;
+                    recordBtn.textContent = "⏹ Остановить";
+                    recordBtn.style.background = "#ff8800";
+                } else {
+                    // Останавливаем запись
+                    if (mediaRecorderCircle && mediaRecorderCircle.state === "recording") {
+                        mediaRecorderCircle.stop();
+                        isRecordingCircle = false;
+                    }
+                }
+            };
+            
+            cancelBtn.onclick = () => {
+                if (mediaRecorderCircle && mediaRecorderCircle.state === "recording") {
+                    mediaRecorderCircle.stop();
+                }
+                document.body.removeChild(video);
+                document.body.removeChild(controls);
+                stream.getTracks().forEach(t => t.stop());
+            };
+            
+            // Авто-остановка через 30 секунд
+            setTimeout(() => {
+                if (isRecordingCircle && mediaRecorderCircle && mediaRecorderCircle.state === "recording") {
+                    mediaRecorderCircle.stop();
+                    isRecordingCircle = false;
+                }
+            }, 30000);
+        })
+        .catch(err => {
+            alert("❌ Нет доступа к камере: " + err.message);
+        });
 };
 
 document.getElementById("attachMusic").onclick = () => {
