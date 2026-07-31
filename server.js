@@ -227,7 +227,7 @@ function sendChannelMessage(channelId, from, msgData) {
         text: escapeHtml((msgData.text || "").slice(0, 500)),
         image: msgData.image || null,
         video: msgData.video || null,
-        circle: msgData.circle || null,  // ← КРУЖОЧЕК
+        circle: msgData.circle || null,
         file: msgData.file || null,
         music: msgData.music || null,
         voice: msgData.voice || null,
@@ -311,7 +311,7 @@ function sendGroupMessage(groupId, from, msgData) {
         text: escapeHtml((msgData.text || "").slice(0, 500)),
         image: msgData.image || null,
         video: msgData.video || null,
-        circle: msgData.circle || null,  // ← КРУЖОЧЕК
+        circle: msgData.circle || null,
         file: msgData.file || null,
         music: msgData.music || null,
         voice: msgData.voice || null,
@@ -438,30 +438,60 @@ function updateReaction(type, id, from, reaction, remove) {
     broadcast({ type: "reaction_update", id, from, reaction, remove });
 }
 
-function editMessage(chatType, chatId, msgId, newText, editor) {
+// ============================================================
+// РЕДАКТИРОВАНИЕ (С СОХРАНЕНИЕМ СТАРОГО ТЕКСТА)
+// ============================================================
+
+function editMessage(chatType, chatId, msgId, newText, oldText, editor) {
     let target = null;
-    if (chatType === "public") target = history.find(x => x.id === msgId);
-    else if (chatType === "private") {
+    let targetArray = null;
+    
+    if (chatType === "public") {
+        target = history.find(x => x.id === msgId);
+        targetArray = history;
+    } else if (chatType === "private") {
         for (const key in privateHistory) {
             const idx = privateHistory[key].findIndex(x => x.id === msgId);
-            if (idx !== -1) { target = privateHistory[key][idx]; break; }
+            if (idx !== -1) {
+                target = privateHistory[key][idx];
+                targetArray = privateHistory[key];
+                break;
+            }
         }
     } else if (chatType === "group" && groups[chatId]) {
         target = groups[chatId].messages.find(x => x.id === msgId);
+        targetArray = groups[chatId].messages;
     } else if (chatType === "channel" && channels[chatId]) {
         target = channels[chatId].messages.find(x => x.id === msgId);
+        targetArray = channels[chatId].messages;
     }
+    
     if (!target) return false;
     if (target.owner !== editor && target.from !== editor && editor !== "Дима") return false;
+    
+    // Сохраняем старый текст перед редактированием
+    const oldTextValue = target.text || "";
     target.text = escapeHtml(newText.slice(0, 500));
     target.edited = true;
+    target.oldText = oldTextValue; // Сохраняем старый текст
+    
     if (chatType === "public") savePublic();
     else if (chatType === "private") savePrivate();
     else if (chatType === "group") saveGroups();
     else if (chatType === "channel") saveChannels();
-    broadcast({ type: "edit", id: msgId, newText: target.text });
+    
+    broadcast({ 
+        type: "edit", 
+        id: msgId, 
+        newText: target.text,
+        oldText: oldTextValue
+    });
     return true;
 }
+
+// ============================================================
+// УДАЛЕНИЕ
+// ============================================================
 
 function deleteMessage(chatType, chatId, msgId, deleter) {
     let target = null;
@@ -513,7 +543,7 @@ function saveData() {
 }
 
 // ============================================================
-// ЗАГРУЗКА ФАЙЛОВ (включая кружочки)
+// ЗАГРУЗКА ФАЙЛОВ
 // ============================================================
 
 function handleUpload(ws, msg, folder, type) {
@@ -808,9 +838,16 @@ wss.on("connection", (ws) => {
         }
 
         if (msg.type === "invite_to_group") {
+            // Проверяем, существует ли пользователь
+            if (!nickExistsInDB(msg.nick)) {
+                ws.send(JSON.stringify({ type: "error", text: `Пользователь "${msg.nick}" не найден` }));
+                return;
+            }
             if (addToGroup(msg.groupId, msg.nick, currentUser)) {
                 ws.send(JSON.stringify({ type: "invite_sent", groupId: msg.groupId, nick: msg.nick }));
                 sendToUser(msg.nick, { type: "group_invite", groupId: msg.groupId, from: currentUser });
+            } else {
+                ws.send(JSON.stringify({ type: "error", text: "Пользователь уже в группе" }));
             }
             return;
         }
@@ -898,7 +935,7 @@ wss.on("connection", (ws) => {
                 text: escapeHtml((msg.text || "").slice(0, 500)),
                 image: msg.image || null,
                 video: msg.video || null,
-                circle: msg.circle || null,  // ← КРУЖОЧЕК
+                circle: msg.circle || null,
                 file: msg.file || null,
                 music: msg.music || null,
                 voice: msg.voice || null,
@@ -909,7 +946,9 @@ wss.on("connection", (ws) => {
                 timeFormatted: formatTime(Date.now()),
                 reactions: {},
                 readBy: [currentUser],
-                replyTo: msg.replyTo || null
+                replyTo: msg.replyTo || null,
+                edited: false,
+                oldText: null
             };
             history.push(m);
             if (history.length > 500) history = history.slice(-500);
@@ -942,7 +981,7 @@ wss.on("connection", (ws) => {
                 text: escapeHtml((msg.text || "").slice(0, 500)),
                 image: msg.image || null,
                 video: msg.video || null,
-                circle: msg.circle || null,  // ← КРУЖОЧЕК
+                circle: msg.circle || null,
                 file: msg.file || null,
                 music: msg.music || null,
                 voice: msg.voice || null,
@@ -952,7 +991,9 @@ wss.on("connection", (ws) => {
                 timeFormatted: formatTime(Date.now()),
                 reactions: {},
                 readBy: [currentUser],
-                replyTo: msg.replyTo || null
+                replyTo: msg.replyTo || null,
+                edited: false,
+                oldText: null
             };
             privateHistory[key].push(m);
             if (privateHistory[key].length > 500) privateHistory[key] = privateHistory[key].slice(-500);
@@ -964,9 +1005,9 @@ wss.on("connection", (ws) => {
             return;
         }
 
-        // ===== РЕДАКТИРОВАНИЕ =====
+        // ===== РЕДАКТИРОВАНИЕ (С СОХРАНЕНИЕМ СТАРОГО ТЕКСТА) =====
         if (msg.type === "edit") {
-            if (editMessage(msg.chatType, msg.chatId, msg.id, msg.text, currentUser)) {
+            if (editMessage(msg.chatType, msg.chatId, msg.id, msg.text, msg.oldText, currentUser)) {
                 ws.send(JSON.stringify({ type: "edit_success", id: msg.id }));
             }
             return;
