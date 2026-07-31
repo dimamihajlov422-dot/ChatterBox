@@ -7,10 +7,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="format-detection" content="telephone=no">
     <title>ChatterBox</title>
     <style>
-        /* ===== ВЕСЬ CSS (ТАКОЙ ЖЕ КАК БЫЛ) ===== */
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 :root {
@@ -54,7 +52,6 @@ body.dark {
     --msg-own: rgba(0,132,255,0.6);
 }
 
-/* ===== ВОЛНЫ ===== */
 body::before {
     content: '';
     position: fixed;
@@ -79,7 +76,6 @@ body.dark::before {
         linear-gradient(135deg, #1a2a3a 0%, #1a2a2a 50%, #2a1a1a 100%);
 }
 
-/* ===== ФОН ЧАТА ===== */
 .chat {
     flex: 1;
     overflow-y: auto;
@@ -101,7 +97,6 @@ body.dark .chat {
 .chat::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 10px; }
 body.dark .chat::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
 
-/* ===== ОБЩИЕ СТИЛИ ===== */
 .auth-screen, .main-app, .attach-panel, .message-menu, .menu-panel, 
 .incoming-call, .call-status, .group-members-panel, .modal, .profile-screen,
 .settings-screen, .channels-screen, .contacts-screen, .groups-screen,
@@ -112,7 +107,6 @@ body.dark .chat::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
 
 .hidden { display: none !important; }
 
-/* ===== ЭКРАН ВХОДА ===== */
 .auth-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -183,7 +177,6 @@ body.dark .auth-card .remember { color: #aaa; }
 .error-msg { color: #d32f2f; text-align: center; font-size: 13px; margin-top: 12px; }
 body.dark .error-msg { color: #ef9a9a; }
 
-/* ===== ОСНОВНОЕ ПРИЛОЖЕНИЕ ===== */
 .main-app { 
     display: flex; 
     flex-direction: column; 
@@ -193,7 +186,6 @@ body.dark .error-msg { color: #ef9a9a; }
 }
 .main-app.hidden { display: none; }
 
-/* ===== ШАПКА ===== */
 .header {
     background: var(--card-bg);
     backdrop-filter: blur(20px);
@@ -257,7 +249,6 @@ body.dark .connection-status.online { color: #66bb6a; }
 body.dark .connection-status.offline { color: #ef5350; }
 body.dark .connection-status.connecting { color: #ffca28; }
 
-/* ===== ПОИСК ===== */
 .search-overlay {
     position: fixed;
     top: 0;
@@ -321,7 +312,6 @@ body.dark .search-overlay .search-box .results .result-item:hover { background: 
     color: white;
 }
 
-/* ===== РЕЖИМНАЯ ПАНЕЛЬ ===== */
 .mode-bar {
     background: var(--card-bg);
     backdrop-filter: blur(12px);
@@ -342,7 +332,6 @@ body.dark .mode-bar button { background: var(--border-dark); border-color: var(-
 .mode-bar .call-buttons { display: flex; gap: 6px; }
 .mode-bar .call-buttons button { background: rgba(46,125,50,0.15); border-color: rgba(46,125,50,0.1); }
 
-/* ===== СООБЩЕНИЯ ===== */
 .message {
     max-width: 80%;
     padding: 8px 12px;
@@ -384,7 +373,6 @@ body.dark .message { background: var(--msg-bg); border-color: rgba(255,255,255,0
 .message .read-status.read { color: #4caf50; }
 .message .mention { background: rgba(0,132,255,0.15); border-radius: 12px; padding: 2px 6px; cursor: pointer; display: inline-block; }
 
-/* ===== ВИДЕОСООБЩЕНИЯ (КРУЖОЧКИ) ===== */
 .message .video-message {
     width: 150px;
     height: 150px;
@@ -482,7 +470,6 @@ body.dark .message { background: var(--msg-bg); border-color: rgba(255,255,255,0
 .message .reaction { font-size: 14px; cursor: pointer; padding: 2px 6px; background: rgba(0,0,0,0.04); border-radius: 16px; transition: 0.2s; }
 .message .reaction:active { transform: scale(0.9); }
 
-/* ===== ДАТА-РАЗДЕЛИТЕЛИ ===== */
 .date-divider {
     text-align: center;
     font-size: 12px;
@@ -492,11 +479,9 @@ body.dark .message { background: var(--msg-bg); border-color: rgba(255,255,255,0
 }
 body.dark .date-divider { color: #aaa; }
 
-/* ===== ТАЙПИНГ ===== */
 .typing-indicator { font-size: 12px; color: #666; padding: 4px 12px; font-style: italic; }
 body.dark .typing-indicator { color: #aaa; }
 
-/* ===== ПАНЕЛЬ ВВОДА ===== */
 .input-bar {
     background: var(--card-bg);
     backdrop-filter: blur(20px);
@@ -542,7 +527,6 @@ body.dark .input-bar button { background: var(--border-dark); border-color: var(
 #attachBtn { background: var(--border); }
 body.dark #attachBtn { background: var(--border-dark); }
 
-/* ===== ПАНЕЛЬ ВЛОЖЕНИЙ ===== */
 .attach-panel {
     position: fixed;
     bottom: 80px;
@@ -578,7 +562,6 @@ body.dark .attach-panel { background: var(--card-bg-dark); border-color: var(--b
 .attach-item span:first-child { font-size: 24px; }
 .attach-item span:last-child { font-size: 10px; opacity: 0.6; }
 
-/* ===== МЕНЮ СООБЩЕНИЯ ===== */
 .message-menu {
     position: fixed;
     background: var(--card-bg);
@@ -609,7 +592,6 @@ body.dark .message-menu { background: var(--card-bg-dark); border-color: var(--b
 .message-menu span:hover { background: var(--border); }
 body.dark .message-menu span:hover { background: var(--border-dark); }
 
-/* ===== ГЛАВНОЕ МЕНЮ ===== */
 .menu-panel {
     position: fixed;
     top: 0;
@@ -689,7 +671,6 @@ body.dark .menu-item { background: var(--border-dark); }
 }
 body.dark .menu-divider { background: var(--border-dark); }
 
-/* ===== НАСТРОЙКИ ===== */
 .settings-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -737,7 +718,6 @@ body.dark .settings-item { background: var(--border-dark); }
 .settings-item.danger { color: #d32f2f; }
 body.dark .settings-item.danger { color: #ef9a9a; }
 
-/* ===== ПРОФИЛЬ ===== */
 .profile-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -796,7 +776,6 @@ body.dark .profile-save { background: var(--border-dark); border-color: var(--bo
 .profile-save:active { transform: scale(0.97); }
 .profile-reputation { text-align: center; padding: 6px; font-size: 14px; color: #888; }
 
-/* ===== КАНАЛЫ ===== */
 .channels-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -839,7 +818,6 @@ body.dark .channel-item { background: var(--border-dark); }
 .channel-item .status { font-size: 12px; padding: 2px 10px; border-radius: 12px; background: rgba(0,132,255,0.1); color: #0084ff; }
 .channel-item .status.subscribed { background: rgba(76,175,80,0.15); color: #4caf50; }
 
-/* ===== КОНТАКТЫ ===== */
 .contacts-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -893,7 +871,6 @@ body.dark .contact-item { background: var(--border-dark); }
 .contact-item .info .name { font-weight: 600; }
 .contact-item .info .status { font-size: 12px; opacity: 0.5; }
 
-/* ===== ГРУППЫ ===== */
 .groups-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -921,7 +898,6 @@ body.dark .groups-header { background: rgba(0,0,0,0.2); border-color: var(--bord
 .groups-header span { font-size: 18px; font-weight: 600; }
 .groups-body { flex: 1; padding: 16px 20px; }
 
-/* ===== ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ ===== */
 .privacy-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -950,7 +926,6 @@ body.dark .privacy-header { background: rgba(0,0,0,0.2); border-color: var(--bor
 .privacy-body { flex: 1; padding: 20px; }
 .privacy-body p { margin-bottom: 12px; line-height: 1.6; font-size: 15px; color: var(--text); }
 
-/* ===== ОСТАЛЬНЫЕ ЭЛЕМЕНТЫ ===== */
 .incoming-call {
     position: fixed;
     bottom: 90px;
@@ -1065,7 +1040,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
 
 .loading-indicator { text-align: center; padding: 20px; color: #888; font-style: italic; }
 
-/* ===== АДАПТИВ ===== */
 @media (max-width: 480px) {
     .message { max-width: 90%; }
     .menu-panel { width: 100%; }
@@ -1075,12 +1049,10 @@ body.dark .group-members-panel .member button { color: var(--text); }
     .message .video-message { width: 120px; height: 120px; }
 }
 
-/* ===== ШРИФТЫ ===== */
 .font-small { --font-size: 13px; }
 .font-medium { --font-size: 15px; }
 .font-large { --font-size: 17px; }
 
-/* ===== КВАДРАТНЫЕ АВАТАРКИ ===== */
 .profile-avatar,
 .avatar,
 .menu-header .user-info .avatar,
@@ -1142,7 +1114,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
-<!-- ===== ПОИСК ===== -->
 <div class="search-overlay" id="searchOverlay">
     <div class="search-box">
         <input type="text" id="searchInputGlobal" placeholder="🔍 Поиск пользователей, групп, каналов...">
@@ -1151,7 +1122,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="close-search" id="closeSearch">✕</div>
 </div>
 
-<!-- ===== ПАНЕЛЬ ВЛОЖЕНИЙ ===== -->
 <div class="attach-panel" id="attachPanel">
     <div class="attach-item" id="attachPhoto"><span>🖼️</span><span>Фото</span></div>
     <div class="attach-item" id="attachVideo"><span>🎥</span><span>Видео</span></div>
@@ -1164,7 +1134,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="attach-item" id="attachPoll"><span>📊</span><span>Опрос</span></div>
 </div>
 
-<!-- ===== МЕНЮ СООБЩЕНИЯ ===== -->
 <div class="message-menu" id="messageMenu">
     <span id="menuEdit">✏️ Редактировать</span>
     <span id="menuCopy">📋 Копировать</span>
@@ -1176,7 +1145,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <span id="menuDelete">🗑️ Удалить</span>
 </div>
 
-<!-- ===== ГЛАВНОЕ МЕНЮ ===== -->
 <div class="menu-panel" id="menuPanel">
     <div class="menu-header">
         <div class="user-info">
@@ -1207,7 +1175,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
-<!-- ===== НАСТРОЙКИ ===== -->
 <div class="settings-screen" id="settingsScreen">
     <div class="settings-header">
         <button id="closeSettings">←</button>
@@ -1228,7 +1195,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
-<!-- ===== ПРОФИЛЬ ===== -->
 <div class="profile-screen" id="profileScreen">
     <div class="profile-header">
         <button id="closeProfile">←</button>
@@ -1249,7 +1215,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
-<!-- ===== КАНАЛЫ ===== -->
 <div class="channels-screen" id="channelsScreen">
     <div class="channels-header">
         <button id="closeChannels">←</button>
@@ -1258,7 +1223,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="channels-body" id="channelsList"></div>
 </div>
 
-<!-- ===== КОНТАКТЫ ===== -->
 <div class="contacts-screen" id="contactsScreen">
     <div class="contacts-header">
         <button id="closeContacts">←</button>
@@ -1267,7 +1231,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="contacts-body" id="contactsList"></div>
 </div>
 
-<!-- ===== ГРУППЫ ===== -->
 <div class="groups-screen" id="groupsScreen">
     <div class="groups-header">
         <button id="closeGroups">←</button>
@@ -1276,7 +1239,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="groups-body" id="groupsListScreen"></div>
 </div>
 
-<!-- ===== ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ ===== -->
 <div class="privacy-screen" id="privacyScreen">
     <div class="privacy-header">
         <button id="closePrivacy">←</button>
@@ -1295,7 +1257,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
-<!-- ===== ОСТАЛЬНЫЕ ЭЛЕМЕНТЫ ===== -->
 <div class="group-members-panel" id="groupMembersPanel">
     <div style="font-weight: bold; text-align: center;">👥 Участники группы</div>
     <div id="membersList"></div>
@@ -1319,7 +1280,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
 
 <script>
 // ============================================================
-// ПОЛНЫЙ JS КОД
+// ПОЛНЫЙ JS КОД (ИСПРАВЛЕННЫЙ)
 // ============================================================
 
 // ===== DOM ЭЛЕМЕНТЫ =====
@@ -1335,7 +1296,6 @@ const mainApp = document.getElementById("mainApp");
 const currentNickSpan = document.getElementById("currentNick");
 const onlineCount = document.getElementById("onlineCount");
 const connectionStatus = document.getElementById("connectionStatus");
-const logoutBtn = document.getElementById("logoutBtn");
 const searchInputGlobal = document.getElementById("searchInputGlobal");
 const searchOverlay = document.getElementById("searchOverlay");
 const closeSearch = document.getElementById("closeSearch");
@@ -1635,9 +1595,13 @@ function connect() {
             updateMenuUI();
         }
         if (d.type === "private_msg") {
-            if (currentMode === "private" && currentPrivateWith === d.with) addPrivateMessage(d.data);
-            else { markUnread(`private_${d.with}`, d.data.id); }
+            if (currentMode === "private" && currentPrivateWith === d.with) {
+                addPrivateMessage(d.data);
+            } else {
+                markUnread(`private_${d.with}`, d.data.id);
+            }
             notify(`📩 ${d.with}: ${d.data.text}`);
+            return;
         }
         if (d.type === "private_history" && currentMode === "private" && currentPrivateWith === d.with) {
             loadingIndicator.classList.add("hidden");
@@ -1703,7 +1667,15 @@ function connect() {
                 const textSpan = el.querySelector(".msg-text");
                 const editedSpan = el.querySelector(".edited-text");
                 if (textSpan) textSpan.textContent = d.newText;
-                if (editedSpan) editedSpan.textContent = `✏️ было: ${d.oldText || ""}`;
+                if (editedSpan) {
+                    // Если есть старый текст, показываем его
+                    if (d.oldText) {
+                        editedSpan.textContent = `✏️ было: ${d.oldText}`;
+                        editedSpan.style.display = "block";
+                    } else {
+                        editedSpan.style.display = "none";
+                    }
+                }
             }
         }
         if (d.type === "typing") {
@@ -1767,8 +1739,6 @@ authActionBtn.onclick = () => {
     if (!password || password.length < 3) { authError.textContent = "Пароль от 3 символов"; return; }
     ws.send(JSON.stringify({ type: isLoginMode ? "login" : "register", nick, password, remember: rememberMe.checked }));
 };
-
-// ===== УБРАЛИ КНОПКУ ВЫЙТИ ИЗ ШАПКИ =====
 
 // ============================================================
 // ЧАТЫ
@@ -1879,7 +1849,6 @@ backBtn.onclick = () => {
     else switchToPublic();
 };
 
-// ===== КЛИК ПО ChatterBox ВОЗВРАЩАЕТ В ОБЩИЙ ЧАТ =====
 navCenter.onclick = () => {
     if (currentMode !== "public") {
         switchToPublic();
@@ -1927,7 +1896,6 @@ function addMessage(m) {
         div.appendChild(replyDiv);
     }
     
-    // ===== ВИДЕОСООБЩЕНИЕ (КРУЖОК) =====
     if (m.circle) {
         const circleDiv = document.createElement("div");
         circleDiv.className = "video-message";
@@ -2060,7 +2028,6 @@ function addMessage(m) {
     }
     div.appendChild(textSpan);
     
-    // ===== ПОКАЗЫВАЕМ СТАРЫЙ ТЕКСТ ПРИ РЕДАКТИРОВАНИИ =====
     if (m.edited && m.oldText) {
         const editedSpan = document.createElement("span");
         editedSpan.className = "edited-text";
@@ -2108,6 +2075,661 @@ function addMessage(m) {
         ws.send(JSON.stringify({ type: "mark_read", chatType: currentMode === "private" ? "private" : currentMode === "group" ? "group" : "channel", chatId: currentMode === "private" ? currentPrivateWith : currentMode === "group" ? currentGroupId : currentChannelId, msgId: m.id }));
     }
 }
+
+// ===== ПРИВАТНЫЕ СООБЩЕНИЯ =====
+function renderPrivateMessages(messages) {
+    chatDiv.innerHTML = "";
+    let lastDate = "";
+    messages.forEach(m => {
+        const msgDate = formatDate(m.time);
+        if (msgDate !== lastDate) {
+            const div = document.createElement("div");
+            div.className = "date-divider";
+            div.textContent = msgDate;
+            chatDiv.appendChild(div);
+            lastDate = msgDate;
+        }
+        addPrivateMessage(m);
+    });
+    clearUnread(`private_${currentPrivateWith}`);
+}
+
+function addPrivateMessage(m) {
+    const div = document.createElement("div");
+    div.className = "message";
+    const isOwn = (m.from === currentNick);
+    if (isOwn) div.classList.add("own");
+    div.id = m.id;
+    
+    const authorSpan = document.createElement("div");
+    authorSpan.className = "author";
+    authorSpan.textContent = m.from;
+    if (m.from === "Дима") authorSpan.innerHTML = 'Дима <span class="star">⭐</span>';
+    authorSpan.onclick = () => viewProfile(m.from);
+    div.appendChild(authorSpan);
+    
+    if (m.replyTo) {
+        const replyDiv = document.createElement("div");
+        replyDiv.className = "reply-header";
+        replyDiv.textContent = `↩️ Ответ на: ${(m.replyTo.text || "").substring(0, 50)}`;
+        div.appendChild(replyDiv);
+    }
+    
+    if (m.circle) {
+        const circleDiv = document.createElement("div");
+        circleDiv.className = "video-message";
+        const video = document.createElement("video");
+        video.src = m.circle;
+        video.muted = true;
+        video.playsInline = true;
+        video.loop = false;
+        const playBtn = document.createElement("div");
+        playBtn.className = "play-btn";
+        playBtn.textContent = "▶";
+        const duration = document.createElement("div");
+        duration.className = "duration";
+        duration.textContent = "0:05";
+        
+        video.onloadedmetadata = () => {
+            const mins = Math.floor(video.duration / 60);
+            const secs = Math.floor(video.duration % 60);
+            duration.textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
+        };
+        
+        let isPlaying = false;
+        circleDiv.onclick = () => {
+            if (isPlaying) {
+                video.pause();
+                playBtn.textContent = "▶";
+                isPlaying = false;
+            } else {
+                video.play();
+                playBtn.textContent = "⏸";
+                isPlaying = true;
+                video.onended = () => {
+                    playBtn.textContent = "▶";
+                    isPlaying = false;
+                };
+            }
+        };
+        
+        circleDiv.appendChild(video);
+        circleDiv.appendChild(playBtn);
+        circleDiv.appendChild(duration);
+        div.appendChild(circleDiv);
+    }
+    
+    if (m.image) {
+        const img = document.createElement("img");
+        img.src = m.image;
+        img.onclick = () => openModal(m.image);
+        div.appendChild(img);
+    }
+    if (m.video) {
+        const video = document.createElement("video");
+        video.src = m.video;
+        video.controls = true;
+        video.style.maxWidth = "200px";
+        video.style.borderRadius = "12px";
+        div.appendChild(video);
+    }
+    if (m.file) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "file-attach";
+        fileDiv.innerHTML = `📎 ${m.file.name}`;
+        fileDiv.onclick = () => window.open(m.file.url);
+        div.appendChild(fileDiv);
+    }
+    if (m.music) {
+        const musicDiv = document.createElement("div");
+        musicDiv.className = "music-attach";
+        musicDiv.innerHTML = `🎵 ${m.music.name} ▶️`;
+        musicDiv.onclick = () => { const audio = new Audio(m.music.url); audio.play(); };
+        div.appendChild(musicDiv);
+    }
+    if (m.voice) {
+        const voiceDiv = document.createElement("div");
+        voiceDiv.className = "voice-note";
+        const audio = new Audio(m.voice);
+        let isPlaying = false;
+        const waveform = document.createElement("div");
+        waveform.className = "waveform";
+        for (let i = 0; i < 20; i++) {
+            const bar = document.createElement("div");
+            bar.className = "bar";
+            bar.style.height = (Math.random() * 12 + 4) + "px";
+            waveform.appendChild(bar);
+        }
+        const progressBar = document.createElement("div");
+        progressBar.className = "progress-bar";
+        progressBar.style.width = "0%";
+        const timeLabel = document.createElement("span");
+        timeLabel.className = "time-label";
+        timeLabel.textContent = "0:00";
+        voiceDiv.innerHTML = "🎙️ ";
+        voiceDiv.appendChild(waveform);
+        voiceDiv.appendChild(progressBar);
+        voiceDiv.appendChild(timeLabel);
+        voiceDiv.onclick = () => {
+            if (isPlaying) { audio.pause(); isPlaying = false; }
+            else { audio.play(); isPlaying = true; }
+        };
+        audio.ontimeupdate = () => {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            progressBar.style.width = progress + "%";
+            const mins = Math.floor(audio.currentTime / 60);
+            const secs = Math.floor(audio.currentTime % 60);
+            timeLabel.textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
+        };
+        audio.onended = () => { isPlaying = false; progressBar.style.width = "0%"; timeLabel.textContent = "0:00"; };
+        div.appendChild(voiceDiv);
+    }
+    if (m.location) {
+        const locDiv = document.createElement("div");
+        locDiv.className = "location";
+        locDiv.innerHTML = "📍 Геолокация";
+        locDiv.onclick = () => window.open(`https://maps.google.com/?q=${m.location.lat},${m.location.lng}`);
+        div.appendChild(locDiv);
+    }
+    if (m.sticker) {
+        const img = document.createElement("img");
+        img.src = m.sticker;
+        img.className = "sticker";
+        div.appendChild(img);
+    }
+    
+    const textSpan = document.createElement("span");
+    textSpan.className = "msg-text";
+    if (m.circle) {
+        textSpan.textContent = "📹 Видеосообщение";
+    } else {
+        textSpan.innerHTML = (isOwn ? "→ " : "← ") + formatTextWithTags(m.text || "");
+    }
+    div.appendChild(textSpan);
+    
+    if (m.edited && m.oldText) {
+        const editedSpan = document.createElement("span");
+        editedSpan.className = "edited-text";
+        editedSpan.textContent = `✏️ было: ${m.oldText}`;
+        div.appendChild(editedSpan);
+    }
+    
+    const readSpan = document.createElement("span");
+    readSpan.className = "read-status";
+    readSpan.innerHTML = m.readBy?.includes(currentNick) ? '✓✓' : '✓';
+    if (m.readBy?.includes(currentNick)) readSpan.classList.add("read");
+    const timeSpan = document.createElement("div");
+    timeSpan.className = "time";
+    timeSpan.appendChild(document.createTextNode(m.timeFormatted || ""));
+    timeSpan.appendChild(readSpan);
+    div.appendChild(timeSpan);
+    
+    if (m.reactions && Object.keys(m.reactions).length > 0) {
+        const reactionsDiv = document.createElement("div");
+        reactionsDiv.className = "reactions";
+        const grouped = {};
+        Object.entries(m.reactions).forEach(([user, r]) => {
+            if (!grouped[r]) grouped[r] = [];
+            grouped[r].push(user);
+        });
+        Object.entries(grouped).forEach(([r, users]) => {
+            const rSpan = document.createElement("span");
+            rSpan.className = "reaction";
+            rSpan.textContent = `${r} ${users.length}`;
+            rSpan.onclick = (e) => {
+                e.stopPropagation();
+                ws.send(JSON.stringify({ type: "reaction", chatType: "private", id: m.id, reaction: r, remove: users.includes(currentNick) }));
+            };
+            reactionsDiv.appendChild(rSpan);
+        });
+        div.appendChild(reactionsDiv);
+    }
+    
+    attachMessageMenu(div, m, "private", getPrivateKey(currentNick, currentPrivateWith));
+    div.ondblclick = () => { ws.send(JSON.stringify({ type: "reaction", chatType: "private", id: m.id, reaction: "❤️" })); };
+    attachSwipeReply(div, m);
+    chatDiv.appendChild(div);
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+    ws.send(JSON.stringify({ type: "mark_read", chatType: "private", chatId: currentPrivateWith, msgId: m.id }));
+}
+
+// ===== ГРУППОВЫЕ СООБЩЕНИЯ =====
+function renderGroupMessages(messages) {
+    chatDiv.innerHTML = "";
+    let lastDate = "";
+    messages.forEach(m => {
+        const msgDate = formatDate(m.time);
+        if (msgDate !== lastDate) {
+            const div = document.createElement("div");
+            div.className = "date-divider";
+            div.textContent = msgDate;
+            chatDiv.appendChild(div);
+            lastDate = msgDate;
+        }
+        addGroupMessage(m);
+    });
+    clearUnread(`group_${currentGroupId}`);
+}
+
+function addGroupMessage(m) {
+    const div = document.createElement("div");
+    div.className = "message";
+    const isOwn = (m.from === currentNick);
+    if (isOwn) div.classList.add("own");
+    div.id = m.id;
+    
+    const authorSpan = document.createElement("div");
+    authorSpan.className = "author";
+    authorSpan.textContent = m.from;
+    if (m.from === "Дима") authorSpan.innerHTML = 'Дима <span class="star">⭐</span>';
+    authorSpan.onclick = () => viewProfile(m.from);
+    div.appendChild(authorSpan);
+    
+    if (m.replyTo) {
+        const replyDiv = document.createElement("div");
+        replyDiv.className = "reply-header";
+        replyDiv.textContent = `↩️ Ответ на: ${(m.replyTo.text || "").substring(0, 50)}`;
+        div.appendChild(replyDiv);
+    }
+    
+    if (m.circle) {
+        const circleDiv = document.createElement("div");
+        circleDiv.className = "video-message";
+        const video = document.createElement("video");
+        video.src = m.circle;
+        video.muted = true;
+        video.playsInline = true;
+        video.loop = false;
+        const playBtn = document.createElement("div");
+        playBtn.className = "play-btn";
+        playBtn.textContent = "▶";
+        const duration = document.createElement("div");
+        duration.className = "duration";
+        duration.textContent = "0:05";
+        
+        video.onloadedmetadata = () => {
+            const mins = Math.floor(video.duration / 60);
+            const secs = Math.floor(video.duration % 60);
+            duration.textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
+        };
+        
+        let isPlaying = false;
+        circleDiv.onclick = () => {
+            if (isPlaying) {
+                video.pause();
+                playBtn.textContent = "▶";
+                isPlaying = false;
+            } else {
+                video.play();
+                playBtn.textContent = "⏸";
+                isPlaying = true;
+                video.onended = () => {
+                    playBtn.textContent = "▶";
+                    isPlaying = false;
+                };
+            }
+        };
+        
+        circleDiv.appendChild(video);
+        circleDiv.appendChild(playBtn);
+        circleDiv.appendChild(duration);
+        div.appendChild(circleDiv);
+    }
+    
+    if (m.image) {
+        const img = document.createElement("img");
+        img.src = m.image;
+        img.onclick = () => openModal(m.image);
+        div.appendChild(img);
+    }
+    if (m.video) {
+        const video = document.createElement("video");
+        video.src = m.video;
+        video.controls = true;
+        video.style.maxWidth = "200px";
+        video.style.borderRadius = "12px";
+        div.appendChild(video);
+    }
+    if (m.file) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "file-attach";
+        fileDiv.innerHTML = `📎 ${m.file.name}`;
+        fileDiv.onclick = () => window.open(m.file.url);
+        div.appendChild(fileDiv);
+    }
+    if (m.music) {
+        const musicDiv = document.createElement("div");
+        musicDiv.className = "music-attach";
+        musicDiv.innerHTML = `🎵 ${m.music.name} ▶️`;
+        musicDiv.onclick = () => { const audio = new Audio(m.music.url); audio.play(); };
+        div.appendChild(musicDiv);
+    }
+    if (m.voice) {
+        const voiceDiv = document.createElement("div");
+        voiceDiv.className = "voice-note";
+        const audio = new Audio(m.voice);
+        let isPlaying = false;
+        const waveform = document.createElement("div");
+        waveform.className = "waveform";
+        for (let i = 0; i < 20; i++) {
+            const bar = document.createElement("div");
+            bar.className = "bar";
+            bar.style.height = (Math.random() * 12 + 4) + "px";
+            waveform.appendChild(bar);
+        }
+        const progressBar = document.createElement("div");
+        progressBar.className = "progress-bar";
+        progressBar.style.width = "0%";
+        const timeLabel = document.createElement("span");
+        timeLabel.className = "time-label";
+        timeLabel.textContent = "0:00";
+        voiceDiv.innerHTML = "🎙️ ";
+        voiceDiv.appendChild(waveform);
+        voiceDiv.appendChild(progressBar);
+        voiceDiv.appendChild(timeLabel);
+        voiceDiv.onclick = () => {
+            if (isPlaying) { audio.pause(); isPlaying = false; }
+            else { audio.play(); isPlaying = true; }
+        };
+        audio.ontimeupdate = () => {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            progressBar.style.width = progress + "%";
+            const mins = Math.floor(audio.currentTime / 60);
+            const secs = Math.floor(audio.currentTime % 60);
+            timeLabel.textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
+        };
+        audio.onended = () => { isPlaying = false; progressBar.style.width = "0%"; timeLabel.textContent = "0:00"; };
+        div.appendChild(voiceDiv);
+    }
+    if (m.location) {
+        const locDiv = document.createElement("div");
+        locDiv.className = "location";
+        locDiv.innerHTML = "📍 Геолокация";
+        locDiv.onclick = () => window.open(`https://maps.google.com/?q=${m.location.lat},${m.location.lng}`);
+        div.appendChild(locDiv);
+    }
+    if (m.sticker) {
+        const img = document.createElement("img");
+        img.src = m.sticker;
+        img.className = "sticker";
+        div.appendChild(img);
+    }
+    
+    const textSpan = document.createElement("span");
+    textSpan.className = "msg-text";
+    if (m.circle) {
+        textSpan.textContent = "📹 Видеосообщение";
+    } else {
+        textSpan.innerHTML = formatTextWithTags(m.text || "");
+    }
+    div.appendChild(textSpan);
+    
+    if (m.edited && m.oldText) {
+        const editedSpan = document.createElement("span");
+        editedSpan.className = "edited-text";
+        editedSpan.textContent = `✏️ было: ${m.oldText}`;
+        div.appendChild(editedSpan);
+    }
+    
+    const readSpan = document.createElement("span");
+    readSpan.className = "read-status";
+    readSpan.innerHTML = m.readBy?.includes(currentNick) ? '✓✓' : '✓';
+    if (m.readBy?.includes(currentNick)) readSpan.classList.add("read");
+    const timeSpan = document.createElement("div");
+    timeSpan.className = "time";
+    timeSpan.appendChild(document.createTextNode(m.timeFormatted || ""));
+    timeSpan.appendChild(readSpan);
+    div.appendChild(timeSpan);
+    
+    if (m.reactions && Object.keys(m.reactions).length > 0) {
+        const reactionsDiv = document.createElement("div");
+        reactionsDiv.className = "reactions";
+        const grouped = {};
+        Object.entries(m.reactions).forEach(([user, r]) => {
+            if (!grouped[r]) grouped[r] = [];
+            grouped[r].push(user);
+        });
+        Object.entries(grouped).forEach(([r, users]) => {
+            const rSpan = document.createElement("span");
+            rSpan.className = "reaction";
+            rSpan.textContent = `${r} ${users.length}`;
+            rSpan.onclick = (e) => {
+                e.stopPropagation();
+                ws.send(JSON.stringify({ type: "reaction", chatType: "group", id: m.id, reaction: r, remove: users.includes(currentNick) }));
+            };
+            reactionsDiv.appendChild(rSpan);
+        });
+        div.appendChild(reactionsDiv);
+    }
+    
+    attachMessageMenu(div, m, "group", currentGroupId);
+    div.ondblclick = () => { ws.send(JSON.stringify({ type: "reaction", chatType: "group", id: m.id, reaction: "❤️" })); };
+    attachSwipeReply(div, m);
+    chatDiv.appendChild(div);
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+    ws.send(JSON.stringify({ type: "mark_read", chatType: "group", chatId: currentGroupId, msgId: m.id }));
+}
+
+// ===== КАНАЛЬНЫЕ СООБЩЕНИЯ =====
+function renderChannelMessages(messages) {
+    chatDiv.innerHTML = "";
+    let lastDate = "";
+    messages.forEach(m => {
+        const msgDate = formatDate(m.time);
+        if (msgDate !== lastDate) {
+            const div = document.createElement("div");
+            div.className = "date-divider";
+            div.textContent = msgDate;
+            chatDiv.appendChild(div);
+            lastDate = msgDate;
+        }
+        addChannelMessage(m);
+    });
+    clearUnread(`channel_${currentChannelId}`);
+}
+
+function addChannelMessage(m) {
+    const div = document.createElement("div");
+    div.className = "message";
+    const isOwn = (m.from === currentNick);
+    if (isOwn) div.classList.add("own");
+    div.id = m.id;
+    
+    const authorSpan = document.createElement("div");
+    authorSpan.className = "author";
+    authorSpan.textContent = m.from;
+    if (m.from === "Дима") authorSpan.innerHTML = 'Дима <span class="star">⭐</span>';
+    authorSpan.onclick = () => viewProfile(m.from);
+    div.appendChild(authorSpan);
+    
+    if (m.replyTo) {
+        const replyDiv = document.createElement("div");
+        replyDiv.className = "reply-header";
+        replyDiv.textContent = `↩️ Ответ на: ${(m.replyTo.text || "").substring(0, 50)}`;
+        div.appendChild(replyDiv);
+    }
+    
+    if (m.circle) {
+        const circleDiv = document.createElement("div");
+        circleDiv.className = "video-message";
+        const video = document.createElement("video");
+        video.src = m.circle;
+        video.muted = true;
+        video.playsInline = true;
+        video.loop = false;
+        const playBtn = document.createElement("div");
+        playBtn.className = "play-btn";
+        playBtn.textContent = "▶";
+        const duration = document.createElement("div");
+        duration.className = "duration";
+        duration.textContent = "0:05";
+        
+        video.onloadedmetadata = () => {
+            const mins = Math.floor(video.duration / 60);
+            const secs = Math.floor(video.duration % 60);
+            duration.textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
+        };
+        
+        let isPlaying = false;
+        circleDiv.onclick = () => {
+            if (isPlaying) {
+                video.pause();
+                playBtn.textContent = "▶";
+                isPlaying = false;
+            } else {
+                video.play();
+                playBtn.textContent = "⏸";
+                isPlaying = true;
+                video.onended = () => {
+                    playBtn.textContent = "▶";
+                    isPlaying = false;
+                };
+            }
+        };
+        
+        circleDiv.appendChild(video);
+        circleDiv.appendChild(playBtn);
+        circleDiv.appendChild(duration);
+        div.appendChild(circleDiv);
+    }
+    
+    if (m.image) {
+        const img = document.createElement("img");
+        img.src = m.image;
+        img.onclick = () => openModal(m.image);
+        div.appendChild(img);
+    }
+    if (m.video) {
+        const video = document.createElement("video");
+        video.src = m.video;
+        video.controls = true;
+        video.style.maxWidth = "200px";
+        video.style.borderRadius = "12px";
+        div.appendChild(video);
+    }
+    if (m.file) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "file-attach";
+        fileDiv.innerHTML = `📎 ${m.file.name}`;
+        fileDiv.onclick = () => window.open(m.file.url);
+        div.appendChild(fileDiv);
+    }
+    if (m.music) {
+        const musicDiv = document.createElement("div");
+        musicDiv.className = "music-attach";
+        musicDiv.innerHTML = `🎵 ${m.music.name} ▶️`;
+        musicDiv.onclick = () => { const audio = new Audio(m.music.url); audio.play(); };
+        div.appendChild(musicDiv);
+    }
+    if (m.voice) {
+        const voiceDiv = document.createElement("div");
+        voiceDiv.className = "voice-note";
+        const audio = new Audio(m.voice);
+        let isPlaying = false;
+        const waveform = document.createElement("div");
+        waveform.className = "waveform";
+        for (let i = 0; i < 20; i++) {
+            const bar = document.createElement("div");
+            bar.className = "bar";
+            bar.style.height = (Math.random() * 12 + 4) + "px";
+            waveform.appendChild(bar);
+        }
+        const progressBar = document.createElement("div");
+        progressBar.className = "progress-bar";
+        progressBar.style.width = "0%";
+        const timeLabel = document.createElement("span");
+        timeLabel.className = "time-label";
+        timeLabel.textContent = "0:00";
+        voiceDiv.innerHTML = "🎙️ ";
+        voiceDiv.appendChild(waveform);
+        voiceDiv.appendChild(progressBar);
+        voiceDiv.appendChild(timeLabel);
+        voiceDiv.onclick = () => {
+            if (isPlaying) { audio.pause(); isPlaying = false; }
+            else { audio.play(); isPlaying = true; }
+        };
+        audio.ontimeupdate = () => {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            progressBar.style.width = progress + "%";
+            const mins = Math.floor(audio.currentTime / 60);
+            const secs = Math.floor(audio.currentTime % 60);
+            timeLabel.textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
+        };
+        audio.onended = () => { isPlaying = false; progressBar.style.width = "0%"; timeLabel.textContent = "0:00"; };
+        div.appendChild(voiceDiv);
+    }
+    if (m.location) {
+        const locDiv = document.createElement("div");
+        locDiv.className = "location";
+        locDiv.innerHTML = "📍 Геолокация";
+        locDiv.onclick = () => window.open(`https://maps.google.com/?q=${m.location.lat},${m.location.lng}`);
+        div.appendChild(locDiv);
+    }
+    if (m.sticker) {
+        const img = document.createElement("img");
+        img.src = m.sticker;
+        img.className = "sticker";
+        div.appendChild(img);
+    }
+    
+    const textSpan = document.createElement("span");
+    textSpan.className = "msg-text";
+    if (m.circle) {
+        textSpan.textContent = "📹 Видеосообщение";
+    } else {
+        textSpan.innerHTML = formatTextWithTags(m.text || "");
+    }
+    div.appendChild(textSpan);
+    
+    if (m.edited && m.oldText) {
+        const editedSpan = document.createElement("span");
+        editedSpan.className = "edited-text";
+        editedSpan.textContent = `✏️ было: ${m.oldText}`;
+        div.appendChild(editedSpan);
+    }
+    
+    const readSpan = document.createElement("span");
+    readSpan.className = "read-status";
+    readSpan.innerHTML = m.readBy?.includes(currentNick) ? '✓✓' : '✓';
+    if (m.readBy?.includes(currentNick)) readSpan.classList.add("read");
+    const timeSpan = document.createElement("div");
+    timeSpan.className = "time";
+    timeSpan.appendChild(document.createTextNode(m.timeFormatted || ""));
+    timeSpan.appendChild(readSpan);
+    div.appendChild(timeSpan);
+    
+    if (m.reactions && Object.keys(m.reactions).length > 0) {
+        const reactionsDiv = document.createElement("div");
+        reactionsDiv.className = "reactions";
+        const grouped = {};
+        Object.entries(m.reactions).forEach(([user, r]) => {
+            if (!grouped[r]) grouped[r] = [];
+            grouped[r].push(user);
+        });
+        Object.entries(grouped).forEach(([r, users]) => {
+            const rSpan = document.createElement("span");
+            rSpan.className = "reaction";
+            rSpan.textContent = `${r} ${users.length}`;
+            rSpan.onclick = (e) => {
+                e.stopPropagation();
+                ws.send(JSON.stringify({ type: "reaction", chatType: "channel", id: m.id, reaction: r, remove: users.includes(currentNick) }));
+            };
+            reactionsDiv.appendChild(rSpan);
+        });
+        div.appendChild(reactionsDiv);
+    }
+    
+    attachMessageMenu(div, m, "channel", currentChannelId);
+    div.ondblclick = () => { ws.send(JSON.stringify({ type: "reaction", chatType: "channel", id: m.id, reaction: "❤️" })); };
+    attachSwipeReply(div, m);
+    chatDiv.appendChild(div);
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+    ws.send(JSON.stringify({ type: "mark_read", chatType: "channel", chatId: currentChannelId, msgId: m.id }));
+}
+
+// ============================================================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ============================================================
 
 function formatTextWithTags(text) {
     if (!text) return "";
@@ -2324,7 +2946,6 @@ menuChannelsBtn.onclick = () => {
     renderChannelsScreen();
 };
 
-// ===== СОЗДАНИЕ ГРУПП =====
 menuCreateGroup.onclick = () => {
     menuPanel.classList.remove("open");
     const name = prompt("Введите название группы:");
@@ -2335,7 +2956,6 @@ menuCreateGroup.onclick = () => {
     }
 };
 
-// ===== СОЗДАНИЕ КАНАЛОВ (только Дима) =====
 menuCreateChannel.onclick = () => {
     menuPanel.classList.remove("open");
     if (!isDima()) {
@@ -2410,14 +3030,12 @@ function toggleTheme() {
     settingsTheme.innerHTML = `🌓 Сменить тему <span class="toggle">${icon}</span>`;
 }
 
-// Инициализация темы
 if (isDark) {
     document.body.classList.add("dark");
     menuTheme.innerHTML = '<span class="icon">🌓</span> Сменить тему <span class="arrow">●</span>';
     settingsTheme.innerHTML = '🌓 Сменить тему <span class="toggle">●</span>';
 }
 
-// Инициализация шрифта
 document.body.classList.add("font-" + fontSize);
 const fontLabels = { small: "Маленький", medium: "Средний", large: "Большой" };
 menuFontSize.innerHTML = `<span class="icon">📏</span> Размер шрифта <span class="arrow">${fontLabels[fontSize]}</span>`;
@@ -2533,7 +3151,7 @@ searchInputGlobal.addEventListener("input", () => {
 });
 
 // ============================================================
-// КАНАЛЫ, КОНТАКТЫ, ГРУППЫ (отдельные экраны)
+// КАНАЛЫ, КОНТАКТЫ, ГРУППЫ
 // ============================================================
 
 function renderChannelsScreen() {
@@ -2725,7 +3343,6 @@ function renderUsersList() {
     });
 }
 
-// Добавляем поиск пользователя в меню
 const searchUserInput = document.createElement("input");
 searchUserInput.type = "text";
 searchUserInput.id = "searchUser";
@@ -2782,7 +3399,6 @@ function renderChannelsList() {
     });
 }
 
-// Добавляем секцию каналов в меню
 const channelsSection = document.createElement("div");
 channelsSection.className = "section-title";
 channelsSection.textContent = "📣 Каналы";
@@ -2856,7 +3472,7 @@ function updateOnlineCount() {
 }
 
 // ============================================================
-// ОСТАЛЬНЫЕ ФУНКЦИИ (заглушки)
+// ОСТАЛЬНЫЕ ФУНКЦИИ
 // ============================================================
 
 function renderSearchResults(results) {
@@ -2887,12 +3503,7 @@ function updateReadStatus(msgId, readBy) {
 }
 
 function updatePollUI(groupId, poll) {
-    if (currentMode === "group" && currentGroupId === groupId) {
-        const pollDiv = document.getElementById(`poll-${poll.id}`);
-        if (pollDiv) {
-            pollDiv.innerHTML = `<strong>${poll.question}</strong><div class="options">${poll.options.map(opt => `<div class="option" data-poll="${poll.id}" data-opt="${opt}">${opt}: ${Object.values(poll.votes).filter(v => v === opt).length} голосов</div>`).join('')}</div>`;
-        }
-    }
+    // Заглушка
 }
 
 function updateReactionUI(id, from, reaction, remove) {
@@ -2920,7 +3531,6 @@ function loadDraft() {
     } catch(e) {}
 }
 
-// Обработка ввода
 msgInput.addEventListener("input", () => {
     if (typingTimer) clearTimeout(typingTimer);
     sendTyping(true);
@@ -3019,7 +3629,6 @@ document.getElementById("attachVideo").onclick = () => {
     input.click();
 };
 
-// ===== КРУЖОЧЕК (ВИДЕОСООБЩЕНИЕ) =====
 document.getElementById("attachCircle").onclick = () => {
     attachPanel.classList.remove("open");
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 480, height: 480 }, audio: true })
