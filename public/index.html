@@ -100,13 +100,14 @@ body.dark .chat::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
 .auth-screen, .main-app, .attach-panel, .message-menu, .menu-panel, 
 .incoming-call, .call-status, .group-members-panel, .modal, .profile-screen,
 .settings-screen, .channels-screen, .contacts-screen, .groups-screen,
-.privacy-screen {
+.privacy-screen, .permissions-screen {
     position: relative;
     z-index: 1;
 }
 
 .hidden { display: none !important; }
 
+/* ===== ЭКРАН ВХОДА ===== */
 .auth-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -249,6 +250,7 @@ body.dark .connection-status.online { color: #66bb6a; }
 body.dark .connection-status.offline { color: #ef5350; }
 body.dark .connection-status.connecting { color: #ffca28; }
 
+/* ===== ПОИСК ===== */
 .search-overlay {
     position: fixed;
     top: 0;
@@ -312,6 +314,7 @@ body.dark .search-overlay .search-box .results .result-item:hover { background: 
     color: white;
 }
 
+/* ===== РЕЖИМНАЯ ПАНЕЛЬ ===== */
 .mode-bar {
     background: var(--card-bg);
     backdrop-filter: blur(12px);
@@ -332,6 +335,7 @@ body.dark .mode-bar button { background: var(--border-dark); border-color: var(-
 .mode-bar .call-buttons { display: flex; gap: 6px; }
 .mode-bar .call-buttons button { background: rgba(46,125,50,0.15); border-color: rgba(46,125,50,0.1); }
 
+/* ===== СООБЩЕНИЯ ===== */
 .message {
     max-width: 80%;
     padding: 8px 12px;
@@ -527,6 +531,7 @@ body.dark .input-bar button { background: var(--border-dark); border-color: var(
 #attachBtn { background: var(--border); }
 body.dark #attachBtn { background: var(--border-dark); }
 
+/* ===== ПАНЕЛЬ ВЛОЖЕНИЙ ===== */
 .attach-panel {
     position: fixed;
     bottom: 80px;
@@ -562,6 +567,7 @@ body.dark .attach-panel { background: var(--card-bg-dark); border-color: var(--b
 .attach-item span:first-child { font-size: 24px; }
 .attach-item span:last-child { font-size: 10px; opacity: 0.6; }
 
+/* ===== МЕНЮ СООБЩЕНИЯ ===== */
 .message-menu {
     position: fixed;
     background: var(--card-bg);
@@ -592,6 +598,7 @@ body.dark .message-menu { background: var(--card-bg-dark); border-color: var(--b
 .message-menu span:hover { background: var(--border); }
 body.dark .message-menu span:hover { background: var(--border-dark); }
 
+/* ===== ГЛАВНОЕ МЕНЮ ===== */
 .menu-panel {
     position: fixed;
     top: 0;
@@ -671,6 +678,113 @@ body.dark .menu-item { background: var(--border-dark); }
 }
 body.dark .menu-divider { background: var(--border-dark); }
 
+/* ===== СТРАНИЦА РАЗРЕШЕНИЙ ===== */
+.permissions-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--card-bg);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    z-index: 999;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+}
+.permissions-screen.open { display: flex; }
+body.dark .permissions-screen { background: var(--card-bg-dark); }
+
+.permissions-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 28px;
+    padding: 32px 24px;
+    max-width: 400px;
+    width: 100%;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+}
+body.dark .permissions-card { background: var(--card-bg-dark); border-color: var(--border-dark); }
+
+.permissions-card h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+    text-align: center;
+    margin-bottom: 8px;
+}
+.permissions-card .subtitle {
+    text-align: center;
+    color: #888;
+    font-size: 14px;
+    margin-bottom: 24px;
+}
+
+.permission-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    background: var(--border);
+    border-radius: 14px;
+    margin-bottom: 8px;
+    border: 1px solid transparent;
+    transition: 0.2s;
+}
+body.dark .permission-item { background: var(--border-dark); }
+
+.permission-item .icon { font-size: 22px; width: 36px; text-align: center; }
+.permission-item .info { flex: 1; }
+.permission-item .info .name { font-weight: 600; font-size: 15px; color: var(--text); }
+.permission-item .info .desc { font-size: 12px; color: #888; }
+.permission-item .status {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(244,67,54,0.15);
+    color: #d32f2f;
+}
+.permission-item .status.granted {
+    background: rgba(76,175,80,0.15);
+    color: #2e7d32;
+}
+.permission-item .status.pending {
+    background: rgba(255,193,7,0.15);
+    color: #e65100;
+}
+
+.permissions-btn {
+    width: 100%;
+    padding: 14px;
+    background: #0084ff;
+    color: white;
+    border: none;
+    border-radius: 28px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-top: 12px;
+}
+.permissions-btn:active { transform: scale(0.97); }
+.permissions-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.permissions-skip {
+    background: transparent;
+    color: #888;
+    border: none;
+    padding: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 8px;
+}
+.permissions-skip:active { opacity: 0.6; }
+
+/* ===== НАСТРОЙКИ ===== */
 .settings-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -718,6 +832,7 @@ body.dark .settings-item { background: var(--border-dark); }
 .settings-item.danger { color: #d32f2f; }
 body.dark .settings-item.danger { color: #ef9a9a; }
 
+/* ===== ПРОФИЛЬ ===== */
 .profile-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -776,6 +891,7 @@ body.dark .profile-save { background: var(--border-dark); border-color: var(--bo
 .profile-save:active { transform: scale(0.97); }
 .profile-reputation { text-align: center; padding: 6px; font-size: 14px; color: #888; }
 
+/* ===== КАНАЛЫ ===== */
 .channels-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -818,6 +934,7 @@ body.dark .channel-item { background: var(--border-dark); }
 .channel-item .status { font-size: 12px; padding: 2px 10px; border-radius: 12px; background: rgba(0,132,255,0.1); color: #0084ff; }
 .channel-item .status.subscribed { background: rgba(76,175,80,0.15); color: #4caf50; }
 
+/* ===== КОНТАКТЫ ===== */
 .contacts-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -871,6 +988,7 @@ body.dark .contact-item { background: var(--border-dark); }
 .contact-item .info .name { font-weight: 600; }
 .contact-item .info .status { font-size: 12px; opacity: 0.5; }
 
+/* ===== ГРУППЫ ===== */
 .groups-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -898,6 +1016,7 @@ body.dark .groups-header { background: rgba(0,0,0,0.2); border-color: var(--bord
 .groups-header span { font-size: 18px; font-weight: 600; }
 .groups-body { flex: 1; padding: 16px 20px; }
 
+/* ===== ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ ===== */
 .privacy-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -926,6 +1045,7 @@ body.dark .privacy-header { background: rgba(0,0,0,0.2); border-color: var(--bor
 .privacy-body { flex: 1; padding: 20px; }
 .privacy-body p { margin-bottom: 12px; line-height: 1.6; font-size: 15px; color: var(--text); }
 
+/* ===== ОСТАЛЬНЫЕ ЭЛЕМЕНТЫ ===== */
 .incoming-call {
     position: fixed;
     bottom: 90px;
@@ -1064,6 +1184,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
 </head>
 <body>
 
+<!-- ===== ЭКРАН ВХОДА ===== -->
 <div class="auth-screen" id="authScreen">
     <div class="auth-card">
         <h2 id="authTitle">Добро пожаловать</h2>
@@ -1076,6 +1197,63 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== СТРАНИЦА РАЗРЕШЕНИЙ ===== -->
+<div class="permissions-screen" id="permissionsScreen">
+    <div class="permissions-card">
+        <h2>🔐 Разрешения</h2>
+        <p class="subtitle">Для работы приложения требуются следующие разрешения</p>
+        
+        <div class="permission-item" id="permCamera">
+            <span class="icon">📷</span>
+            <div class="info">
+                <div class="name">Камера</div>
+                <div class="desc">Для видеозвонков и кружочков</div>
+            </div>
+            <span class="status pending" id="permCameraStatus">⏳ Ожидание</span>
+        </div>
+        
+        <div class="permission-item" id="permMicrophone">
+            <span class="icon">🎙️</span>
+            <div class="info">
+                <div class="name">Микрофон</div>
+                <div class="desc">Для голосовых и видеозвонков</div>
+            </div>
+            <span class="status pending" id="permMicrophoneStatus">⏳ Ожидание</span>
+        </div>
+        
+        <div class="permission-item" id="permLocation">
+            <span class="icon">📍</span>
+            <div class="info">
+                <div class="name">Геолокация</div>
+                <div class="desc">Для отправки местоположения</div>
+            </div>
+            <span class="status pending" id="permLocationStatus">⏳ Ожидание</span>
+        </div>
+        
+        <div class="permission-item" id="permNotifications">
+            <span class="icon">🔔</span>
+            <div class="info">
+                <div class="name">Уведомления</div>
+                <div class="desc">Для оповещений о сообщениях</div>
+            </div>
+            <span class="status pending" id="permNotificationsStatus">⏳ Ожидание</span>
+        </div>
+        
+        <div class="permission-item" id="permStorage">
+            <span class="icon">💾</span>
+            <div class="info">
+                <div class="name">Хранилище</div>
+                <div class="desc">Для отправки фото, видео и файлов</div>
+            </div>
+            <span class="status pending" id="permStorageStatus">⏳ Ожидание</span>
+        </div>
+        
+        <button class="permissions-btn" id="permGrantBtn">✅ Разрешить всё</button>
+        <button class="permissions-skip" id="permSkipBtn">Пропустить (буду позже)</button>
+    </div>
+</div>
+
+<!-- ===== ОСНОВНОЕ ПРИЛОЖЕНИЕ ===== -->
 <div class="main-app hidden" id="mainApp">
     <div class="header">
         <div class="nav-left">
@@ -1114,6 +1292,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== ПОИСК ===== -->
 <div class="search-overlay" id="searchOverlay">
     <div class="search-box">
         <input type="text" id="searchInputGlobal" placeholder="🔍 Поиск пользователей, групп, каналов...">
@@ -1122,6 +1301,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="close-search" id="closeSearch">✕</div>
 </div>
 
+<!-- ===== ПАНЕЛЬ ВЛОЖЕНИЙ ===== -->
 <div class="attach-panel" id="attachPanel">
     <div class="attach-item" id="attachPhoto"><span>🖼️</span><span>Фото</span></div>
     <div class="attach-item" id="attachVideo"><span>🎥</span><span>Видео</span></div>
@@ -1134,6 +1314,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="attach-item" id="attachPoll"><span>📊</span><span>Опрос</span></div>
 </div>
 
+<!-- ===== МЕНЮ СООБЩЕНИЯ ===== -->
 <div class="message-menu" id="messageMenu">
     <span id="menuEdit">✏️ Редактировать</span>
     <span id="menuCopy">📋 Копировать</span>
@@ -1145,6 +1326,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <span id="menuDelete">🗑️ Удалить</span>
 </div>
 
+<!-- ===== ГЛАВНОЕ МЕНЮ ===== -->
 <div class="menu-panel" id="menuPanel">
     <div class="menu-header">
         <div class="user-info">
@@ -1175,6 +1357,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== НАСТРОЙКИ ===== -->
 <div class="settings-screen" id="settingsScreen">
     <div class="settings-header">
         <button id="closeSettings">←</button>
@@ -1184,6 +1367,13 @@ body.dark .group-members-panel .member button { color: var(--text); }
         <div class="settings-item" id="settingsTheme">🌓 Сменить тему <span class="toggle">○</span></div>
         <div class="settings-item" id="settingsSound">🔊 Звук: Вкл <span class="toggle">●</span></div>
         <div class="settings-item" id="settingsFontSize">📏 Размер шрифта <span class="sub">Средний</span></div>
+        
+        <div style="margin-top:16px; padding:8px 4px; color:#888; font-size:13px;">🔐 Разрешения</div>
+        <div class="settings-item" id="settingsPermissions">
+            📷 Управление разрешениями
+            <span class="toggle">→</span>
+        </div>
+        
         <div style="margin-top:16px; padding:8px 4px; color:#888; font-size:13px;">Статус</div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <span class="status-opt" data-status="online" style="padding:6px 14px; border-radius:20px; background:var(--border); cursor:pointer; font-size:13px; border:2px solid transparent;">🟢 Онлайн</span>
@@ -1195,6 +1385,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== ПРОФИЛЬ ===== -->
 <div class="profile-screen" id="profileScreen">
     <div class="profile-header">
         <button id="closeProfile">←</button>
@@ -1215,6 +1406,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== КАНАЛЫ ===== -->
 <div class="channels-screen" id="channelsScreen">
     <div class="channels-header">
         <button id="closeChannels">←</button>
@@ -1223,6 +1415,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="channels-body" id="channelsList"></div>
 </div>
 
+<!-- ===== КОНТАКТЫ ===== -->
 <div class="contacts-screen" id="contactsScreen">
     <div class="contacts-header">
         <button id="closeContacts">←</button>
@@ -1231,6 +1424,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="contacts-body" id="contactsList"></div>
 </div>
 
+<!-- ===== ГРУППЫ ===== -->
 <div class="groups-screen" id="groupsScreen">
     <div class="groups-header">
         <button id="closeGroups">←</button>
@@ -1239,6 +1433,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="groups-body" id="groupsListScreen"></div>
 </div>
 
+<!-- ===== ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ ===== -->
 <div class="privacy-screen" id="privacyScreen">
     <div class="privacy-header">
         <button id="closePrivacy">←</button>
@@ -1257,6 +1452,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== ОСТАЛЬНЫЕ ЭЛЕМЕНТЫ ===== -->
 <div class="group-members-panel" id="groupMembersPanel">
     <div style="font-weight: bold; text-align: center;">👥 Участники группы</div>
     <div id="membersList"></div>
@@ -1280,7 +1476,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
 
 <script>
 // ============================================================
-// ПОЛНЫЙ JS КОД (ИСПРАВЛЕННЫЙ)
+// ПОЛНЫЙ JS КОД
 // ============================================================
 
 // ===== DOM ЭЛЕМЕНТЫ =====
@@ -1342,6 +1538,7 @@ const settingsTheme = document.getElementById("settingsTheme");
 const settingsSound = document.getElementById("settingsSound");
 const settingsFontSize = document.getElementById("settingsFontSize");
 const settingsLogout = document.getElementById("settingsLogout");
+const settingsPermissions = document.getElementById("settingsPermissions");
 const profileScreen = document.getElementById("profileScreen");
 const profileTitle = document.getElementById("profileTitle");
 const profileReputation = document.getElementById("profileReputation");
@@ -1378,6 +1575,9 @@ const modal = document.getElementById("modal");
 const modalImg = document.getElementById("modalImg");
 const modalClose = document.querySelector(".modal .close");
 const navCenter = document.getElementById("navCenter");
+const permissionsScreen = document.getElementById("permissionsScreen");
+const permGrantBtn = document.getElementById("permGrantBtn");
+const permSkipBtn = document.getElementById("permSkipBtn");
 
 // ===== ПЕРЕМЕННЫЕ =====
 let ws = null;
@@ -1431,6 +1631,196 @@ let reconnectTimer = null;
 const servers = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }] };
 
 // ============================================================
+// УПРАВЛЕНИЕ РАЗРЕШЕНИЯМИ
+// ============================================================
+
+const permStatus = {
+    camera: 'pending',
+    microphone: 'pending',
+    location: 'pending',
+    notifications: 'pending',
+    storage: 'pending'
+};
+
+function updatePermStatus(perm, status, text) {
+    const el = document.getElementById(`perm${perm.charAt(0).toUpperCase() + perm.slice(1)}Status`);
+    if (el) {
+        el.textContent = text || (status === 'granted' ? '✅ Разрешено' : status === 'denied' ? '❌ Запрещено' : '⏳ Ожидание');
+        el.className = 'status ' + status;
+    }
+    permStatus[perm] = status;
+    localStorage.setItem(`perm_${perm}`, status);
+}
+
+function loadSavedPermissions() {
+    const perms = ['camera', 'microphone', 'location', 'notifications', 'storage'];
+    perms.forEach(perm => {
+        const saved = localStorage.getItem(`perm_${perm}`);
+        if (saved) {
+            updatePermStatus(perm, saved, saved === 'granted' ? '✅ Разрешено' : '❌ Запрещено');
+        }
+    });
+}
+
+async function requestCamera() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        stream.getTracks().forEach(t => t.stop());
+        updatePermStatus('camera', 'granted', '✅ Разрешено');
+        return true;
+    } catch(e) {
+        updatePermStatus('camera', 'denied', '❌ Запрещено');
+        return false;
+    }
+}
+
+async function requestMicrophone() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        stream.getTracks().forEach(t => t.stop());
+        updatePermStatus('microphone', 'granted', '✅ Разрешено');
+        return true;
+    } catch(e) {
+        updatePermStatus('microphone', 'denied', '❌ Запрещено');
+        return false;
+    }
+}
+
+function requestLocation() {
+    return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+            updatePermStatus('location', 'denied', '❌ Недоступно');
+            resolve(false);
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            () => {
+                updatePermStatus('location', 'granted', '✅ Разрешено');
+                resolve(true);
+            },
+            () => {
+                updatePermStatus('location', 'denied', '❌ Запрещено');
+                resolve(false);
+            },
+            { timeout: 5000 }
+        );
+    });
+}
+
+async function requestNotifications() {
+    if (!('Notification' in window)) {
+        updatePermStatus('notifications', 'denied', '❌ Недоступно');
+        return false;
+    }
+    if (Notification.permission === 'granted') {
+        updatePermStatus('notifications', 'granted', '✅ Разрешено');
+        return true;
+    }
+    if (Notification.permission === 'denied') {
+        updatePermStatus('notifications', 'denied', '❌ Запрещено');
+        return false;
+    }
+    try {
+        const result = await Notification.requestPermission();
+        if (result === 'granted') {
+            updatePermStatus('notifications', 'granted', '✅ Разрешено');
+            return true;
+        } else {
+            updatePermStatus('notifications', 'denied', '❌ Запрещено');
+            return false;
+        }
+    } catch(e) {
+        updatePermStatus('notifications', 'denied', '❌ Ошибка');
+        return false;
+    }
+}
+
+async function requestStorage() {
+    try {
+        const request = indexedDB.open('test_perm', 1);
+        await new Promise((resolve, reject) => {
+            request.onsuccess = () => { 
+                request.result.close();
+                resolve(); 
+            };
+            request.onerror = () => reject();
+        });
+        updatePermStatus('storage', 'granted', '✅ Разрешено');
+        return true;
+    } catch(e) {
+        try {
+            localStorage.setItem('test_perm', 'test');
+            localStorage.removeItem('test_perm');
+            updatePermStatus('storage', 'granted', '✅ Разрешено');
+            return true;
+        } catch(e2) {
+            updatePermStatus('storage', 'denied', '❌ Запрещено');
+            return false;
+        }
+    }
+}
+
+async function requestAllPermissions() {
+    permGrantBtn.disabled = true;
+    permGrantBtn.textContent = '⏳ Запрос...';
+    
+    await requestCamera();
+    await requestMicrophone();
+    await requestLocation();
+    await requestNotifications();
+    await requestStorage();
+    
+    const allGranted = Object.values(permStatus).every(s => s === 'granted');
+    
+    if (allGranted) {
+        permGrantBtn.textContent = '✅ Все разрешено!';
+        setTimeout(() => {
+            permissionsScreen.classList.remove('open');
+            permGrantBtn.disabled = false;
+        }, 1000);
+    } else {
+        permGrantBtn.textContent = '🔄 Разрешить всё (повторить)';
+        permGrantBtn.disabled = false;
+    }
+}
+
+function checkAndRequestPermissions() {
+    if (localStorage.getItem('permissions_skipped') === 'true') {
+        return;
+    }
+    const hasCamera = localStorage.getItem('perm_camera') === 'granted';
+    const hasMicrophone = localStorage.getItem('perm_microphone') === 'granted';
+    const hasLocation = localStorage.getItem('perm_location') === 'granted';
+    const hasNotifications = localStorage.getItem('perm_notifications') === 'granted';
+    const hasStorage = localStorage.getItem('perm_storage') === 'granted';
+    
+    if (hasCamera && hasMicrophone && hasLocation && hasNotifications && hasStorage) {
+        return;
+    }
+    
+    permissionsScreen.classList.add('open');
+}
+
+permGrantBtn.onclick = requestAllPermissions;
+
+permSkipBtn.onclick = () => {
+    permissionsScreen.classList.remove('open');
+    localStorage.setItem('permissions_skipped', 'true');
+};
+
+settingsPermissions.onclick = () => {
+    settingsScreen.classList.remove('open');
+    permissionsScreen.classList.add('open');
+    requestCamera().then(() => {});
+    requestMicrophone().then(() => {});
+    requestLocation().then(() => {});
+    requestNotifications().then(() => {});
+    requestStorage().then(() => {});
+};
+
+loadSavedPermissions();
+
+// ============================================================
 // ФУНКЦИИ
 // ============================================================
 
@@ -1463,9 +1853,7 @@ function formatDate(t) {
     return d.toLocaleDateString("ru", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-function addSystem(text) {
-    // Системные сообщения скрыты
-}
+function addSystem(text) {}
 
 function notify(text) {
     if (!soundEnabled) return;
@@ -1505,14 +1893,6 @@ function getCurrentChatId() {
     return "public";
 }
 
-function getChatTitle() {
-    if (currentMode === "public") return "Общий чат";
-    if (currentMode === "private") return currentPrivateWith;
-    if (currentMode === "group") return currentGroup?.name || "Группа";
-    if (currentMode === "channel") return currentChannel?.name || "Канал";
-    return "ChatterBox";
-}
-
 // ============================================================
 // ПОДКЛЮЧЕНИЕ К СЕРВЕРУ
 // ============================================================
@@ -1523,7 +1903,7 @@ function connect() {
     ws.onopen = () => { console.log("✅ WebSocket подключен"); updateConnectionStatus("🟢 Онлайн"); tryAutoLogin(); };
     ws.onerror = () => { authError.textContent = "Ошибка подключения к серверу"; updateConnectionStatus("🔴 Ошибка"); };
     ws.onclose = () => {
-        if (logged) { /* системные сообщения скрыты */ }
+        if (logged) {}
         updateConnectionStatus("🟡 Переподключение...");
         if (reconnectTimer) clearTimeout(reconnectTimer);
         reconnectTimer = setTimeout(connect, 2000);
@@ -1568,6 +1948,8 @@ function connect() {
             updateOnlineCount();
             loadingIndicator.classList.add("hidden");
             updateMenuUI();
+            // Показываем запрос разрешений
+            setTimeout(checkAndRequestPermissions, 500);
             return;
         }
         if (!logged) return;
@@ -1581,9 +1963,6 @@ function connect() {
             notify(d.data.text);
             markUnread("public", d.data.id);
             return;
-        }
-        if (d.type === "system") {
-            // Системные сообщения скрыты
         }
         if (d.type === "users") {
             usersOnline = d.users;
@@ -1667,14 +2046,9 @@ function connect() {
                 const textSpan = el.querySelector(".msg-text");
                 const editedSpan = el.querySelector(".edited-text");
                 if (textSpan) textSpan.textContent = d.newText;
-                if (editedSpan) {
-                    // Если есть старый текст, показываем его
-                    if (d.oldText) {
-                        editedSpan.textContent = `✏️ было: ${d.oldText}`;
-                        editedSpan.style.display = "block";
-                    } else {
-                        editedSpan.style.display = "none";
-                    }
+                if (editedSpan && d.oldText) {
+                    editedSpan.textContent = `✏️ было: ${d.oldText}`;
+                    editedSpan.style.display = "block";
                 }
             }
         }
@@ -1856,7 +2230,7 @@ navCenter.onclick = () => {
 };
 
 // ============================================================
-// ОТРИСОВКА СООБЩЕНИЙ
+// ОТРИСОВКА СООБЩЕНИЙ (ВСЕ ТИПЫ)
 // ============================================================
 
 function renderMessages(messages) {
@@ -3502,13 +3876,9 @@ function updateReadStatus(msgId, readBy) {
     }
 }
 
-function updatePollUI(groupId, poll) {
-    // Заглушка
-}
+function updatePollUI(groupId, poll) {}
 
-function updateReactionUI(id, from, reaction, remove) {
-    // Заглушка
-}
+function updateReactionUI(id, from, reaction, remove) {}
 
 function sendTyping(isTyping) {
     if (currentMode === "private" && currentPrivateWith && ws && ws.readyState === 1) {
