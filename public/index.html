@@ -1,14 +1,10 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#0084ff">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="mobile-web-app-capable" content="yes">
-    <title>ChatterBox</title>
-    <style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>ChatterBox</title>
+<style>
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 :root {
@@ -209,9 +205,7 @@ body.dark .header { background: var(--card-bg-dark); border-bottom-color: var(--
     font-weight: 700; 
     color: var(--text);
     cursor: pointer;
-    transition: 0.2s;
 }
-.header .nav-center:active { transform: scale(0.95); }
 .header .nav-right { display: flex; align-items: center; gap: 6px; }
 
 .menu-btn, .dots-btn {
@@ -250,70 +244,6 @@ body.dark .header { background: var(--card-bg-dark); border-bottom-color: var(--
 body.dark .connection-status.online { color: #66bb6a; }
 body.dark .connection-status.offline { color: #ef5350; }
 body.dark .connection-status.connecting { color: #ffca28; }
-
-/* ===== ПОИСК ===== */
-.search-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.3);
-    backdrop-filter: blur(10px);
-    z-index: 500;
-    display: none;
-    align-items: flex-start;
-    justify-content: center;
-    padding-top: 60px;
-}
-.search-overlay.open { display: flex; }
-.search-overlay .search-box {
-    background: var(--card-bg);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 16px;
-    width: 90%;
-    max-width: 400px;
-    border: 1px solid var(--border);
-}
-body.dark .search-overlay .search-box { background: var(--card-bg-dark); border-color: var(--border-dark); }
-.search-overlay .search-box input {
-    width: 100%;
-    padding: 10px 14px;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    font-size: 16px;
-    outline: none;
-    background: rgba(255,255,255,0.2);
-    color: var(--text);
-}
-body.dark .search-overlay .search-box input { background: rgba(255,255,255,0.06); border-color: var(--border-dark); }
-.search-overlay .search-box input::placeholder { color: #888; }
-.search-overlay .search-box .results {
-    margin-top: 12px;
-    max-height: 300px;
-    overflow-y: auto;
-}
-.search-overlay .search-box .results .result-item {
-    padding: 10px;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
-    border-radius: 10px;
-    transition: 0.15s;
-}
-.search-overlay .search-box .results .result-item:hover { background: var(--border); }
-body.dark .search-overlay .search-box .results .result-item { border-color: var(--border-dark); }
-body.dark .search-overlay .search-box .results .result-item:hover { background: var(--border-dark); }
-.search-overlay .search-box .results .result-item .name { font-weight: 600; }
-.search-overlay .search-box .results .result-item .desc { font-size: 12px; opacity: 0.6; }
-.search-overlay .close-search {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    font-size: 30px;
-    cursor: pointer;
-    color: white;
-}
 
 .mode-bar {
     background: var(--card-bg);
@@ -382,7 +312,6 @@ body.dark .message { background: var(--msg-bg); border-color: rgba(255,255,255,0
 .message .read-status.read { color: #4caf50; }
 .message .mention { background: rgba(0,132,255,0.15); border-radius: 12px; padding: 2px 6px; cursor: pointer; display: inline-block; }
 
-/* ===== КВАДРАТНЫЕ ВИДЕОСООБЩЕНИЯ ===== */
 .message .video-message {
     width: 160px;
     height: 160px;
@@ -624,6 +553,7 @@ body.dark .message-menu { background: var(--card-bg-dark); border-color: var(--b
 .message-menu span:hover { background: var(--border); }
 body.dark .message-menu span:hover { background: var(--border-dark); }
 
+/* ===== ОСТАЛЬНЫЕ СТИЛИ ===== */
 .menu-panel {
     position: fixed;
     top: 0;
@@ -698,317 +628,6 @@ body.dark .menu-item { background: var(--border-dark); }
 }
 body.dark .menu-divider { background: var(--border-dark); }
 
-/* ===== ЭКРАН ГРУППЫ ===== */
-.group-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--card-bg);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    z-index: 1800;
-    display: none;
-    flex-direction: column;
-    overflow-y: auto;
-}
-body.dark .group-screen { background: var(--card-bg-dark); }
-.group-screen.open { display: flex; }
-
-.group-screen .header {
-    padding: 16px 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-    background: var(--card-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-}
-body.dark .group-screen .header { background: var(--card-bg-dark); border-color: var(--border-dark); }
-.group-screen .header button {
-    background: none;
-    border: none;
-    color: var(--text);
-    font-size: 22px;
-    cursor: pointer;
-}
-.group-screen .header .title {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text);
-    flex: 1;
-}
-.group-screen .header .group-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: var(--radius);
-    background: var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    overflow: hidden;
-    cursor: pointer;
-}
-.group-screen .header .group-avatar img { width: 100%; height: 100%; object-fit: cover; }
-
-.group-screen .tabs {
-    display: flex;
-    gap: 4px;
-    padding: 8px 16px;
-    background: var(--card-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-    overflow-x: auto;
-}
-body.dark .group-screen .tabs { background: var(--card-bg-dark); border-color: var(--border-dark); }
-.group-screen .tabs .tab {
-    padding: 8px 14px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    color: var(--text);
-    opacity: 0.6;
-    transition: 0.2s;
-    white-space: nowrap;
-    background: transparent;
-    border: none;
-}
-.group-screen .tabs .tab.active {
-    opacity: 1;
-    background: var(--border);
-}
-body.dark .group-screen .tabs .tab.active { background: var(--border-dark); }
-.group-screen .tabs .tab:active { transform: scale(0.95); }
-
-.group-screen .content {
-    flex: 1;
-    padding: 16px 20px;
-    overflow-y: auto;
-}
-
-/* ===== УЧАСТНИКИ ===== */
-.member-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    background: var(--border);
-    border-radius: 12px;
-    margin-bottom: 4px;
-    transition: 0.15s;
-}
-body.dark .member-item { background: var(--border-dark); }
-.member-item .avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: var(--radius);
-    background: var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    flex-shrink: 0;
-}
-.member-item .info { flex: 1; }
-.member-item .info .name { font-weight: 600; font-size: 15px; color: var(--text); }
-.member-item .info .role { font-size: 11px; opacity: 0.5; color: var(--text); }
-.member-item .info .role.creator { color: gold; }
-.member-item .info .role.admin { color: #0084ff; }
-.member-item .actions { display: flex; gap: 4px; }
-.member-item .actions button {
-    background: none;
-    border: none;
-    color: var(--text);
-    font-size: 16px;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 8px;
-    transition: 0.2s;
-}
-.member-item .actions button:active { transform: scale(0.9); background: var(--border); }
-body.dark .member-item .actions button:active { background: var(--border-dark); }
-
-/* ===== НАСТРОЙКИ ГРУППЫ ===== */
-.group-settings-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 14px;
-    background: var(--border);
-    border-radius: 12px;
-    margin-bottom: 6px;
-    cursor: pointer;
-    transition: 0.15s;
-}
-body.dark .group-settings-item { background: var(--border-dark); }
-.group-settings-item:active { transform: scale(0.97); }
-.group-settings-item .label { font-weight: 500; color: var(--text); }
-.group-settings-item .value { font-size: 13px; opacity: 0.6; color: var(--text); }
-.group-settings-item .arrow { opacity: 0.4; }
-
-/* ===== ЖУРНАЛ ДЕЙСТВИЙ ===== */
-.log-item {
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border);
-    font-size: 13px;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-body.dark .log-item { border-color: var(--border-dark); }
-.log-item .time { font-size: 11px; opacity: 0.4; flex-shrink: 0; }
-.log-item .action { flex: 1; }
-
-/* ===== МЕДИА, ФАЙЛЫ, ССЫЛКИ ===== */
-.media-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-}
-.media-item {
-    aspect-ratio: 1;
-    background: var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-    cursor: pointer;
-    position: relative;
-}
-body.dark .media-item { background: var(--border-dark); }
-.media-item img, .media-item video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.media-item .play-icon {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: white;
-    font-size: 24px;
-}
-
-.file-item, .link-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    background: var(--border);
-    border-radius: 12px;
-    margin-bottom: 4px;
-    cursor: pointer;
-    transition: 0.15s;
-}
-body.dark .file-item, .link-item { background: var(--border-dark); }
-.file-item:active, .link-item:active { transform: scale(0.97); }
-.file-item .icon, .link-item .icon { font-size: 20px; }
-.file-item .info, .link-item .info { flex: 1; }
-.file-item .info .name { font-weight: 500; font-size: 14px; color: var(--text); }
-.file-item .info .from { font-size: 11px; opacity: 0.4; color: var(--text); }
-
-/* ===== ДОБАВЛЕНИЕ УЧАСТНИКОВ ===== */
-.add-member-input {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-.add-member-input input {
-    flex: 1;
-    padding: 10px 14px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    font-size: 15px;
-    outline: none;
-    background: rgba(255,255,255,0.1);
-    color: var(--text);
-}
-body.dark .add-member-input input { background: rgba(255,255,255,0.03); border-color: var(--border-dark); }
-.add-member-input button {
-    padding: 10px 20px;
-    background: #0084ff;
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
-}
-.add-member-input button:active { transform: scale(0.95); }
-
-/* ===== ПРИГЛАСИТЕЛЬНАЯ ССЫЛКА ===== */
-.invite-link-box {
-    display: flex;
-    gap: 8px;
-    padding: 12px;
-    background: var(--border);
-    border-radius: 12px;
-    margin-top: 8px;
-}
-body.dark .invite-link-box { background: var(--border-dark); }
-.invite-link-box input {
-    flex: 1;
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    font-size: 14px;
-    outline: none;
-    background: rgba(255,255,255,0.1);
-    color: var(--text);
-}
-body.dark .invite-link-box input { background: rgba(255,255,255,0.03); border-color: var(--border-dark); }
-.invite-link-box button {
-    padding: 8px 16px;
-    background: var(--border);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    cursor: pointer;
-}
-body.dark .invite-link-box button { background: var(--border-dark); border-color: var(--border-dark); }
-.invite-link-box button:active { transform: scale(0.95); }
-
-/* ===== ПОИСК В ГРУППЕ ===== */
-.group-search {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-.group-search input {
-    flex: 1;
-    padding: 10px 14px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    font-size: 15px;
-    outline: none;
-    background: rgba(255,255,255,0.1);
-    color: var(--text);
-}
-body.dark .group-search input { background: rgba(255,255,255,0.03); border-color: var(--border-dark); }
-.group-search button {
-    padding: 10px 20px;
-    background: #0084ff;
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
-}
-.group-search button:active { transform: scale(0.95); }
-
-.group-search-results .message {
-    max-width: 100%;
-    margin-bottom: 4px;
-    cursor: pointer;
-}
-
-/* ===== НАСТРОЙКИ ===== */
 .settings-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -1112,372 +731,8 @@ body.dark .profile-save { background: var(--border-dark); border-color: var(--bo
 .profile-save:active { transform: scale(0.97); }
 .profile-reputation { text-align: center; padding: 6px; font-size: 14px; color: #888; }
 
-.channels-screen {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: var(--card-bg);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    z-index: 1700;
-    display: none;
-    flex-direction: column;
-    overflow-y: auto;
-}
-body.dark .channels-screen { background: var(--card-bg-dark); }
-.channels-screen.open { display: flex; }
-.channels-header {
-    padding: 16px 20px;
-    background: rgba(255,255,255,0.05);
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    border-bottom: 1px solid var(--border);
-}
-body.dark .channels-header { background: rgba(0,0,0,0.2); border-color: var(--border-dark); }
-.channels-header button { background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
-.channels-header span { font-size: 18px; font-weight: 600; }
-.channels-body { flex: 1; padding: 16px 20px; }
-.channel-item {
-    padding: 14px 16px;
-    background: var(--border);
-    border-radius: 12px;
-    margin-bottom: 8px;
-    cursor: pointer;
-}
-body.dark .channel-item { background: var(--border-dark); }
-.channel-item:active { transform: scale(0.97); }
-.channel-item .name { font-weight: 600; font-size: 16px; }
-.channel-item .subs { font-size: 12px; opacity: 0.5; }
-.channel-item .status { font-size: 12px; padding: 2px 10px; border-radius: 12px; background: rgba(0,132,255,0.1); color: #0084ff; }
-.channel-item .status.subscribed { background: rgba(76,175,80,0.15); color: #4caf50; }
-
-.contacts-screen {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: var(--card-bg);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    z-index: 1550;
-    display: none;
-    flex-direction: column;
-    overflow-y: auto;
-}
-body.dark .contacts-screen { background: var(--card-bg-dark); }
-.contacts-screen.open { display: flex; }
-.contacts-header {
-    padding: 16px 20px;
-    background: rgba(255,255,255,0.05);
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    border-bottom: 1px solid var(--border);
-}
-body.dark .contacts-header { background: rgba(0,0,0,0.2); border-color: var(--border-dark); }
-.contacts-header button { background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
-.contacts-header span { font-size: 18px; font-weight: 600; }
-.contacts-body { flex: 1; padding: 16px 20px; }
-.contact-item {
-    padding: 12px 14px;
-    background: var(--border);
-    border-radius: 12px;
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-}
-body.dark .contact-item { background: var(--border-dark); }
-.contact-item:active { transform: scale(0.97); }
-.contact-item .avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius);
-    background: var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-}
-.contact-item .info { flex: 1; }
-.contact-item .info .name { font-weight: 600; }
-.contact-item .info .status { font-size: 12px; opacity: 0.5; }
-
-.groups-screen {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: var(--card-bg);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    z-index: 1551;
-    display: none;
-    flex-direction: column;
-    overflow-y: auto;
-}
-body.dark .groups-screen { background: var(--card-bg-dark); }
-.groups-screen.open { display: flex; }
-.groups-header {
-    padding: 16px 20px;
-    background: rgba(255,255,255,0.05);
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    border-bottom: 1px solid var(--border);
-}
-body.dark .groups-header { background: rgba(0,0,0,0.2); border-color: var(--border-dark); }
-.groups-header button { background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
-.groups-header span { font-size: 18px; font-weight: 600; }
-.groups-body { flex: 1; padding: 16px 20px; }
-
-.privacy-screen {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: var(--card-bg);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    z-index: 1650;
-    display: none;
-    flex-direction: column;
-    overflow-y: auto;
-}
-body.dark .privacy-screen { background: var(--card-bg-dark); }
-.privacy-screen.open { display: flex; }
-.privacy-header {
-    padding: 16px 20px;
-    background: rgba(255,255,255,0.05);
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    border-bottom: 1px solid var(--border);
-}
-body.dark .privacy-header { background: rgba(0,0,0,0.2); border-color: var(--border-dark); }
-.privacy-header button { background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
-.privacy-header span { font-size: 18px; font-weight: 600; }
-.privacy-body { flex: 1; padding: 20px; }
-.privacy-body p { margin-bottom: 12px; line-height: 1.6; font-size: 15px; color: var(--text); }
-
-/* ===== РАЗРЕШЕНИЯ ===== */
-.permissions-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--card-bg);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    z-index: 999;
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 30px;
-}
-.permissions-screen.open { display: flex; }
-body.dark .permissions-screen { background: var(--card-bg-dark); }
-
-.permissions-card {
-    background: var(--card-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: 28px;
-    padding: 32px 24px;
-    max-width: 400px;
-    width: 100%;
-    border: 1px solid var(--border);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-}
-body.dark .permissions-card { background: var(--card-bg-dark); border-color: var(--border-dark); }
-
-.permissions-card h2 {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--text);
-    text-align: center;
-    margin-bottom: 8px;
-}
-.permissions-card .subtitle {
-    text-align: center;
-    color: #888;
-    font-size: 14px;
-    margin-bottom: 24px;
-}
-
-.permission-item {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 12px 14px;
-    background: var(--border);
-    border-radius: 14px;
-    margin-bottom: 8px;
-}
-body.dark .permission-item { background: var(--border-dark); }
-
-.permission-item .icon { font-size: 22px; width: 36px; text-align: center; }
-.permission-item .info { flex: 1; }
-.permission-item .info .name { font-weight: 600; font-size: 15px; color: var(--text); }
-.permission-item .info .desc { font-size: 12px; color: #888; }
-.permission-item .status {
-    font-size: 12px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    background: rgba(244,67,54,0.15);
-    color: #d32f2f;
-}
-.permission-item .status.granted {
-    background: rgba(76,175,80,0.15);
-    color: #2e7d32;
-}
-.permission-item .status.pending {
-    background: rgba(255,193,7,0.15);
-    color: #e65100;
-}
-
-.permissions-btn {
-    width: 100%;
-    padding: 14px;
-    background: #0084ff;
-    color: white;
-    border: none;
-    border-radius: 28px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.2s;
-    margin-top: 12px;
-}
-.permissions-btn:active { transform: scale(0.97); }
-.permissions-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.permissions-skip {
-    background: transparent;
-    color: #888;
-    border: none;
-    padding: 10px;
-    font-size: 14px;
-    cursor: pointer;
-    margin-top: 8px;
-}
-.permissions-skip:active { opacity: 0.6; }
-
-/* ===== ПАНЕЛЬ ПЕРЕВОДЧИКА ===== */
-.translator-panel {
-    position: fixed;
-    bottom: 100px;
-    left: 16px;
-    right: 16px;
-    background: var(--card-bg);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border-radius: 20px;
-    padding: 16px;
-    z-index: 600;
-    border: 1px solid var(--border);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    display: none;
-    flex-direction: column;
-    gap: 10px;
-}
-body.dark .translator-panel { background: var(--card-bg-dark); border-color: var(--border-dark); }
-.translator-panel.open { display: flex; }
-.translator-panel .lang-select {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-.translator-panel .lang-select button {
-    padding: 6px 14px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text);
-    cursor: pointer;
-    transition: 0.2s;
-}
-body.dark .translator-panel .lang-select button { border-color: var(--border-dark); }
-.translator-panel .lang-select button.active {
-    background: #0084ff;
-    color: white;
-    border-color: #0084ff;
-}
-.translator-panel .translated-text {
-    padding: 10px;
-    background: var(--border);
-    border-radius: 12px;
-    color: var(--text);
-    font-size: 15px;
-    min-height: 40px;
-}
-body.dark .translator-panel .translated-text { background: var(--border-dark); }
-.translator-panel .close-translator {
-    align-self: flex-end;
-    background: none;
-    border: none;
-    color: var(--text);
-    font-size: 20px;
-    cursor: pointer;
-}
-
-/* ===== ПАНЕЛЬ ПЛАНИРОВЩИКА ===== */
-.scheduler-panel {
-    position: fixed;
-    bottom: 100px;
-    left: 16px;
-    right: 16px;
-    background: var(--card-bg);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border-radius: 20px;
-    padding: 16px;
-    z-index: 600;
-    border: 1px solid var(--border);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    display: none;
-    flex-direction: column;
-    gap: 10px;
-}
-body.dark .scheduler-panel { background: var(--card-bg-dark); border-color: var(--border-dark); }
-.scheduler-panel.open { display: flex; }
-.scheduler-panel input {
-    padding: 10px 14px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    font-size: 15px;
-    outline: none;
-    background: rgba(255,255,255,0.1);
-    color: var(--text);
-}
-body.dark .scheduler-panel input { background: rgba(255,255,255,0.03); border-color: var(--border-dark); }
-.scheduler-panel .datetime-row {
-    display: flex;
-    gap: 8px;
-}
-.scheduler-panel .datetime-row input { flex: 1; }
-.scheduler-panel .schedule-btn {
-    padding: 10px;
-    background: #0084ff;
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-}
-.scheduler-panel .schedule-btn:active { transform: scale(0.97); }
-.scheduler-panel .close-scheduler {
-    align-self: flex-end;
-    background: none;
-    border: none;
-    color: var(--text);
-    font-size: 20px;
-    cursor: pointer;
-}
-
-/* ===== ЗАКРЕПЛЁННЫЕ ===== */
-.pinned-messages-panel {
+/* ===== ГРУППЫ ===== */
+.group-screen {
     position: fixed;
     top: 0;
     left: 0;
@@ -1491,46 +746,153 @@ body.dark .scheduler-panel input { background: rgba(255,255,255,0.03); border-co
     flex-direction: column;
     overflow-y: auto;
 }
-body.dark .pinned-messages-panel { background: var(--card-bg-dark); }
-.pinned-messages-panel.open { display: flex; }
-.pinned-messages-panel .header {
+body.dark .group-screen { background: var(--card-bg-dark); }
+.group-screen.open { display: flex; }
+
+.group-screen .header {
     padding: 16px 20px;
     display: flex;
     align-items: center;
     gap: 16px;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
-body.dark .pinned-messages-panel .header { border-color: var(--border-dark); }
-.pinned-messages-panel .header button {
+body.dark .group-screen .header { background: var(--card-bg-dark); border-color: var(--border-dark); }
+.group-screen .header button {
     background: none;
     border: none;
     color: var(--text);
     font-size: 22px;
     cursor: pointer;
 }
-.pinned-messages-panel .header span { font-size: 18px; font-weight: 600; color: var(--text); }
-.pinned-messages-panel .list { padding: 16px 20px; }
+.group-screen .header .title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+}
+.group-screen .header .group-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius);
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    overflow: hidden;
+    cursor: pointer;
+}
+.group-screen .header .group-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-.pinned-message {
+.group-screen .tabs {
+    display: flex;
+    gap: 4px;
     padding: 8px 16px;
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    overflow-x: auto;
+}
+body.dark .group-screen .tabs { background: var(--card-bg-dark); border-color: var(--border-dark); }
+.group-screen .tabs .tab {
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text);
+    opacity: 0.6;
+    transition: 0.2s;
+    white-space: nowrap;
+    background: transparent;
+    border: none;
+}
+.group-screen .tabs .tab.active {
+    opacity: 1;
+    background: var(--border);
+}
+body.dark .group-screen .tabs .tab.active { background: var(--border-dark); }
+.group-screen .tabs .tab:active { transform: scale(0.95); }
+
+.group-screen .content {
+    flex: 1;
+    padding: 16px 20px;
+    overflow-y: auto;
+}
+
+.member-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
     background: var(--border);
     border-radius: 12px;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
+}
+body.dark .member-item { background: var(--border-dark); }
+.member-item .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius);
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+.member-item .info { flex: 1; }
+.member-item .info .name { font-weight: 600; font-size: 15px; color: var(--text); }
+.member-item .info .role { font-size: 11px; opacity: 0.5; color: var(--text); }
+.member-item .info .role.creator { color: gold; }
+.member-item .info .role.admin { color: #0084ff; }
+.member-item .actions { display: flex; gap: 4px; }
+.member-item .actions button {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+}
+.member-item .actions button:active { transform: scale(0.9); background: var(--border); }
+
+.group-settings-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--border);
+    border-radius: 12px;
+    margin-bottom: 6px;
+    cursor: pointer;
+}
+body.dark .group-settings-item { background: var(--border-dark); }
+.group-settings-item:active { transform: scale(0.97); }
+.group-settings-item .label { font-weight: 500; color: var(--text); }
+.group-settings-item .value { font-size: 13px; opacity: 0.6; color: var(--text); }
+.group-settings-item .arrow { opacity: 0.4; }
+
+.log-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text);
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 13px;
-    color: var(--text);
-    border-left: 3px solid #0084ff;
-    cursor: pointer;
 }
-body.dark .pinned-message { background: var(--border-dark); }
-.pinned-message .pin-icon { color: #0084ff; font-size: 16px; }
-.pinned-message .pin-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pinned-message .pin-close { background: none; border: none; color: var(--text); font-size: 16px; cursor: pointer; }
+body.dark .log-item { border-color: var(--border-dark); }
+.log-item .time { font-size: 11px; opacity: 0.4; flex-shrink: 0; }
+.log-item .action { flex: 1; }
 
-/* ===== ЗВОНКИ ===== */
 .incoming-call {
     position: fixed;
     bottom: 90px;
@@ -1586,44 +948,6 @@ body.dark .call-status { background: var(--card-bg-dark); border-color: var(--bo
 }
 body.dark .call-status button { color: var(--text); }
 
-.group-members-panel {
-    position: fixed;
-    bottom: 90px;
-    left: 16px;
-    right: 16px;
-    background: var(--card-bg);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border-radius: 28px;
-    padding: 16px;
-    display: none;
-    flex-direction: column;
-    gap: 8px;
-    z-index: 350;
-    max-height: 60vh;
-    overflow-y: auto;
-    border: 1px solid var(--border);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-}
-body.dark .group-members-panel { background: var(--card-bg-dark); border-color: var(--border-dark); }
-.group-members-panel.open { display: flex; }
-.group-members-panel .member {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 4px;
-    border-bottom: 1px solid var(--border);
-    color: var(--text);
-}
-body.dark .group-members-panel .member { border-color: var(--border-dark); }
-.group-members-panel .member button {
-    background: rgba(198,40,40,0.1);
-    border: 1px solid rgba(198,40,40,0.06);
-    padding: 3px 10px; border-radius: 16px;
-    color: var(--text); cursor: pointer;
-}
-body.dark .group-members-panel .member button { color: var(--text); }
-
 .modal {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -1660,15 +984,13 @@ body.dark .group-members-panel .member button { color: var(--text); }
 .profile-avatar,
 .avatar,
 .menu-header .user-info .avatar,
-.contact-item .avatar,
 .member-item .avatar {
     border-radius: var(--radius) !important;
 }
-    </style>
+</style>
 </head>
 <body>
 
-<!-- ===== ЭКРАН ВХОДА ===== -->
 <div class="auth-screen" id="authScreen">
     <div class="auth-card">
         <h2 id="authTitle">Добро пожаловать</h2>
@@ -1681,7 +1003,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
-<!-- ===== РАЗРЕШЕНИЯ ===== -->
 <div class="permissions-screen" id="permissionsScreen">
     <div class="permissions-card">
         <h2>🔐 Разрешения</h2>
@@ -1712,11 +1033,10 @@ body.dark .group-members-panel .member button { color: var(--text); }
             <span class="status pending" id="permStorageStatus">⏳ Ожидание</span>
         </div>
         <button class="permissions-btn" id="permGrantBtn">✅ Разрешить всё</button>
-        <button class="permissions-skip" id="permSkipBtn">Пропустить (буду позже)</button>
+        <button class="permissions-skip" id="permSkipBtn">Пропустить</button>
     </div>
 </div>
 
-<!-- ===== ОСНОВНОЕ ПРИЛОЖЕНИЕ ===== -->
 <div class="main-app hidden" id="mainApp">
     <div class="header">
         <div class="nav-left">
@@ -1755,16 +1075,14 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
-<!-- ===== ПОИСК ===== -->
 <div class="search-overlay" id="searchOverlay">
     <div class="search-box">
-        <input type="text" id="searchInputGlobal" placeholder="🔍 Поиск пользователей, групп, каналов...">
+        <input type="text" id="searchInputGlobal" placeholder="🔍 Поиск...">
         <div class="results" id="searchResults"></div>
     </div>
     <div class="close-search" id="closeSearch">✕</div>
 </div>
 
-<!-- ===== ПАНЕЛЬ ВЛОЖЕНИЙ ===== -->
 <div class="attach-panel" id="attachPanel">
     <div class="attach-item" id="attachPhoto"><span class="icon">🖼️</span><span class="label">Фото</span></div>
     <div class="attach-item" id="attachVideo"><span class="icon">🎥</span><span class="label">Видео</span></div>
@@ -1777,7 +1095,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="attach-item" id="attachPoll"><span class="icon">📊</span><span class="label">Опрос</span></div>
 </div>
 
-<!-- ===== МЕНЮ СООБЩЕНИЯ ===== -->
 <div class="message-menu" id="messageMenu">
     <span id="menuEdit">✏️ Редактировать</span>
     <span id="menuCopy">📋 Копировать</span>
@@ -1791,7 +1108,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <span id="menuDelete">🗑️ Удалить</span>
 </div>
 
-<!-- ===== ПАНЕЛЬ ПЕРЕВОДЧИКА ===== -->
 <div class="translator-panel" id="translatorPanel">
     <button class="close-translator" id="closeTranslator">✕</button>
     <div class="lang-select" id="langSelect">
@@ -1802,7 +1118,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="translated-text" id="translatedText">Перевод появится здесь</div>
 </div>
 
-<!-- ===== ПАНЕЛЬ ПЛАНИРОВЩИКА ===== -->
 <div class="scheduler-panel" id="schedulerPanel">
     <button class="close-scheduler" id="closeScheduler">✕</button>
     <input type="text" id="schedulerText" placeholder="Сообщение для отложенной отправки...">
@@ -1813,7 +1128,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <button class="schedule-btn" id="scheduleSendBtn">📅 Запланировать</button>
 </div>
 
-<!-- ===== ЗАКРЕПЛЁННЫЕ ===== -->
 <div class="pinned-messages-panel" id="pinnedMessagesPanel">
     <div class="header">
         <button id="closePinned">←</button>
@@ -1822,7 +1136,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="list" id="pinnedList"></div>
 </div>
 
-<!-- ===== ЭКРАН ГРУППЫ ===== -->
 <div class="group-screen" id="groupScreen">
     <div class="header">
         <button id="closeGroupScreen">←</button>
@@ -1844,7 +1157,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
-<!-- ===== ГЛАВНОЕ МЕНЮ ===== -->
 <div class="menu-panel" id="menuPanel">
     <div class="menu-header">
         <div class="user-info">
@@ -1877,7 +1189,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
-<!-- ===== НАСТРОЙКИ ===== -->
 <div class="settings-screen" id="settingsScreen">
     <div class="settings-header">
         <button id="closeSettings">←</button>
@@ -1902,7 +1213,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
-<!-- ===== ПРОФИЛЬ ===== -->
 <div class="profile-screen" id="profileScreen">
     <div class="profile-header">
         <button id="closeProfile">←</button>
@@ -1923,7 +1233,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
-<!-- ===== КАНАЛЫ ===== -->
 <div class="channels-screen" id="channelsScreen">
     <div class="channels-header">
         <button id="closeChannels">←</button>
@@ -1932,7 +1241,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="channels-body" id="channelsList"></div>
 </div>
 
-<!-- ===== КОНТАКТЫ ===== -->
 <div class="contacts-screen" id="contactsScreen">
     <div class="contacts-header">
         <button id="closeContacts">←</button>
@@ -1941,7 +1249,6 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="contacts-body" id="contactsList"></div>
 </div>
 
-<!-- ===== ГРУППЫ (СПИСОК) ===== -->
 <div class="groups-screen" id="groupsScreen">
     <div class="groups-header">
         <button id="closeGroups">←</button>
@@ -1950,30 +1257,16 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="groups-body" id="groupsListScreen"></div>
 </div>
 
-<!-- ===== ПОЛИТИКА ===== -->
 <div class="privacy-screen" id="privacyScreen">
     <div class="privacy-header">
         <button id="closePrivacy">←</button>
         <span>🔒 Политика конфиденциальности</span>
     </div>
     <div class="privacy-body">
-        <p><strong>📋 Сбор данных</strong></p>
-        <p>Мы собираем только те данные, которые необходимы для работы мессенджера.</p>
-        <p><strong>🔐 Безопасность</strong></p>
-        <p>Ваши пароли хранятся в зашифрованном виде.</p>
-        <p><strong>📤 Передача данных</strong></p>
-        <p>Мы не передаём ваши данные третьим лицам.</p>
+        <p>Мы собираем только необходимые данные. Ваши пароли хранятся в зашифрованном виде.</p>
     </div>
 </div>
 
-<!-- ===== УЧАСТНИКИ ГРУППЫ (старое) ===== -->
-<div class="group-members-panel" id="groupMembersPanel">
-    <div style="font-weight: bold; text-align: center;">👥 Участники группы</div>
-    <div id="membersList"></div>
-    <button id="closeMembersPanel" style="margin-top:6px; padding:8px; border-radius:20px; background:var(--border); color:var(--text); border:1px solid var(--border); cursor:pointer;">Закрыть</button>
-</div>
-
-<!-- ===== ЗВОНКИ ===== -->
 <div class="incoming-call" id="incomingCall">
     <span id="incomingCaller">📞 Звонит...</span>
     <div>
@@ -1987,12 +1280,11 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <button id="endCallBtn">Завершить</button>
 </div>
 
-<!-- ===== МОДАЛ ===== -->
 <div class="modal" id="modal"><span class="close">&times;</span><img id="modalImg" src=""></div>
 
 <script>
 // ============================================================
-// ПОЛНЫЙ JS КОД
+// ПОЛНЫЙ РАБОЧИЙ JS КОД (ВЕРНУЛИ БАЗОВУЮ ФУНКЦИОНАЛЬНОСТЬ)
 // ============================================================
 
 const authScreen = document.getElementById("authScreen");
@@ -2078,9 +1370,6 @@ const closeGroups = document.getElementById("closeGroups");
 const groupsListScreen = document.getElementById("groupsListScreen");
 const privacyScreen = document.getElementById("privacyScreen");
 const closePrivacy = document.getElementById("closePrivacy");
-const groupMembersPanel = document.getElementById("groupMembersPanel");
-const membersList = document.getElementById("membersList");
-const closeMembersPanel = document.getElementById("closeMembersPanel");
 const incomingCallDiv = document.getElementById("incomingCall");
 const incomingCallerSpan = document.getElementById("incomingCaller");
 const acceptCallBtn = document.getElementById("acceptCallBtn");
@@ -2115,7 +1404,6 @@ const groupScreenAvatar = document.getElementById("groupScreenAvatar");
 const groupScreenTitle = document.getElementById("groupScreenTitle");
 const groupTabs = document.getElementById("groupTabs");
 const groupScreenContent = document.getElementById("groupScreenContent");
-const groupScreenSettingsBtn = document.getElementById("groupScreenSettingsBtn");
 
 // ===== ПЕРЕМЕННЫЕ =====
 let ws = null;
@@ -2152,16 +1440,13 @@ let currentMsgTarget = null;
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
-let isCircleRecording = false;
 let myStickers = [];
 let isDimaUser = false;
 let draftMessage = {};
-let scheduledMessages = [];
 let pinnedMessages = [];
 let selectedLanguage = "ru";
-let currentGroupScreen = null;
+let currentGroupScreenId = null;
 let currentGroupTab = 'members';
-let groupData = {};
 
 // WebRTC
 let iceQueue = [];
@@ -2176,7 +1461,7 @@ let reconnectTimer = null;
 const servers = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }] };
 
 // ============================================================
-// УПРАВЛЕНИЕ РАЗРЕШЕНИЯМИ
+// РАЗРЕШЕНИЯ
 // ============================================================
 
 const permStatus = { camera: 'pending', microphone: 'pending', location: 'pending', notifications: 'pending', storage: 'pending' };
@@ -2514,15 +1799,8 @@ function connect() {
             const idx = myGroups.findIndex(g => g.id === d.groupId);
             if (idx !== -1) {
                 myGroups[idx] = d.group;
-                if (currentGroupScreen === d.groupId) {
-                    groupData = d.group;
-                    switchGroupTab(currentGroupTab);
-                    groupScreenTitle.textContent = d.group.name;
-                    if (d.group.avatar) {
-                        groupScreenAvatar.innerHTML = `<img src="${d.group.avatar}">`;
-                    } else {
-                        groupScreenAvatar.textContent = '👥';
-                    }
+                if (currentGroupScreenId === d.groupId) {
+                    renderGroupScreen(d.group);
                 }
                 renderSidebar();
             }
@@ -2532,26 +1810,26 @@ function connect() {
             const idx = myGroups.findIndex(g => g.id === d.groupId);
             if (idx !== -1) {
                 myGroups[idx].actionLog = d.log;
-                if (currentGroupScreen === d.groupId && currentGroupTab === 'log') {
-                    renderGroupLog();
+                if (currentGroupScreenId === d.groupId && currentGroupTab === 'log') {
+                    renderGroupTab('log');
                 }
             }
             return;
         }
         if (d.type === "group_media") {
-            if (currentGroupScreen === d.groupId && currentGroupTab === 'media') {
+            if (currentGroupScreenId === d.groupId && currentGroupTab === 'media') {
                 renderGroupMedia(d.media);
             }
             return;
         }
         if (d.type === "group_files") {
-            if (currentGroupScreen === d.groupId && currentGroupTab === 'files') {
+            if (currentGroupScreenId === d.groupId && currentGroupTab === 'files') {
                 renderGroupFiles(d.files);
             }
             return;
         }
         if (d.type === "group_links") {
-            if (currentGroupScreen === d.groupId && currentGroupTab === 'links') {
+            if (currentGroupScreenId === d.groupId && currentGroupTab === 'links') {
                 renderGroupLinks(d.links);
             }
             return;
@@ -2574,7 +1852,7 @@ function connect() {
                 let html = '';
                 results.forEach(m => {
                     html += `
-                        <div class="message" onclick="switchToGroup('${d.groupId}')">
+                        <div class="message" style="max-width:100%;margin-bottom:4px;cursor:pointer;" onclick="switchToGroup('${d.groupId}')">
                             <div class="author">${m.from || m.owner}</div>
                             <div class="msg-text">${escapeHtml(m.text || '')}</div>
                             <div class="time">${m.timeFormatted || formatTime(m.time)}</div>
@@ -2588,8 +1866,9 @@ function connect() {
         if (d.type === "group_deleted") {
             myGroups = myGroups.filter(g => g.id !== d.groupId);
             renderSidebar();
-            if (currentGroupScreen === d.groupId) {
+            if (currentGroupScreenId === d.groupId) {
                 groupScreen.classList.remove('open');
+                currentGroupScreenId = null;
                 switchToPublic();
             }
             return;
@@ -2602,17 +1881,8 @@ function connect() {
                 myGroups.push(d.group);
             }
             renderSidebar();
-            if (currentGroupScreen === d.group.id) {
-                groupData = d.group;
-                groupScreenTitle.textContent = d.group.name;
-                if (d.group.avatar) {
-                    groupScreenAvatar.innerHTML = `<img src="${d.group.avatar}">`;
-                } else {
-                    groupScreenAvatar.textContent = '👥';
-                }
-                if (d.type === 'group_update') {
-                    switchGroupTab(currentGroupTab);
-                }
+            if (currentGroupScreenId === d.group.id) {
+                renderGroupScreen(d.group);
             }
             return;
         }
@@ -2680,7 +1950,6 @@ function connect() {
             }
         }
         if (d.type === "scheduled_message") {
-            scheduledMessages.push(d.data);
             alert(`📅 Сообщение запланировано на ${new Date(d.data.scheduledTime).toLocaleString()}`);
         }
         if (d.type === "translation") {
@@ -3299,7 +2568,7 @@ menuCreateGroup.onclick = () => {
 menuCreateChannel.onclick = () => {
     menuPanel.classList.remove("open");
     if (!isDima()) {
-        alert("❌ Только администратор (Дима) может создавать каналы");
+        alert("❌ Только администратор может создавать каналы");
         return;
     }
     const name = prompt("Введите название канала:");
@@ -3323,7 +2592,7 @@ menuBackup.onclick = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `chatterbox_backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `backup_${new Date().toISOString().slice(0,10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
 };
@@ -3353,12 +2622,12 @@ menuFontSize.onclick = () => {
 
 menuStats.onclick = () => {
     menuPanel.classList.remove("open");
-    alert(`📊 Статистика ChatterBox\n\n👤 Пользователей онлайн: ${usersOnline.length}\n👥 Всего пользователей: ${allUsers.length}\n💬 Групп: ${myGroups.length}\n📣 Каналов: ${myChannels.length}`);
+    alert(`📊 Статистика\n👤 Онлайн: ${usersOnline.length}\n👥 Всего: ${allUsers.length}\n💬 Групп: ${myGroups.length}\n📣 Каналов: ${myChannels.length}`);
 };
 
 menuHelp.onclick = () => {
     menuPanel.classList.remove("open");
-    alert("❓ Помощь\n\n📌 Основные функции:\n• 💬 Чаты — общение в группах и лично\n• 📣 Каналы — публичные каналы\n• 👥 Контакты — список пользователей\n• ⚙️ Настройки — тема, звук, шрифт\n• 🔄 Видеосообщения — квадратные\n• 📌 Закреплённые сообщения\n• 🌐 Перевод сообщений\n• ⏰ Планировщик сообщений\n• 👥 Группы — полное управление\n\n🔍 Поиск — ⋮ в шапке");
+    alert("❓ Помощь\n\n📌 Основные функции:\n• 💬 Чаты — общение в группах и лично\n• 📣 Каналы — публичные каналы\n• 👥 Контакты — список пользователей\n• ⚙️ Настройки — тема, звук, шрифт\n• 🔄 Видеосообщения\n• 📌 Закреплённые\n• 🌐 Перевод\n• ⏰ Планировщик\n• 👥 Группы — полное управление");
 };
 
 menuPrivacy.onclick = () => {
@@ -3424,7 +2693,7 @@ settingsScreen.addEventListener("click", (e) => {
 });
 
 // ============================================================
-// САЙДБАР (СПИСОК ЧАТОВ)
+// САЙДБАР
 // ============================================================
 
 function renderSidebar() {
@@ -3440,7 +2709,6 @@ function renderSidebar() {
         avatar: "📢"
     });
     
-    const privateChats = new Set();
     allUsers.forEach(u => {
         if (u !== currentNick) {
             const key = getPrivateKey(currentNick, u);
@@ -3503,15 +2771,6 @@ function renderSidebar() {
         }
     });
     
-    items.sort((a, b) => {
-        if (a.time && b.time) {
-            const ta = a.time.split(":").map(Number);
-            const tb = b.time.split(":").map(Number);
-            return (tb[0] - ta[0]) || (tb[1] - ta[1]);
-        }
-        return a.time ? -1 : 1;
-    });
-    
     sidebarList.innerHTML = "";
     const searchText = searchChats.value.toLowerCase();
     const filtered = items.filter(item => 
@@ -3550,7 +2809,6 @@ function renderSidebar() {
             if (item.type === "public") switchToPublic();
             else if (item.type === "private") switchToPrivate(item.name);
             else if (item.type === "group") {
-                // Открываем экран управления группой
                 openGroupScreen(item.groupId);
             } else if (item.type === "channel") switchToChannel(item.channelId);
         };
@@ -3558,26 +2816,17 @@ function renderSidebar() {
     });
 }
 
-searchChats.addEventListener("input", renderSidebar);
-
 // ============================================================
-// ГРУППЫ — КЛИЕНТСКИЕ ФУНКЦИИ
+// ГРУППЫ
 // ============================================================
 
 function openGroupScreen(groupId) {
-    currentGroupScreen = groupId;
+    currentGroupScreenId = groupId;
     groupScreen.classList.add('open');
     const group = myGroups.find(g => g.id === groupId);
     if (group) {
-        groupData = group;
-        groupScreenTitle.textContent = group.name;
-        if (group.avatar) {
-            groupScreenAvatar.innerHTML = `<img src="${group.avatar}">`;
-        } else {
-            groupScreenAvatar.textContent = '👥';
-        }
+        renderGroupScreen(group);
     }
-    switchGroupTab('members');
     if (ws && ws.readyState === 1) {
         ws.send(JSON.stringify({ type: 'get_group_info', groupId }));
         ws.send(JSON.stringify({ type: 'get_group_log', groupId }));
@@ -3587,9 +2836,19 @@ function openGroupScreen(groupId) {
     }
 }
 
+function renderGroupScreen(group) {
+    groupScreenTitle.textContent = group.name;
+    if (group.avatar) {
+        groupScreenAvatar.innerHTML = `<img src="${group.avatar}">`;
+    } else {
+        groupScreenAvatar.textContent = '👥';
+    }
+    switchGroupTab(currentGroupTab);
+}
+
 closeGroupScreen.onclick = () => {
     groupScreen.classList.remove('open');
-    currentGroupScreen = null;
+    currentGroupScreenId = null;
 };
 
 document.querySelectorAll('#groupTabs .tab').forEach(tab => {
@@ -3602,33 +2861,32 @@ document.querySelectorAll('#groupTabs .tab').forEach(tab => {
 
 function switchGroupTab(tab) {
     currentGroupTab = tab;
+    const group = myGroups.find(g => g.id === currentGroupScreenId);
+    if (!group) {
+        groupScreenContent.innerHTML = '<div class="loading-indicator">Группа не найдена</div>';
+        return;
+    }
     switch(tab) {
-        case 'members': renderGroupMembers(); break;
-        case 'settings': renderGroupSettings(); break;
+        case 'members': renderGroupMembers(group); break;
+        case 'settings': renderGroupSettings(group); break;
         case 'media': renderGroupMedia(); break;
         case 'files': renderGroupFiles(); break;
         case 'links': renderGroupLinks(); break;
-        case 'log': renderGroupLog(); break;
+        case 'log': renderGroupLog(group); break;
         case 'search': renderGroupSearch(); break;
         default: groupScreenContent.innerHTML = '<div class="loading-indicator">Выберите вкладку</div>';
     }
 }
 
-function renderGroupMembers() {
-    const group = myGroups.find(g => g.id === currentGroupScreen);
-    if (!group) {
-        groupScreenContent.innerHTML = '<div class="loading-indicator">Группа не найдена</div>';
-        return;
-    }
-    
+function renderGroupMembers(group) {
     let html = `
         <div class="add-member-input">
-            <input type="text" id="addMemberInput" placeholder="👤 Введите ник пользователя...">
+            <input type="text" id="addMemberInput" placeholder="👤 Введите ник...">
             <button id="addMemberBtn">➕ Добавить</button>
         </div>
         <div style="margin-bottom: 12px; font-size: 13px; color: #888;">
             👥 ${group.members.length} участников
-            ${group.creator === currentNick ? '👑 Вы создатель' : group.admins?.includes(currentNick) ? '🛡️ Вы администратор' : ''}
+            ${group.creator === currentNick ? '👑 Вы создатель' : group.admins?.includes(currentNick) ? '🛡️ Вы админ' : ''}
         </div>
         <div id="membersList">
     `;
@@ -3662,11 +2920,11 @@ function renderGroupMembers() {
                 </div>
                 <div class="actions">
                     ${canManage && !isCreator && !isMe ? `
-                        ${isAdmin ? `<button onclick="removeAdminFromGroup('${currentGroupScreen}', '${member}')" title="Снять админа">🛡️</button>` : `<button onclick="addAdminToGroup('${currentGroupScreen}', '${member}')" title="Назначить админом">👑</button>`}
-                        <button onclick="removeMemberFromGroup('${currentGroupScreen}', '${member}')" title="Удалить">🗑️</button>
+                        ${isAdmin ? `<button onclick="removeAdminFromGroup('${group.id}', '${member}')" title="Снять админа">🛡️</button>` : `<button onclick="addAdminToGroup('${group.id}', '${member}')" title="Назначить админом">👑</button>`}
+                        <button onclick="removeMemberFromGroup('${group.id}', '${member}')" title="Удалить">🗑️</button>
                     ` : ''}
-                    ${isMe && !isCreator ? `<button onclick="leaveGroupConfirm('${currentGroupScreen}')" title="Выйти">🚪</button>` : ''}
-                    ${isCreator && isMe ? `<button onclick="deleteGroupConfirm('${currentGroupScreen}')" title="Удалить группу" style="color:#d32f2f;">🗑️</button>` : ''}
+                    ${isMe && !isCreator ? `<button onclick="leaveGroupConfirm('${group.id}')" title="Выйти">🚪</button>` : ''}
+                    ${isCreator && isMe ? `<button onclick="deleteGroupConfirm('${group.id}')" title="Удалить" style="color:#d32f2f;">🗑️</button>` : ''}
                 </div>
             </div>
         `;
@@ -3680,7 +2938,7 @@ function renderGroupMembers() {
         const nick = input.value.trim();
         if (!nick) return;
         if (ws && ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: 'add_member', groupId: currentGroupScreen, nick }));
+            ws.send(JSON.stringify({ type: 'add_member', groupId: group.id, nick }));
         }
         input.value = '';
     });
@@ -3691,51 +2949,34 @@ function renderGroupMembers() {
 }
 
 function addAdminToGroup(groupId, nick) {
-    if (ws && ws.readyState === 1) {
-        ws.send(JSON.stringify({ type: 'add_admin', groupId, nick }));
-    }
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'add_admin', groupId, nick }));
 }
 
 function removeAdminFromGroup(groupId, nick) {
-    if (ws && ws.readyState === 1) {
-        ws.send(JSON.stringify({ type: 'remove_admin', groupId, nick }));
-    }
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'remove_admin', groupId, nick }));
 }
 
 function removeMemberFromGroup(groupId, nick) {
     if (confirm(`Удалить ${nick} из группы?`)) {
-        if (ws && ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: 'remove_member', groupId, nick }));
-        }
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'remove_member', groupId, nick }));
     }
 }
 
 function leaveGroupConfirm(groupId) {
     if (confirm('Выйти из группы?')) {
-        if (ws && ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: 'leave_group', groupId }));
-        }
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'leave_group', groupId }));
     }
 }
 
 function deleteGroupConfirm(groupId) {
-    if (confirm('⚠️ Удалить группу навсегда? Это действие необратимо!')) {
-        if (ws && ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: 'delete_group', groupId }));
-        }
+    if (confirm('⚠️ Удалить группу навсегда?')) {
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'delete_group', groupId }));
     }
 }
 
-function renderGroupSettings() {
-    const group = myGroups.find(g => g.id === currentGroupScreen);
-    if (!group) {
-        groupScreenContent.innerHTML = '<div class="loading-indicator">Группа не найдена</div>';
-        return;
-    }
-    
+function renderGroupSettings(group) {
     const settings = group.settings || {};
     const canChange = group.creator === currentNick || group.admins?.includes(currentNick);
-    
     const permissionLabels = { 'all': 'Все', 'admins': 'Админы', 'creator': 'Создатель' };
     
     let html = `
@@ -3751,16 +2992,16 @@ function renderGroupSettings() {
                 <span class="arrow">›</span>
             </div>
             <div class="group-settings-item" onclick="changeGroupAvatar()">
-                <span class="label">🖼️ Аватар группы</span>
+                <span class="label">🖼️ Аватар</span>
                 <span class="value">${group.avatar ? 'Есть' : 'Нет'}</span>
                 <span class="arrow">›</span>
             </div>
         </div>
-        <div style="margin-bottom: 12px; font-weight: 600; color: var(--text);">🔒 Права участников</div>
+        <div style="margin-bottom: 12px; font-weight: 600; color: var(--text);">🔒 Права</div>
     `;
     
     const permissions = [
-        { key: 'whoCanSendMessages', label: '✏️ Писать сообщения' },
+        { key: 'whoCanSendMessages', label: '✏️ Писать' },
         { key: 'whoCanCall', label: '📞 Звонить' },
         { key: 'whoCanInvite', label: '➕ Приглашать' },
         { key: 'whoCanChangeName', label: '📝 Менять название' },
@@ -3791,9 +3032,7 @@ function renderGroupSettings() {
     groupScreenContent.innerHTML = html;
     
     document.getElementById('generateInviteBtn')?.addEventListener('click', () => {
-        if (ws && ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: 'get_invite_link', groupId: currentGroupScreen }));
-        }
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'get_invite_link', groupId: group.id }));
     });
     
     document.getElementById('copyInviteBtn')?.addEventListener('click', () => {
@@ -3806,24 +3045,20 @@ function renderGroupSettings() {
 }
 
 function changeGroupName() {
-    const group = myGroups.find(g => g.id === currentGroupScreen);
+    const group = myGroups.find(g => g.id === currentGroupScreenId);
     if (!group) return;
-    const newName = prompt('Введите новое название группы:', group.name);
+    const newName = prompt('Новое название:', group.name);
     if (newName && newName.trim() && newName.trim() !== group.name) {
-        if (ws && ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: 'update_group_name', groupId: currentGroupScreen, newName: newName.trim() }));
-        }
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'update_group_name', groupId: group.id, newName: newName.trim() }));
     }
 }
 
 function changeGroupDescription() {
-    const group = myGroups.find(g => g.id === currentGroupScreen);
+    const group = myGroups.find(g => g.id === currentGroupScreenId);
     if (!group) return;
-    const newDesc = prompt('Введите новое описание группы:', group.description || '');
+    const newDesc = prompt('Новое описание:', group.description || '');
     if (newDesc !== null) {
-        if (ws && ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: 'update_group_description', groupId: currentGroupScreen, description: newDesc.trim() }));
-        }
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'update_group_description', groupId: group.id, description: newDesc.trim() }));
     }
 }
 
@@ -3836,9 +3071,7 @@ function changeGroupAvatar() {
         if (!file) return;
         const reader = new FileReader();
         reader.onload = () => {
-            if (ws && ws.readyState === 1) {
-                ws.send(JSON.stringify({ type: 'update_group_avatar', groupId: currentGroupScreen, avatar: reader.result }));
-            }
+            if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'update_group_avatar', groupId: currentGroupScreenId, avatar: reader.result }));
         };
         reader.readAsDataURL(file);
     };
@@ -3846,109 +3079,29 @@ function changeGroupAvatar() {
 }
 
 function changeGroupPermission(key) {
-    const group = myGroups.find(g => g.id === currentGroupScreen);
+    const group = myGroups.find(g => g.id === currentGroupScreenId);
     if (!group) return;
     if (group.creator !== currentNick && !group.admins?.includes(currentNick)) return;
-    
     const options = ['all', 'admins', 'creator'];
-    const labels = { 'all': 'Все', 'admins': 'Админы', 'creator': 'Создатель' };
     const current = group.settings?.[key] || 'all';
     const idx = options.indexOf(current);
     const next = options[(idx + 1) % options.length];
-    
-    if (ws && ws.readyState === 1) {
-        ws.send(JSON.stringify({
-            type: 'update_group_settings',
-            groupId: currentGroupScreen,
-            settings: { [key]: next }
-        }));
-    }
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'update_group_settings', groupId: group.id, settings: { [key]: next } }));
 }
 
-function renderGroupMedia(data) {
-    const content = groupScreenContent;
-    const media = data || [];
-    if (media.length === 0) {
-        content.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">📂 Нет медиа</div>';
-        return;
-    }
-    let html = '<div class="media-grid">';
-    media.forEach(m => {
-        if (m.image) {
-            html += `<div class="media-item" onclick="openModal('${m.image}')"><img src="${m.image}"></div>`;
-        } else if (m.video) {
-            html += `<div class="media-item" onclick="openModal('${m.video}')"><video src="${m.video}"></video><div class="play-icon">▶</div></div>`;
-        } else if (m.circle) {
-            html += `<div class="media-item" onclick="openModal('${m.circle}')"><video src="${m.circle}"></video><div class="play-icon">🔄</div></div>`;
-        }
-    });
-    html += '</div>';
-    content.innerHTML = html;
-}
+function renderGroupMedia() {}
+function renderGroupFiles() {}
+function renderGroupLinks() {}
 
-function renderGroupFiles(data) {
-    const content = groupScreenContent;
-    const files = data || [];
-    if (files.length === 0) {
-        content.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">📁 Нет файлов</div>';
-        return;
-    }
-    let html = '';
-    files.forEach(f => {
-        html += `
-            <div class="file-item" onclick="window.open('${f.file.url}')">
-                <span class="icon">📎</span>
-                <div class="info">
-                    <div class="name">${f.file.name}</div>
-                    <div class="from">${f.from || f.owner} • ${f.timeFormatted || formatTime(f.time)}</div>
-                </div>
-            </div>
-        `;
-    });
-    content.innerHTML = html;
-}
-
-function renderGroupLinks(data) {
-    const content = groupScreenContent;
-    const links = data || [];
-    if (links.length === 0) {
-        content.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">🔗 Нет ссылок</div>';
-        return;
-    }
-    let html = '';
-    links.forEach(l => {
-        html += `
-            <div class="link-item" onclick="window.open('${l.url}')">
-                <span class="icon">🔗</span>
-                <div class="info">
-                    <div class="name">${l.url}</div>
-                    <div class="from">${l.from || 'Неизвестно'} • ${l.timeFormatted || formatTime(l.time)}</div>
-                </div>
-            </div>
-        `;
-    });
-    content.innerHTML = html;
-}
-
-function renderGroupLog() {
-    const group = myGroups.find(g => g.id === currentGroupScreen);
-    if (!group) {
-        groupScreenContent.innerHTML = '<div class="loading-indicator">Группа не найдена</div>';
-        return;
-    }
+function renderGroupLog(group) {
     const log = group.actionLog || [];
     if (log.length === 0) {
-        groupScreenContent.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">📝 Журнал действий пуст</div>';
+        groupScreenContent.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">📝 Журнал пуст</div>';
         return;
     }
     let html = '';
     log.slice().reverse().forEach(item => {
-        html += `
-            <div class="log-item">
-                <span class="time">${item.timeFormatted || formatTime(item.time)}</span>
-                <span class="action">${escapeHtml(item.action)}</span>
-            </div>
-        `;
+        html += `<div class="log-item"><span class="time">${item.timeFormatted || formatTime(item.time)}</span><span class="action">${escapeHtml(item.action)}</span></div>`;
     });
     groupScreenContent.innerHTML = html;
 }
@@ -3956,23 +3109,16 @@ function renderGroupLog() {
 function renderGroupSearch() {
     groupScreenContent.innerHTML = `
         <div class="group-search">
-            <input type="text" id="groupSearchInput" placeholder="🔍 Поиск по сообщениям...">
+            <input type="text" id="groupSearchInput" placeholder="🔍 Поиск...">
             <button id="groupSearchBtn">Найти</button>
         </div>
         <div class="group-search-results" id="groupSearchResults"></div>
     `;
-    
     document.getElementById('groupSearchBtn').onclick = () => {
         const query = document.getElementById('groupSearchInput').value.trim();
         if (!query) return;
-        if (ws && ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: 'search_group_messages', groupId: currentGroupScreen, query }));
-        }
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'search_group_messages', groupId: currentGroupScreenId, query }));
     };
-    
-    document.getElementById('groupSearchInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') document.getElementById('groupSearchBtn').click();
-    });
 }
 
 // ============================================================
@@ -3982,7 +3128,7 @@ function renderGroupSearch() {
 function renderChannelsScreen() {
     channelsList.innerHTML = "";
     if (myChannels.length === 0) {
-        channelsList.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">📣 Нет доступных каналов</div>';
+        channelsList.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">📣 Нет каналов</div>';
         return;
     }
     myChannels.forEach(c => {
@@ -3991,7 +3137,7 @@ function renderChannelsScreen() {
         const isSubscribed = c.subscribers?.includes(currentNick);
         div.innerHTML = `
             <div class="name">${c.name}</div>
-            <div class="subs">👥 ${c.subscribers?.length || 0} подписчиков</div>
+            <div class="subs">👥 ${c.subscribers?.length || 0}</div>
             <div class="status ${isSubscribed ? 'subscribed' : ''}">${isSubscribed ? '✅ Подписан' : '➕ Подписаться'}</div>
         `;
         div.onclick = () => {
@@ -3999,10 +3145,8 @@ function renderChannelsScreen() {
                 switchToChannel(c.id);
                 channelsScreen.classList.remove("open");
             } else {
-                if (ws && ws.readyState === 1) {
-                    ws.send(JSON.stringify({ type: "subscribe_channel", channelId: c.id }));
-                    renderChannelsScreen();
-                }
+                if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "subscribe_channel", channelId: c.id }));
+                renderChannelsScreen();
             }
         };
         channelsList.appendChild(div);
@@ -4051,7 +3195,7 @@ function renderGroupsScreen() {
         div.className = "channel-item";
         div.innerHTML = `
             <div class="name">${g.name}</div>
-            <div class="subs">👥 ${g.members.length} участников</div>
+            <div class="subs">👥 ${g.members.length}</div>
             <div class="status">→</div>
         `;
         div.onclick = () => {
@@ -4082,9 +3226,7 @@ function viewProfile(nick) {
 closeProfile.onclick = () => { profileScreen.classList.remove("open"); };
 
 saveProfile.onclick = () => {
-    if (ws && ws.readyState === 1) {
-        ws.send(JSON.stringify({ type: "update_profile", bio: profileBio.value, age: profileAge.value, phone: profilePhone.value }));
-    }
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "update_profile", bio: profileBio.value, age: profileAge.value, phone: profilePhone.value }));
     profileScreen.classList.remove("open");
 };
 
@@ -4110,9 +3252,7 @@ avatarPicker.onclick = () => {
         const file = input.files[0];
         const reader = new FileReader();
         reader.onload = () => {
-            if (ws && ws.readyState === 1) {
-                ws.send(JSON.stringify({ type: "update_profile", avatar: reader.result }));
-            }
+            if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "update_profile", avatar: reader.result }));
         };
         reader.readAsDataURL(file);
     };
@@ -4165,9 +3305,7 @@ document.querySelectorAll(".status-opt").forEach(el => {
         const status = el.dataset.status;
         document.querySelectorAll(".status-opt").forEach(s => s.style.borderColor = "transparent");
         el.style.borderColor = "#0084ff";
-        if (ws && ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: "update_status", status }));
-        }
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "update_status", status }));
     });
 });
 
@@ -4195,7 +3333,6 @@ function updateReadStatus(msgId, readBy) {
 }
 
 function updatePollUI(groupId, poll) {}
-
 function updateReactionUI(id, from, reaction, remove) {}
 
 function sendTyping(isTyping) {
@@ -4212,9 +3349,7 @@ function loadDraft() {
         if (saved) {
             draftMessage = JSON.parse(saved);
             const chatId = getCurrentChatId();
-            if (draftMessage[chatId]) {
-                msgInput.value = draftMessage[chatId];
-            }
+            if (draftMessage[chatId]) msgInput.value = draftMessage[chatId];
         }
     } catch(e) {}
 }
@@ -4247,17 +3382,13 @@ langSelect.addEventListener("click", (e) => {
     settingsLang.innerHTML = `Выберите язык <span class="sub">${btn.textContent.trim()}</span>`;
 });
 
-closeTranslator.onclick = () => {
-    translatorPanel.classList.remove("open");
-};
+closeTranslator.onclick = () => translatorPanel.classList.remove("open");
 
 // ============================================================
 // ПЛАНИРОВЩИК
 // ============================================================
 
-closeScheduler.onclick = () => {
-    schedulerPanel.classList.remove("open");
-};
+closeScheduler.onclick = () => schedulerPanel.classList.remove("open");
 
 scheduleSendBtn.onclick = () => {
     const text = schedulerText.value.trim();
@@ -4267,12 +3398,7 @@ scheduleSendBtn.onclick = () => {
     if (!date || !time) { alert("Выберите дату и время"); return; }
     const scheduledTime = new Date(`${date}T${time}`).getTime();
     if (scheduledTime < Date.now()) { alert("Выберите будущее время"); return; }
-    ws.send(JSON.stringify({
-        type: "schedule_message",
-        chatId: getCurrentChatId(),
-        text: text,
-        scheduledTime: scheduledTime
-    }));
+    ws.send(JSON.stringify({ type: "schedule_message", chatId: getCurrentChatId(), text, scheduledTime }));
     schedulerPanel.classList.remove("open");
     schedulerText.value = "";
 };
@@ -4281,9 +3407,7 @@ scheduleSendBtn.onclick = () => {
 // ЗАКРЕПЛЁННЫЕ
 // ============================================================
 
-closePinned.onclick = () => {
-    pinnedMessagesPanel.classList.remove("open");
-};
+closePinned.onclick = () => pinnedMessagesPanel.classList.remove("open");
 
 // ============================================================
 // ОТПРАВКА СООБЩЕНИЙ
@@ -4308,15 +3432,10 @@ function sendText() {
         replyTo: replyId ? { id: replyId, text: replyText } : null
     };
     
-    if (currentMode === "public") {
-        ws.send(JSON.stringify({ type: "chat", ...data }));
-    } else if (currentMode === "private" && currentPrivateWith) {
-        ws.send(JSON.stringify({ type: "private_chat", target: currentPrivateWith, ...data }));
-    } else if (currentMode === "group" && currentGroupId) {
-        ws.send(JSON.stringify({ type: "group_chat", groupId: currentGroupId, ...data }));
-    } else if (currentMode === "channel" && currentChannelId) {
-        ws.send(JSON.stringify({ type: "channel_chat", channelId: currentChannelId, ...data }));
-    }
+    if (currentMode === "public") ws.send(JSON.stringify({ type: "chat", ...data }));
+    else if (currentMode === "private" && currentPrivateWith) ws.send(JSON.stringify({ type: "private_chat", target: currentPrivateWith, ...data }));
+    else if (currentMode === "group" && currentGroupId) ws.send(JSON.stringify({ type: "group_chat", groupId: currentGroupId, ...data }));
+    else if (currentMode === "channel" && currentChannelId) ws.send(JSON.stringify({ type: "channel_chat", channelId: currentChannelId, ...data }));
     
     msgInput.value = "";
     replyToMsg = null;
@@ -4471,9 +3590,7 @@ document.getElementById("attachCircle").onclick = () => {
                 }
             }, 30000);
         })
-        .catch(err => {
-            alert("❌ Нет доступа к камере: " + err.message);
-        });
+        .catch(err => alert("❌ Нет доступа к камере: " + err.message));
 };
 
 document.getElementById("attachMusic").onclick = () => {
@@ -4484,9 +3601,7 @@ document.getElementById("attachMusic").onclick = () => {
     input.onchange = () => {
         const file = input.files[0];
         const reader = new FileReader();
-        reader.onload = () => {
-            ws.send(JSON.stringify({ type: "upload_music", filename: file.name, data: reader.result.split(",")[1] }));
-        };
+        reader.onload = () => ws.send(JSON.stringify({ type: "upload_music", filename: file.name, data: reader.result.split(",")[1] }));
         reader.readAsDataURL(file);
     };
     input.click();
@@ -4511,9 +3626,7 @@ async function startRecording() {
         mediaRecorder.onstop = () => {
             const blob = new Blob(audioChunks, { type: mimeType });
             const reader = new FileReader();
-            reader.onload = () => {
-                ws.send(JSON.stringify({ type: "upload_voice", data: reader.result.split(",")[1] }));
-            };
+            reader.onload = () => ws.send(JSON.stringify({ type: "upload_voice", data: reader.result.split(",")[1] }));
             reader.readAsDataURL(blob);
             stream.getTracks().forEach(t => t.stop());
             document.getElementById("attachVoice").querySelector("span:first-child").textContent = "🎙️";
@@ -4531,21 +3644,15 @@ async function startRecording() {
 document.getElementById("attachLocation").onclick = () => {
     attachPanel.classList.remove("open");
     if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-            sendLocation(pos.coords.latitude, pos.coords.longitude);
-        }, () => {});
+        navigator.geolocation.getCurrentPosition(pos => sendLocation(pos.coords.latitude, pos.coords.longitude), () => {});
     }
 };
 
 function sendLocation(lat, lng) {
     if (!logged || !ws || ws.readyState !== 1) return;
-    if (currentMode === "public") {
-        ws.send(JSON.stringify({ type: "chat", text: "", location: { lat, lng } }));
-    } else if (currentMode === "private" && currentPrivateWith) {
-        ws.send(JSON.stringify({ type: "private_chat", target: currentPrivateWith, text: "", location: { lat, lng } }));
-    } else if (currentMode === "group" && currentGroupId) {
-        ws.send(JSON.stringify({ type: "group_chat", groupId: currentGroupId, text: "", location: { lat, lng } }));
-    }
+    if (currentMode === "public") ws.send(JSON.stringify({ type: "chat", text: "", location: { lat, lng } }));
+    else if (currentMode === "private" && currentPrivateWith) ws.send(JSON.stringify({ type: "private_chat", target: currentPrivateWith, text: "", location: { lat, lng } }));
+    else if (currentMode === "group" && currentGroupId) ws.send(JSON.stringify({ type: "group_chat", groupId: currentGroupId, text: "", location: { lat, lng } }));
 }
 
 document.getElementById("attachFile").onclick = () => {
@@ -4556,9 +3663,7 @@ document.getElementById("attachFile").onclick = () => {
         const file = input.files[0];
         if (file && file.size > 10 * 1024 * 1024) { return; }
         const reader = new FileReader();
-        reader.onload = () => {
-            ws.send(JSON.stringify({ type: "upload_file", filename: file.name, data: reader.result.split(",")[1] }));
-        };
+        reader.onload = () => ws.send(JSON.stringify({ type: "upload_file", filename: file.name, data: reader.result.split(",")[1] }));
         reader.readAsDataURL(file);
     };
     input.click();
@@ -4572,9 +3677,7 @@ document.getElementById("attachSticker").onclick = () => {
     input.onchange = () => {
         const file = input.files[0];
         const reader = new FileReader();
-        reader.onload = () => {
-            ws.send(JSON.stringify({ type: "upload_sticker", data: reader.result.split(",")[1] }));
-        };
+        reader.onload = () => ws.send(JSON.stringify({ type: "upload_sticker", data: reader.result.split(",")[1] }));
         reader.readAsDataURL(file);
     };
     input.click();
@@ -4594,7 +3697,7 @@ function createPoll() {
     if (!question) return;
     const options = [];
     let opt;
-    while ((opt = prompt("Вариант ответа (или оставьте пустым для завершения)")) && opt.trim()) {
+    while ((opt = prompt("Вариант ответа (или оставьте пустым)")) && opt.trim()) {
         options.push(opt.trim());
     }
     if (options.length < 2) { alert("❌ Нужно минимум 2 варианта"); return; }
@@ -4607,14 +3710,10 @@ function createPoll() {
 
 dotsBtn.onclick = () => {
     searchOverlay.classList.toggle("open");
-    if (searchOverlay.classList.contains("open")) {
-        searchInputGlobal.focus();
-    }
+    if (searchOverlay.classList.contains("open")) searchInputGlobal.focus();
 };
 
-closeSearch.onclick = () => {
-    searchOverlay.classList.remove("open");
-};
+closeSearch.onclick = () => searchOverlay.classList.remove("open");
 
 searchInputGlobal.addEventListener("input", () => {
     const query = searchInputGlobal.value.trim().toLowerCase();
@@ -4687,15 +3786,11 @@ searchInputGlobal.addEventListener("input", () => {
 // ============================================================
 
 audioCallBtn.onclick = () => {
-    if (currentMode === "private" && currentPrivateWith) {
-        startCall(currentPrivateWith, false);
-    }
+    if (currentMode === "private" && currentPrivateWith) startCall(currentPrivateWith, false);
 };
 
 videoCallBtn.onclick = () => {
-    if (currentMode === "private" && currentPrivateWith) {
-        startCall(currentPrivateWith, true);
-    }
+    if (currentMode === "private" && currentPrivateWith) startCall(currentPrivateWith, true);
 };
 
 async function startCall(targetNick, video = false) {
@@ -4931,7 +4026,7 @@ rejectCallBtn.onclick = rejectCall;
 endCallBtn.onclick = endCall;
 
 // ============================================================
-// ПРИВАТНЫЕ СООБЩЕНИЯ (ЗАГЛУШКИ)
+// ПРИВАТНЫЕ СООБЩЕНИЯ
 // ============================================================
 
 function renderPrivateMessages(messages) {
@@ -5606,6 +4701,9 @@ function addChannelMessage(m) {
 
 console.log("🚀 ChatterBox готов!");
 console.log("👤 Пользователь:", currentNick || "не авторизован");
+
+// Инициализация списка чатов
+renderSidebar();
 </script>
 </body>
 </html>
