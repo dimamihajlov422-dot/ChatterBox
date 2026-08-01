@@ -5,6 +5,29 @@ const fs = require("fs");
 const crypto = require("crypto");
 const path = require("path");
 
+// ============================================================
+// PUSH-УВЕДОМЛЕНИЯ (Web Push, работают даже когда приложение закрыто)
+// ============================================================
+// Требуется пакет web-push: выполните один раз на сервере:
+//   npm install web-push
+// Если пакет не установлен, сервер продолжит работать как раньше —
+// просто push-уведомления отправляться не будут (упадёт в catch ниже).
+let webpush = null;
+try { webpush = require("web-push"); } catch (e) {
+    console.log("⚠️  Пакет 'web-push' не установлен — push-уведомления отключены. Выполните: npm install web-push");
+}
+
+// Сгенерированная пара VAPID-ключей (публичный ключ должен совпадать
+// с тем, что зашит в index.html в функции subscribeToPush!).
+// Для продакшена рекомендуется сгенерировать свою пару и держать
+// приватный ключ в переменной окружения, а не в коде.
+const VAPID_PUBLIC_KEY = "BEUAnMTYPjsW2bVrUblmH2IUlydTUiChaAwM4gBVZIci47qT02SxlHB3rmbI_jxUC3KkM4b8cXiyUgzh5H5myuM";
+const VAPID_PRIVATE_KEY = "2zgzl3EnJu9AS4oaSx0wwnH5z_j3rpYh79RWayJWAbQ";
+
+if (webpush) {
+    webpush.setVapidDetails("mailto:admin@example.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+}
+
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
@@ -41,6 +64,7 @@ let pinnedMessages = [];
 let scheduledMessages = [];
 let ipAttempts = new Map();
 let ipBlockedUntil = new Map();
+let pushSubscriptions = {}; // nick -> [subscription, ...] (несколько устройств на пользователя)
 
 // ===== ФАЙЛЫ =====
 const DB_FILE = "db.json";
@@ -54,6 +78,7 @@ const REPUTATION_FILE = "reputation.json";
 const DEVICES_FILE = "devices.json";
 const PINNED_FILE = "pinned.json";
 const SCHEDULED_FILE = "scheduled.json";
+const PUSH_FILE = "push_subscriptions.json";
 
 // ============================================================
 // ЗАГРУЗКА ДАННЫХ
@@ -170,6 +195,16 @@ function loadData() {
             fs.writeFileSync(SCHEDULED_FILE, JSON.stringify([], null, 2));
         }
     } catch (e) { scheduledMessages = []; }
+
+    try {
+        if (fs.existsSync(PUSH_FILE)) {
+            pushSubscriptions = JSON.parse(fs.readFileSync(PUSH_FILE, "utf8")) || {};
+            console.log(`✅ Загружено push-подписок: ${Object.keys(pushSubscriptions).length} пользователей`);
+        } else {
+            pushSubscriptions = {};
+            fs.writeFileSync(PUSH_FILE, JSON.stringify({}, null, 2));
+        }
+    } catch (e) { pushSubscriptions = {}; }
 }
 
 loadData();
@@ -189,6 +224,29 @@ function saveReputation() { try { fs.writeFileSync(REPUTATION_FILE, JSON.stringi
 function saveDevices() { try { fs.writeFileSync(DEVICES_FILE, JSON.stringify(deviceTokens, null, 2)); } catch(e){} }
 function savePinned() { try { fs.writeFileSync(PINNED_FILE, JSON.stringify(pinnedMessages, null, 2)); } catch(e){} }
 function saveScheduled() { try { fs.writeFileSync(SCHEDULED_FILE, JSON.stringify(scheduledMessages, null, 2)); } catch(e){} }
+function savePushSubscriptions() { try { fs.writeFileSync(PUSH_FILE, JSON.stringify(pushSubscriptions, null, 2)); } catch(e){} }
+
+// Отправляет push-уведомление пользователю на ВСЕ его сохранённые устройства.
+// Вызывается только когда пользователь offline (иначе он и так получит
+// сообщение мгновенно через WebSocket — дублировать push не нужно).
+function sendPushToUser(nick, { title, body, tag }) {
+    if (!webpush) return;
+    const subs = pushSubscriptions[nick];
+    if (!subs || subs.length === 0) return;
+    const payload = JSON.stringify({ title: title || "ChatterBox", body: (body || "").slice(0, 150), tag: tag || nick });
+    let changed = false;
+    pushSubscriptions[nick] = subs.filter(sub => {
+        webpush.sendNotification(sub, payload).catch(err => {
+            // 404/410 = подписка больше недействительна (например, юзер очистил данные браузера)
+            if (err && (err.statusCode === 404 || err.statusCode === 410)) {
+                pushSubscriptions[nick] = (pushSubscriptions[nick] || []).filter(s => s.endpoint !== sub.endpoint);
+                savePushSubscriptions();
+            }
+        });
+        return true;
+    });
+    if (changed) savePushSubscriptions();
+}
 
 // ============================================================
 // УТИЛИТЫ
@@ -238,6 +296,25 @@ function checkRate(ws) {
     arr.push(now);
     rate.set(ws, arr);
     return arr.length <= 10;
+}
+
+// Если у ника уже есть "старое" соединение (например, приложение было
+// закрыто, но сервер ещё не успел это обнаружить через ping/pong —
+// такое обнаружение происходит раз в 30 секунд), новый вход должен
+// ЗАМЕНИТЬ старую сессию, а не блокировать вход и не создавать
+// второй параллельный "призрачный" коннект на тот же ник.
+function kickExistingSession(nick) {
+    for (const [c, n] of usersOnline.entries()) {
+        if (n === nick) {
+            usersOnline.delete(c);
+            rate.delete(c);
+            try {
+                c.send(JSON.stringify({ type: "error", text: "Вы вошли с другого устройства/вкладки" }));
+                c.close();
+            } catch (e) {}
+            try { c.terminate(); } catch (e) {}
+        }
+    }
 }
 
 // ============================================================
@@ -712,8 +789,11 @@ function sendGroupMessage(groupId, from, msgData) {
     }
     saveGroups();
     for (const member of groups[groupId].members) {
-        sendToUser(member, { type: "group_msg", groupId, data: m });
+        const delivered = sendToUser(member, { type: "group_msg", groupId, data: m });
         updateLastChat(member, "group", groupId, m.text || "📎 Вложение");
+        if (!delivered && member !== from) {
+            sendPushToUser(member, { title: `${groups[groupId].name}: ${from}`, body: m.text || "📎 Вложение", tag: `group_${groupId}` });
+        }
     }
 }
 
@@ -1122,14 +1202,7 @@ wss.on("connection", (ws) => {
                 token = newToken;
             }
             if (nick && usersDB[nick]) {
-                let alreadyOnline = false;
-                for (const [c, n] of usersOnline.entries()) {
-                    if (n === nick) { alreadyOnline = true; break; }
-                }
-                if (alreadyOnline) {
-                    ws.send(JSON.stringify({ type: "error", text: "Уже в сети" }));
-                    return;
-                }
+                kickExistingSession(nick);
                 ws.nick = nick;
                 usersOnline.set(ws, nick);
                 userStatus.set(nick, { status: "online", lastSeen: Date.now() });
@@ -1219,6 +1292,7 @@ wss.on("connection", (ws) => {
                 recordIPAttempt(ip);
                 return;
             }
+            kickExistingSession(nick);
             ws.nick = nick;
             usersOnline.set(ws, nick);
             userStatus.set(nick, { status: "online", lastSeen: Date.now() });
@@ -1256,6 +1330,26 @@ wss.on("connection", (ws) => {
         }
 
         const currentUser = ws.nick;
+
+        // ===== PUSH-ПОДПИСКА =====
+        if (msg.type === "push_subscribe") {
+            if (!msg.subscription || !msg.subscription.endpoint) return;
+            if (!pushSubscriptions[currentUser]) pushSubscriptions[currentUser] = [];
+            const exists = pushSubscriptions[currentUser].some(s => s.endpoint === msg.subscription.endpoint);
+            if (!exists) {
+                pushSubscriptions[currentUser].push(msg.subscription);
+                savePushSubscriptions();
+            }
+            return;
+        }
+
+        if (msg.type === "push_unsubscribe") {
+            if (pushSubscriptions[currentUser]) {
+                pushSubscriptions[currentUser] = pushSubscriptions[currentUser].filter(s => s.endpoint !== msg.endpoint);
+                savePushSubscriptions();
+            }
+            return;
+        }
 
         // ===== СТАТУС =====
         if (msg.type === "update_status") {
@@ -1740,7 +1834,8 @@ wss.on("connection", (ws) => {
             updateLastChat(currentUser, "private", msg.target, m.text || "📎 Вложение");
             updateLastChat(msg.target, "private", currentUser, m.text || "📎 Вложение");
             sendToUser(currentUser, { type: "private_msg", data: m, with: msg.target });
-            sendToUser(msg.target, { type: "private_msg", data: m, with: currentUser });
+            const delivered = sendToUser(msg.target, { type: "private_msg", data: m, with: currentUser });
+            if (!delivered) sendPushToUser(msg.target, { title: currentUser, body: m.text || "📎 Вложение", tag: `private_${currentUser}` });
             return;
         }
 
