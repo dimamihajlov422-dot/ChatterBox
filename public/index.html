@@ -5135,3 +5135,13 @@ renderSidebar();
 </script>
 </body>
 </html>
+
+// Добавьте в конец файла, перед closing </script>
+// Скрыть страницу разрешений принудительно
+document.addEventListener('DOMContentLoaded', function() {
+    const permScreen = document.getElementById('permissionsScreen');
+    if (permScreen) {
+        permScreen.classList.add('hidden');
+        // или permScreen.style.display = 'none';
+    }
+});
