@@ -345,6 +345,23 @@ function updateGroupSettings(groupId, settings, updater) {
     return true;
 }
 
+// ===== 5a. 📝 Название группы =====
+function updateGroupName(groupId, newName, updater) {
+    if (!groups[groupId]) return false;
+    if (!newName || !newName.trim()) return false;
+    const settings = groups[groupId].settings || {};
+    const isAdmin = groups[groupId].admins && groups[groupId].admins.includes(updater);
+    const perm = settings.whoCanChangeName || "admins";
+    const allowed = groups[groupId].creator === updater || updater === "Дима" ||
+        (perm === "all") || (perm === "admins" && isAdmin);
+    if (!allowed) return false;
+    groups[groupId].name = escapeHtml(newName.trim().slice(0, 50));
+    saveGroups();
+    broadcast({ type: "group_update", group: groups[groupId] });
+    addGroupLog(groupId, `${updater} изменил название группы на "${groups[groupId].name}"`);
+    return true;
+}
+
 // ===== 7. 🔗 Пригласительная ссылка =====
 function generateInviteLink(groupId) {
     if (!groups[groupId]) return null;
@@ -1382,6 +1399,16 @@ wss.on("connection", (ws) => {
             return;
         }
 
+        // Обновить название группы
+        if (msg.type === "update_group_name") {
+            if (updateGroupName(msg.groupId, msg.newName, currentUser)) {
+                ws.send(JSON.stringify({ type: "group_name_updated", groupId: msg.groupId }));
+            } else {
+                ws.send(JSON.stringify({ type: "error", text: "Не удалось изменить название группы" }));
+            }
+            return;
+        }
+
         // Получить пригласительную ссылку
         if (msg.type === "get_invite_link") {
             if (groups[msg.groupId] && groups[msg.groupId].members.includes(currentUser)) {
@@ -1736,24 +1763,6 @@ wss.on("connection", (ws) => {
         }
 
         // ============================================================
-        // ЗАКРЕПЛЕНИЕ (ОБЩЕЕ)
-        // ============================================================
-
-        if (msg.type === "pin_message") {
-            if (pinMessage(msg.chatId, msg.msgId, currentUser)) {
-                ws.send(JSON.stringify({ type: "pin_success", id: msg.msgId }));
-            }
-            return;
-        }
-
-        if (msg.type === "unpin_message") {
-            if (unpinMessage(msg.msgId, currentUser)) {
-                ws.send(JSON.stringify({ type: "unpin_success", id: msg.msgId }));
-            }
-            return;
-        }
-
-        // ============================================================
         // ПЛАНИРОВЩИК
         // ============================================================
 
@@ -1906,10 +1915,29 @@ wss.on("connection", (ws) => {
         }
 
         // ============================================================
-        // WEBRTC ЗВОНКИ
+        // WEBRTC ЗВОНКИ (личные и групповые — mesh со стороны клиента)
         // ============================================================
+        //
+        // Клиент присылает сюда: offer / answer / ice — для установления
+        // и обмена медиапотоками, а также hangup / call_busy / call_reject
+        // для корректного завершения звонка на обеих сторонах (иначе
+        // собеседник "зависает" в режиме дозвона, если вторая сторона
+        // не ответила, отклонила или уже говорит по другому звонку).
+        //
+        // Все эти типы — это просто сигналинг: сервер ничего не решает
+        // сам, только пересылает сообщение конкретному пользователю
+        // (msg.to), сохраняя from = тот, кто прислал сообщение.
+        // Сам голос/видео идёт напрямую между браузерами (P2P) либо
+        // через TURN-сервер, если он настроен на клиенте.
 
-        if (msg.type === "offer" || msg.type === "answer" || msg.type === "ice") {
+        if (
+            msg.type === "offer" ||
+            msg.type === "answer" ||
+            msg.type === "ice" ||
+            msg.type === "hangup" ||
+            msg.type === "call_busy" ||
+            msg.type === "call_reject"
+        ) {
             let targetWs = null;
             for (const [c, nick] of usersOnline.entries()) {
                 if (nick === msg.to) { targetWs = c; break; }
@@ -1921,8 +1949,16 @@ wss.on("connection", (ws) => {
                     offer: msg.offer,
                     answer: msg.answer,
                     ice: msg.ice,
-                    video: msg.video || false
+                    video: msg.video || false,
+                    groupCall: msg.groupCall || false,
+                    groupId: msg.groupId || null
                 }));
+            } else {
+                // Собеседник не в сети / отключился — сообщаем звонящему сразу,
+                // чтобы интерфейс не завис в состоянии "дозвон"
+                if (msg.type === "offer") {
+                    ws.send(JSON.stringify({ type: "call_busy", from: msg.to }));
+                }
             }
             return;
         }
@@ -1969,6 +2005,9 @@ wss.on("connection", (ws) => {
 
     ws.on("close", () => {
         if (ws.nick) {
+            // Если пользователь был в звонке, уведомляем всех, кому он мог
+            // звонить/отвечать — иначе собеседник останется висеть в звонке
+            broadcast({ type: "hangup", from: ws.nick, disconnected: true });
             usersOnline.delete(ws);
             userStatus.set(ws.nick, { status: "offline", lastSeen: Date.now() });
             userLastSeen.set(ws.nick, Date.now());
