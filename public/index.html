@@ -330,7 +330,7 @@ body.dark .search-overlay .search-box .results .result-item:hover { background: 
     background: var(--card-bg);
     backdrop-filter: blur(12px);
     padding: 8px 12px;
-    display: none;
+    display: flex;
     gap: 8px;
     align-items: center;
     flex-shrink: 0;
@@ -1871,7 +1871,7 @@ body.dark .directory-screen {
 <div class="attach-panel" id="attachPanel">
     <div class="attach-item" id="attachPhoto"><span class="icon">🖼️</span><span class="label">Фото</span></div>
     <div class="attach-item" id="attachVideo"><span class="icon">🎥</span><span class="label">Видео</span></div>
-    <div class="attach-item" id="attachCircle"><span class="icon">🔄</span><span class="label">Видео</span></div>
+    <div class="attach-item" id="attachCircle"><span class="icon">🔄</span><span class="label">Кружок</span></div>
     <div class="attach-item" id="attachMusic"><span class="icon">🎵</span><span class="label">Музыка</span></div>
     <div class="attach-item" id="attachVoice"><span class="icon">🎙️</span><span class="label">Голос</span></div>
     <div class="attach-item" id="attachLocation"><span class="icon">📍</span><span class="label">Гео</span></div>
@@ -3292,12 +3292,10 @@ function addMessage(m) {
         circleDiv.className = "video-message";
         const video = document.createElement("video");
         video.src = m.circle;
-        video.muted = true;
         video.playsInline = true;
         video.loop = false;
-        const playBtn = document.createElement("div");
-        playBtn.className = "play-btn";
-        playBtn.textContent = "▶";
+        // Без кнопки паузы в центре — тап по кружку сам переключает play/pause,
+        // как в мессенджерах; звук теперь не глушится
         const duration = document.createElement("div");
         duration.className = "duration";
         duration.textContent = "0:05";
@@ -3314,16 +3312,13 @@ function addMessage(m) {
         circleDiv.onclick = () => {
             if (isPlaying) {
                 video.pause();
-                playBtn.textContent = "▶";
                 progressRing.classList.remove("playing");
                 isPlaying = false;
             } else {
                 video.play();
-                playBtn.textContent = "⏸";
                 progressRing.classList.add("playing");
                 isPlaying = true;
                 video.onended = () => {
-                    playBtn.textContent = "▶";
                     progressRing.classList.remove("playing");
                     isPlaying = false;
                 };
@@ -3331,7 +3326,6 @@ function addMessage(m) {
         };
         
         circleDiv.appendChild(video);
-        circleDiv.appendChild(playBtn);
         circleDiv.appendChild(duration);
         circleDiv.appendChild(progressRing);
         div.appendChild(circleDiv);
@@ -5645,6 +5639,102 @@ applyDeviceMode();
 refreshPushStatusUI();
 
 // ============================================================
+// СИСТЕМНАЯ КНОПКА "НАЗАД" (Android) / ЖЕСТ "НАЗАД"
+// ============================================================
+// Без этого системная кнопка "назад" на Android просто закрывает вкладку
+// приложения, а не работает как навигация внутри самого приложения.
+// Логика: при открытии чата/экрана добавляем одну "ступеньку" в историю
+// браузера; при нажатии "назад" сначала закрываем самое верхнее открытое
+// окно (картинку, меню сообщения, панель вложений, экран группы,
+// настройки, профиль и т.д.), и только если открывать больше нечего —
+// возвращаемся в справочник (список чатов), либо, если мы уже там,
+// позволяем системе обработать "назад" как обычно (например, закрыть
+// клавиатуру — это происходит на уровне ОС/браузера и не требует кода).
+
+let backGuardActive = false;
+
+function isDesktopOrTablet() {
+    return document.body.classList.contains("device-desktop") || document.body.classList.contains("device-tablet");
+}
+
+function pushBackGuard() {
+    if (backGuardActive) return;
+    backGuardActive = true;
+    try { history.pushState({ chatterboxNav: true }, ""); } catch (e) {}
+}
+
+// Вызывается, когда какой-то экран закрывается ОБЫЧНЫМ способом (кликом на
+// "←"/"✕"), а не системной кнопкой "назад" — чтобы история не копилась
+function syncBackGuardOnManualClose() {
+    if (backGuardActive) {
+        backGuardActive = false;
+        try { if (history.state && history.state.chatterboxNav) history.back(); } catch (e) {}
+    }
+}
+
+window.addEventListener("popstate", () => {
+    backGuardActive = false;
+
+    if (modal.classList.contains("open")) { modal.classList.remove("open"); return; }
+    if (messageMenu.style.display === "flex") { messageMenu.style.display = "none"; return; }
+    if (attachPanel.classList.contains("open")) { attachPanel.classList.remove("open"); return; }
+    if (translatorPanel.classList.contains("open")) { translatorPanel.classList.remove("open"); return; }
+    if (schedulerPanel.classList.contains("open")) { schedulerPanel.classList.remove("open"); return; }
+    if (pinnedMessagesPanel.classList.contains("open")) { pinnedMessagesPanel.classList.remove("open"); return; }
+    if (searchOverlay.classList.contains("open")) { searchOverlay.classList.remove("open"); return; }
+    if (groupScreen.classList.contains("open")) { closeGroupScreen(); return; }
+    if (channelsScreen.classList.contains("open")) { channelsScreen.classList.remove("open"); return; }
+    if (contactsScreen.classList.contains("open")) { contactsScreen.classList.remove("open"); return; }
+    if (groupsScreen.classList.contains("open")) { groupsScreen.classList.remove("open"); return; }
+    if (menuPanel.classList.contains("open")) { menuPanel.classList.remove("open"); return; }
+    if (privacyScreen.classList.contains("open")) { privacyScreen.classList.remove("open"); return; }
+    if (profileScreen.classList.contains("open")) { profileScreen.classList.remove("open"); return; }
+    if (settingsScreen.classList.contains("open")) { settingsScreen.classList.remove("open"); return; }
+    if (permissionsScreen.classList.contains("open")) { permissionsScreen.classList.remove("open"); return; }
+
+    if (currentMode === "private" || currentMode === "group" || currentMode === "channel") {
+        openDirectory();
+        return;
+    }
+
+    if (!isDesktopOrTablet() && directoryScreen.classList.contains("open")) {
+        directoryScreen.classList.remove("open");
+        return;
+    }
+    // Больше нечего закрывать внутри приложения — отдаём управление системе
+    // (например, дальнейшее "назад" может свернуть/закрыть вкладку — это
+    // ожидаемое поведение на самом "корневом" экране)
+});
+
+// Вешаем pushBackGuard() на все места, где открывается конкретный чат
+// или полноэкранный оверлей — без изменения самих этих функций
+["switchToPrivate", "switchToGroup", "switchToChannel", "openGroupScreen"].forEach(fnName => {
+    if (typeof window[fnName] === "function") {
+        const original = window[fnName];
+        window[fnName] = function (...args) {
+            pushBackGuard();
+            return original.apply(this, args);
+        };
+    }
+});
+
+// Аналогично для открытия настроек/профиля/политики — перехватываем клики
+[settingsPush, settingsUiLang].forEach(() => {}); // no-op, оставлено для читаемости
+
+document.getElementById("menuProfileBtn")?.addEventListener("click", pushBackGuard);
+document.getElementById("closeProfile")?.addEventListener("click", syncBackGuardOnManualClose);
+document.getElementById("closeSettings")?.addEventListener("click", syncBackGuardOnManualClose);
+document.getElementById("closePrivacy")?.addEventListener("click", syncBackGuardOnManualClose);
+document.getElementById("gsCloseBtn")?.addEventListener("click", syncBackGuardOnManualClose);
+if (bottomNav) bottomNav.addEventListener("click", (e) => { if (e.target.closest(".bn-item")) pushBackGuard(); });
+if (directoryFooter) directoryFooter.addEventListener("click", (e) => {
+    const btn = e.target.closest(".bn-item");
+    if (btn && btn.dataset.view !== "chats") pushBackGuard();
+});
+if (dirCloseBtn) dirCloseBtn.addEventListener("click", syncBackGuardOnManualClose);
+if (backBtn) backBtn.addEventListener("click", syncBackGuardOnManualClose);
+
+// ============================================================
 // ЗАПУСК
 // ============================================================
 
@@ -5695,12 +5785,10 @@ function addPrivateMessage(m) {
         circleDiv.className = "video-message";
         const video = document.createElement("video");
         video.src = m.circle;
-        video.muted = true;
         video.playsInline = true;
         video.loop = false;
-        const playBtn = document.createElement("div");
-        playBtn.className = "play-btn";
-        playBtn.textContent = "▶";
+        // Без кнопки паузы в центре — тап по кружку сам переключает play/pause,
+        // как в мессенджерах; звук теперь не глушится
         const duration = document.createElement("div");
         duration.className = "duration";
         duration.textContent = "0:05";
@@ -5717,16 +5805,13 @@ function addPrivateMessage(m) {
         circleDiv.onclick = () => {
             if (isPlaying) {
                 video.pause();
-                playBtn.textContent = "▶";
                 progressRing.classList.remove("playing");
                 isPlaying = false;
             } else {
                 video.play();
-                playBtn.textContent = "⏸";
                 progressRing.classList.add("playing");
                 isPlaying = true;
                 video.onended = () => {
-                    playBtn.textContent = "▶";
                     progressRing.classList.remove("playing");
                     isPlaying = false;
                 };
@@ -5734,7 +5819,6 @@ function addPrivateMessage(m) {
         };
         
         circleDiv.appendChild(video);
-        circleDiv.appendChild(playBtn);
         circleDiv.appendChild(duration);
         circleDiv.appendChild(progressRing);
         div.appendChild(circleDiv);
@@ -5918,12 +6002,10 @@ function addGroupMessage(m) {
         circleDiv.className = "video-message";
         const video = document.createElement("video");
         video.src = m.circle;
-        video.muted = true;
         video.playsInline = true;
         video.loop = false;
-        const playBtn = document.createElement("div");
-        playBtn.className = "play-btn";
-        playBtn.textContent = "▶";
+        // Без кнопки паузы в центре — тап по кружку сам переключает play/pause,
+        // как в мессенджерах; звук теперь не глушится
         const duration = document.createElement("div");
         duration.className = "duration";
         duration.textContent = "0:05";
@@ -5940,16 +6022,13 @@ function addGroupMessage(m) {
         circleDiv.onclick = () => {
             if (isPlaying) {
                 video.pause();
-                playBtn.textContent = "▶";
                 progressRing.classList.remove("playing");
                 isPlaying = false;
             } else {
                 video.play();
-                playBtn.textContent = "⏸";
                 progressRing.classList.add("playing");
                 isPlaying = true;
                 video.onended = () => {
-                    playBtn.textContent = "▶";
                     progressRing.classList.remove("playing");
                     isPlaying = false;
                 };
@@ -5957,7 +6036,6 @@ function addGroupMessage(m) {
         };
         
         circleDiv.appendChild(video);
-        circleDiv.appendChild(playBtn);
         circleDiv.appendChild(duration);
         circleDiv.appendChild(progressRing);
         div.appendChild(circleDiv);
@@ -6141,12 +6219,10 @@ function addChannelMessage(m) {
         circleDiv.className = "video-message";
         const video = document.createElement("video");
         video.src = m.circle;
-        video.muted = true;
         video.playsInline = true;
         video.loop = false;
-        const playBtn = document.createElement("div");
-        playBtn.className = "play-btn";
-        playBtn.textContent = "▶";
+        // Без кнопки паузы в центре — тап по кружку сам переключает play/pause,
+        // как в мессенджерах; звук теперь не глушится
         const duration = document.createElement("div");
         duration.className = "duration";
         duration.textContent = "0:05";
@@ -6163,16 +6239,13 @@ function addChannelMessage(m) {
         circleDiv.onclick = () => {
             if (isPlaying) {
                 video.pause();
-                playBtn.textContent = "▶";
                 progressRing.classList.remove("playing");
                 isPlaying = false;
             } else {
                 video.play();
-                playBtn.textContent = "⏸";
                 progressRing.classList.add("playing");
                 isPlaying = true;
                 video.onended = () => {
-                    playBtn.textContent = "▶";
                     progressRing.classList.remove("playing");
                     isPlaying = false;
                 };
@@ -6180,7 +6253,6 @@ function addChannelMessage(m) {
         };
         
         circleDiv.appendChild(video);
-        circleDiv.appendChild(playBtn);
         circleDiv.appendChild(duration);
         circleDiv.appendChild(progressRing);
         div.appendChild(circleDiv);
