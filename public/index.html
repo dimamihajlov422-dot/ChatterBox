@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ChatterBox</title>
-<style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0084ff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>ChatterBox</title>
+    <style>
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 :root {
@@ -553,7 +557,6 @@ body.dark .message-menu { background: var(--card-bg-dark); border-color: var(--b
 .message-menu span:hover { background: var(--border); }
 body.dark .message-menu span:hover { background: var(--border-dark); }
 
-/* ===== ОСТАЛЬНЫЕ СТИЛИ ===== */
 .menu-panel {
     position: fixed;
     top: 0;
@@ -730,6 +733,153 @@ body.dark .profile-field input, body.dark .profile-field textarea { background: 
 body.dark .profile-save { background: var(--border-dark); border-color: var(--border-dark); }
 .profile-save:active { transform: scale(0.97); }
 .profile-reputation { text-align: center; padding: 6px; font-size: 14px; color: #888; }
+
+.channels-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--card-bg);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    z-index: 1700;
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+}
+body.dark .channels-screen { background: var(--card-bg-dark); }
+.channels-screen.open { display: flex; }
+.channels-header {
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+}
+body.dark .channels-header { background: rgba(0,0,0,0.2); border-color: var(--border-dark); }
+.channels-header button { background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
+.channels-header span { font-size: 18px; font-weight: 600; }
+.channels-body { flex: 1; padding: 16px 20px; }
+.channel-item {
+    padding: 14px 16px;
+    background: var(--border);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+body.dark .channel-item { background: var(--border-dark); }
+.channel-item:active { transform: scale(0.97); }
+.channel-item .name { font-weight: 600; font-size: 16px; }
+.channel-item .subs { font-size: 12px; opacity: 0.5; }
+.channel-item .status { font-size: 12px; padding: 2px 10px; border-radius: 12px; background: rgba(0,132,255,0.1); color: #0084ff; }
+.channel-item .status.subscribed { background: rgba(76,175,80,0.15); color: #4caf50; }
+
+.contacts-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--card-bg);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    z-index: 1550;
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+}
+body.dark .contacts-screen { background: var(--card-bg-dark); }
+.contacts-screen.open { display: flex; }
+.contacts-header {
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+}
+body.dark .contacts-header { background: rgba(0,0,0,0.2); border-color: var(--border-dark); }
+.contacts-header button { background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
+.contacts-header span { font-size: 18px; font-weight: 600; }
+.contacts-body { flex: 1; padding: 16px 20px; }
+.contact-item {
+    padding: 12px 14px;
+    background: var(--border);
+    border-radius: 12px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+}
+body.dark .contact-item { background: var(--border-dark); }
+.contact-item:active { transform: scale(0.97); }
+.contact-item .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius);
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+.contact-item .info { flex: 1; }
+.contact-item .info .name { font-weight: 600; }
+.contact-item .info .status { font-size: 12px; opacity: 0.5; }
+
+.groups-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--card-bg);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    z-index: 1551;
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+}
+body.dark .groups-screen { background: var(--card-bg-dark); }
+.groups-screen.open { display: flex; }
+.groups-header {
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+}
+body.dark .groups-header { background: rgba(0,0,0,0.2); border-color: var(--border-dark); }
+.groups-header button { background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
+.groups-header span { font-size: 18px; font-weight: 600; }
+.groups-body { flex: 1; padding: 16px 20px; }
+
+.privacy-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--card-bg);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    z-index: 1650;
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+}
+body.dark .privacy-screen { background: var(--card-bg-dark); }
+.privacy-screen.open { display: flex; }
+.privacy-header {
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+}
+body.dark .privacy-header { background: rgba(0,0,0,0.2); border-color: var(--border-dark); }
+.privacy-header button { background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
+.privacy-header span { font-size: 18px; font-weight: 600; }
+.privacy-body { flex: 1; padding: 20px; }
+.privacy-body p { margin-bottom: 12px; line-height: 1.6; font-size: 15px; color: var(--text); }
 
 /* ===== ГРУППЫ ===== */
 .group-screen {
@@ -987,10 +1137,11 @@ body.dark .call-status button { color: var(--text); }
 .member-item .avatar {
     border-radius: var(--radius) !important;
 }
-</style>
+    </style>
 </head>
 <body>
 
+<!-- ===== ЭКРАН ВХОДА ===== -->
 <div class="auth-screen" id="authScreen">
     <div class="auth-card">
         <h2 id="authTitle">Добро пожаловать</h2>
@@ -1003,6 +1154,7 @@ body.dark .call-status button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== РАЗРЕШЕНИЯ ===== -->
 <div class="permissions-screen" id="permissionsScreen">
     <div class="permissions-card">
         <h2>🔐 Разрешения</h2>
@@ -1037,6 +1189,7 @@ body.dark .call-status button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== ОСНОВНОЕ ПРИЛОЖЕНИЕ ===== -->
 <div class="main-app hidden" id="mainApp">
     <div class="header">
         <div class="nav-left">
@@ -1075,6 +1228,7 @@ body.dark .call-status button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== ПОИСК ===== -->
 <div class="search-overlay" id="searchOverlay">
     <div class="search-box">
         <input type="text" id="searchInputGlobal" placeholder="🔍 Поиск...">
@@ -1083,6 +1237,7 @@ body.dark .call-status button { color: var(--text); }
     <div class="close-search" id="closeSearch">✕</div>
 </div>
 
+<!-- ===== ПАНЕЛЬ ВЛОЖЕНИЙ ===== -->
 <div class="attach-panel" id="attachPanel">
     <div class="attach-item" id="attachPhoto"><span class="icon">🖼️</span><span class="label">Фото</span></div>
     <div class="attach-item" id="attachVideo"><span class="icon">🎥</span><span class="label">Видео</span></div>
@@ -1095,6 +1250,7 @@ body.dark .call-status button { color: var(--text); }
     <div class="attach-item" id="attachPoll"><span class="icon">📊</span><span class="label">Опрос</span></div>
 </div>
 
+<!-- ===== МЕНЮ СООБЩЕНИЯ ===== -->
 <div class="message-menu" id="messageMenu">
     <span id="menuEdit">✏️ Редактировать</span>
     <span id="menuCopy">📋 Копировать</span>
@@ -1108,6 +1264,7 @@ body.dark .call-status button { color: var(--text); }
     <span id="menuDelete">🗑️ Удалить</span>
 </div>
 
+<!-- ===== ПАНЕЛЬ ПЕРЕВОДЧИКА ===== -->
 <div class="translator-panel" id="translatorPanel">
     <button class="close-translator" id="closeTranslator">✕</button>
     <div class="lang-select" id="langSelect">
@@ -1118,6 +1275,7 @@ body.dark .call-status button { color: var(--text); }
     <div class="translated-text" id="translatedText">Перевод появится здесь</div>
 </div>
 
+<!-- ===== ПАНЕЛЬ ПЛАНИРОВЩИКА ===== -->
 <div class="scheduler-panel" id="schedulerPanel">
     <button class="close-scheduler" id="closeScheduler">✕</button>
     <input type="text" id="schedulerText" placeholder="Сообщение для отложенной отправки...">
@@ -1128,6 +1286,7 @@ body.dark .call-status button { color: var(--text); }
     <button class="schedule-btn" id="scheduleSendBtn">📅 Запланировать</button>
 </div>
 
+<!-- ===== ЗАКРЕПЛЁННЫЕ ===== -->
 <div class="pinned-messages-panel" id="pinnedMessagesPanel">
     <div class="header">
         <button id="closePinned">←</button>
@@ -1136,6 +1295,7 @@ body.dark .call-status button { color: var(--text); }
     <div class="list" id="pinnedList"></div>
 </div>
 
+<!-- ===== ГРУППЫ ===== -->
 <div class="group-screen" id="groupScreen">
     <div class="header">
         <button id="closeGroupScreen">←</button>
@@ -1157,6 +1317,7 @@ body.dark .call-status button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== ГЛАВНОЕ МЕНЮ ===== -->
 <div class="menu-panel" id="menuPanel">
     <div class="menu-header">
         <div class="user-info">
@@ -1189,6 +1350,7 @@ body.dark .call-status button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== НАСТРОЙКИ ===== -->
 <div class="settings-screen" id="settingsScreen">
     <div class="settings-header">
         <button id="closeSettings">←</button>
@@ -1198,10 +1360,16 @@ body.dark .call-status button { color: var(--text); }
         <div class="settings-item" id="settingsTheme">🌓 Сменить тему <span class="toggle">○</span></div>
         <div class="settings-item" id="settingsSound">🔊 Звук: Вкл <span class="toggle">●</span></div>
         <div class="settings-item" id="settingsFontSize">📏 Размер шрифта <span class="sub">Средний</span></div>
+        
+        <div style="margin-top:16px; padding:8px 4px; color:#888; font-size:13px;">🌐 Язык интерфейса</div>
+        <div class="settings-item" id="settingsLang">
+            <span id="settingsLangLabel">Выберите язык</span>
+            <span class="sub" id="settingsLangValue">Русский</span>
+        </div>
+        
         <div style="margin-top:16px; padding:8px 4px; color:#888; font-size:13px;">🔐 Разрешения</div>
         <div class="settings-item" id="settingsPermissions">📷 Управление разрешениями <span class="toggle">→</span></div>
-        <div style="margin-top:16px; padding:8px 4px; color:#888; font-size:13px;">🌐 Язык перевода</div>
-        <div class="settings-item" id="settingsLang">Выберите язык <span class="sub">Русский</span></div>
+        
         <div style="margin-top:16px; padding:8px 4px; color:#888; font-size:13px;">Статус</div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <span class="status-opt" data-status="online" style="padding:6px 14px; border-radius:20px; background:var(--border); cursor:pointer; font-size:13px; border:2px solid transparent;">🟢 Онлайн</span>
@@ -1213,6 +1381,7 @@ body.dark .call-status button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== ПРОФИЛЬ ===== -->
 <div class="profile-screen" id="profileScreen">
     <div class="profile-header">
         <button id="closeProfile">←</button>
@@ -1233,6 +1402,7 @@ body.dark .call-status button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== КАНАЛЫ ===== -->
 <div class="channels-screen" id="channelsScreen">
     <div class="channels-header">
         <button id="closeChannels">←</button>
@@ -1241,6 +1411,7 @@ body.dark .call-status button { color: var(--text); }
     <div class="channels-body" id="channelsList"></div>
 </div>
 
+<!-- ===== КОНТАКТЫ ===== -->
 <div class="contacts-screen" id="contactsScreen">
     <div class="contacts-header">
         <button id="closeContacts">←</button>
@@ -1249,6 +1420,7 @@ body.dark .call-status button { color: var(--text); }
     <div class="contacts-body" id="contactsList"></div>
 </div>
 
+<!-- ===== ГРУППЫ (СПИСОК) ===== -->
 <div class="groups-screen" id="groupsScreen">
     <div class="groups-header">
         <button id="closeGroups">←</button>
@@ -1257,6 +1429,7 @@ body.dark .call-status button { color: var(--text); }
     <div class="groups-body" id="groupsListScreen"></div>
 </div>
 
+<!-- ===== ПОЛИТИКА ===== -->
 <div class="privacy-screen" id="privacyScreen">
     <div class="privacy-header">
         <button id="closePrivacy">←</button>
@@ -1267,6 +1440,7 @@ body.dark .call-status button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== ЗВОНКИ ===== -->
 <div class="incoming-call" id="incomingCall">
     <span id="incomingCaller">📞 Звонит...</span>
     <div>
@@ -1280,11 +1454,12 @@ body.dark .call-status button { color: var(--text); }
     <button id="endCallBtn">Завершить</button>
 </div>
 
+<!-- ===== МОДАЛ ===== -->
 <div class="modal" id="modal"><span class="close">&times;</span><img id="modalImg" src=""></div>
 
 <script>
 // ============================================================
-// ПОЛНЫЙ РАБОЧИЙ JS КОД (ВЕРНУЛИ БАЗОВУЮ ФУНКЦИОНАЛЬНОСТЬ)
+// ПОЛНЫЙ JS КОД
 // ============================================================
 
 const authScreen = document.getElementById("authScreen");
@@ -1345,8 +1520,10 @@ const closeSettings = document.getElementById("closeSettings");
 const settingsTheme = document.getElementById("settingsTheme");
 const settingsSound = document.getElementById("settingsSound");
 const settingsFontSize = document.getElementById("settingsFontSize");
-const settingsPermissions = document.getElementById("settingsPermissions");
 const settingsLang = document.getElementById("settingsLang");
+const settingsLangLabel = document.getElementById("settingsLangLabel");
+const settingsLangValue = document.getElementById("settingsLangValue");
+const settingsPermissions = document.getElementById("settingsPermissions");
 const settingsLogout = document.getElementById("settingsLogout");
 const profileScreen = document.getElementById("profileScreen");
 const profileTitle = document.getElementById("profileTitle");
@@ -1445,20 +1622,206 @@ let isDimaUser = false;
 let draftMessage = {};
 let pinnedMessages = [];
 let selectedLanguage = "ru";
+let currentLang = localStorage.getItem('lang') || 'ru';
 let currentGroupScreenId = null;
 let currentGroupTab = 'members';
 
-// WebRTC
-let iceQueue = [];
-let remoteDescriptionSet = false;
-let pc = null;
-let localStream = null;
-let currentCallUser = null;
-let pendingOffer = null;
-let isVideoCall = false;
-let reconnectTimer = null;
+// ============================================================
+// ЯЗЫКИ
+// ============================================================
 
-const servers = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }] };
+const translations = {
+    ru: {
+        appName: 'ChatterBox',
+        welcome: 'Добро пожаловать',
+        login: 'Войти',
+        register: 'Зарегистрироваться',
+        noAccount: 'Нет аккаунта? Регистрация',
+        hasAccount: 'Уже есть аккаунт? Вход',
+        nick: 'Ник (2-16 символов)',
+        password: 'Пароль',
+        rememberMe: 'Запомнить меня',
+        chat: 'Чат',
+        settings: 'Настройки',
+        profile: 'Профиль',
+        contacts: 'Контакты',
+        groups: 'Группы',
+        channels: 'Каналы',
+        createGroup: 'Создать группу',
+        createChannel: 'Создать канал',
+        backup: 'Резервная копия',
+        theme: 'Сменить тему',
+        sound: 'Звук',
+        fontSize: 'Размер шрифта',
+        statistics: 'Статистика',
+        help: 'Помощь',
+        privacy: 'Политика конфиденциальности',
+        logout: 'Выйти',
+        permissions: 'Разрешения',
+        language: 'Язык интерфейса',
+        status: 'Статус',
+        account: 'Аккаунт',
+        online: 'Онлайн',
+        away: 'Отошёл',
+        offline: 'Офлайн',
+        message: 'Сообщение',
+        send: 'Отправить',
+        attach: 'Вложение',
+        photo: 'Фото',
+        video: 'Видео',
+        music: 'Музыка',
+        voice: 'Голос',
+        geo: 'Гео',
+        file: 'Файл',
+        sticker: 'Стикер',
+        poll: 'Опрос',
+        search: 'Поиск',
+        noChats: 'Нет чатов',
+        typing: 'печатает...',
+        members: 'участников',
+        creator: 'Создатель',
+        admin: 'Админ',
+        pinned: 'Закреплённые',
+        scheduler: 'Планировщик',
+        translate: 'Перевод'
+    },
+    en: {
+        appName: 'ChatterBox',
+        welcome: 'Welcome',
+        login: 'Login',
+        register: 'Register',
+        noAccount: 'No account? Register',
+        hasAccount: 'Already have an account? Login',
+        nick: 'Nick (2-16 characters)',
+        password: 'Password',
+        rememberMe: 'Remember me',
+        chat: 'Chat',
+        settings: 'Settings',
+        profile: 'Profile',
+        contacts: 'Contacts',
+        groups: 'Groups',
+        channels: 'Channels',
+        createGroup: 'Create group',
+        createChannel: 'Create channel',
+        backup: 'Backup',
+        theme: 'Change theme',
+        sound: 'Sound',
+        fontSize: 'Font size',
+        statistics: 'Statistics',
+        help: 'Help',
+        privacy: 'Privacy policy',
+        logout: 'Logout',
+        permissions: 'Permissions',
+        language: 'Interface language',
+        status: 'Status',
+        account: 'Account',
+        online: 'Online',
+        away: 'Away',
+        offline: 'Offline',
+        message: 'Message',
+        send: 'Send',
+        attach: 'Attach',
+        photo: 'Photo',
+        video: 'Video',
+        music: 'Music',
+        voice: 'Voice',
+        geo: 'Geo',
+        file: 'File',
+        sticker: 'Sticker',
+        poll: 'Poll',
+        search: 'Search',
+        noChats: 'No chats',
+        typing: 'is typing...',
+        members: 'members',
+        creator: 'Creator',
+        admin: 'Admin',
+        pinned: 'Pinned',
+        scheduler: 'Scheduler',
+        translate: 'Translate'
+    },
+    zh: {
+        appName: 'ChatterBox',
+        welcome: '欢迎',
+        login: '登录',
+        register: '注册',
+        noAccount: '没有账号？注册',
+        hasAccount: '已有账号？登录',
+        nick: '昵称 (2-16字符)',
+        password: '密码',
+        rememberMe: '记住我',
+        chat: '聊天',
+        settings: '设置',
+        profile: '个人资料',
+        contacts: '联系人',
+        groups: '群组',
+        channels: '频道',
+        createGroup: '创建群组',
+        createChannel: '创建频道',
+        backup: '备份',
+        theme: '切换主题',
+        sound: '声音',
+        fontSize: '字体大小',
+        statistics: '统计',
+        help: '帮助',
+        privacy: '隐私政策',
+        logout: '退出',
+        permissions: '权限',
+        language: '界面语言',
+        status: '状态',
+        account: '账户',
+        online: '在线',
+        away: '离开',
+        offline: '离线',
+        message: '消息',
+        send: '发送',
+        attach: '附件',
+        photo: '照片',
+        video: '视频',
+        music: '音乐',
+        voice: '语音',
+        geo: '位置',
+        file: '文件',
+        sticker: '贴纸',
+        poll: '投票',
+        search: '搜索',
+        noChats: '没有聊天',
+        typing: '正在输入...',
+        members: '成员',
+        creator: '创建者',
+        admin: '管理员',
+        pinned: '已置顶',
+        scheduler: '计划',
+        translate: '翻译'
+    }
+};
+
+function t(key) {
+    return translations[currentLang]?.[key] || key;
+}
+
+function setLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('lang', lang);
+    document.documentElement.lang = lang;
+    updateLanguageUI();
+    
+    // Обновляем отображение в настройках
+    const langNames = { ru: 'Русский', en: 'English', zh: '中文' };
+    settingsLangValue.textContent = langNames[lang] || 'Русский';
+}
+
+function updateLanguageUI() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (key) el.textContent = t(key);
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.dataset.i18nPlaceholder;
+        if (key) el.placeholder = t(key);
+    });
+    document.title = t('appName');
+    if (navCenter) navCenter.textContent = t('appName');
+}
 
 // ============================================================
 // РАЗРЕШЕНИЯ
@@ -1623,6 +1986,47 @@ settingsPermissions.onclick = () => {
 loadSavedPermissions();
 
 // ============================================================
+// SERVICE WORKER & PUSH
+// ============================================================
+
+async function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        try {
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            console.log('✅ Service Worker зарегистрирован');
+            
+            if ('PushManager' in window) {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    try {
+                        const subscription = await registration.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: urlBase64ToUint8Array('YOUR_VAPID_PUBLIC_KEY')
+                        });
+                        console.log('✅ Push подписка:', subscription);
+                    } catch(e) {
+                        console.log('❌ Ошибка Push:', e);
+                    }
+                }
+            }
+        } catch(e) {
+            console.log('❌ Service Worker ошибка:', e);
+        }
+    }
+}
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
+// ============================================================
 // ФУНКЦИИ
 // ============================================================
 
@@ -1718,9 +2122,9 @@ function connect() {
             authError.textContent = d.text;
             setTimeout(() => {
                 isLoginMode = true;
-                authTitle.textContent = "Вход";
-                authActionBtn.textContent = "Войти";
-                authSwitchBtn.textContent = "Нет аккаунта? Регистрация";
+                authTitle.textContent = t('login');
+                authActionBtn.textContent = t('login');
+                authSwitchBtn.textContent = t('noAccount');
                 authError.textContent = "";
                 authPassword.value = "";
             }, 1500);
@@ -1732,7 +2136,7 @@ function connect() {
             currentNickSpan.innerHTML = currentNick + (isDimaUser ? '<span class="star">⭐</span>' : '');
             authScreen.classList.add("hidden");
             mainApp.classList.remove("hidden");
-            document.title = "ChatterBox - " + currentNick;
+            document.title = t('appName') + " - " + currentNick;
             if (d.token && rememberMe.checked) localStorage.setItem("chat_token", d.token);
             if (d.groups) myGroups = d.groups;
             if (d.channels) myChannels = d.channels;
@@ -1746,6 +2150,7 @@ function connect() {
             loadingIndicator.classList.add("hidden");
             updateMenuUI();
             setTimeout(checkAndRequestPermissions, 500);
+            setTimeout(registerServiceWorker, 1000);
             return;
         }
         if (!logged) return;
@@ -1836,9 +2241,7 @@ function connect() {
         }
         if (d.type === "invite_link") {
             const input = document.getElementById('inviteLinkInput');
-            if (input) {
-                input.value = d.link;
-            }
+            if (input) input.value = d.link;
             return;
         }
         if (d.type === "search_results") {
@@ -1922,7 +2325,7 @@ function connect() {
         }
         if (d.type === "profile_data") {
             updateProfileUI(d.profile, d.nick !== currentNick);
-            profileTitle.textContent = d.nick === currentNick ? "Мой профиль" : `Профиль ${d.nick}`;
+            profileTitle.textContent = d.nick === currentNick ? t('profile') : `${t('profile')} ${d.nick}`;
             if (d.reputation !== undefined) profileReputation.textContent = `⭐ Репутация: ${d.reputation}`;
         }
         if (d.type === "reaction_update") { updateReactionUI(d.id, d.from, d.reaction, d.remove); }
@@ -1950,7 +2353,7 @@ function connect() {
             }
         }
         if (d.type === "scheduled_message") {
-            alert(`📅 Сообщение запланировано на ${new Date(d.data.scheduledTime).toLocaleString()}`);
+            alert(`📅 ${t('scheduler')} ${new Date(d.data.scheduledTime).toLocaleString()}`);
         }
         if (d.type === "translation") {
             translatedText.textContent = d.translatedText;
@@ -1972,9 +2375,9 @@ function tryAutoLogin() {
 
 function setAuthMode(login) {
     isLoginMode = login;
-    authTitle.textContent = login ? "Вход" : "Регистрация";
-    authActionBtn.textContent = login ? "Войти" : "Зарегистрироваться";
-    authSwitchBtn.textContent = login ? "Нет аккаунта? Регистрация" : "Уже есть аккаунт? Вход";
+    authTitle.textContent = login ? t('welcome') : t('register');
+    authActionBtn.textContent = login ? t('login') : t('register');
+    authSwitchBtn.textContent = login ? t('noAccount') : t('hasAccount');
     authError.textContent = "";
 }
 
@@ -1984,8 +2387,8 @@ authActionBtn.onclick = () => {
     if (!ws || ws.readyState !== 1) { authError.textContent = "Подключение к серверу..."; return; }
     const nick = authNick.value.trim();
     const password = authPassword.value.trim();
-    if (!nick || nick.length < 2) { authError.textContent = "Ник от 2 символов"; return; }
-    if (!password || password.length < 3) { authError.textContent = "Пароль от 3 символов"; return; }
+    if (!nick || nick.length < 2) { authError.textContent = t('nick'); return; }
+    if (!password || password.length < 3) { authError.textContent = t('password') + " (мин 3 символа)"; return; }
     ws.send(JSON.stringify({ type: isLoginMode ? "login" : "register", nick, password, remember: rememberMe.checked }));
 };
 
@@ -2008,7 +2411,7 @@ function switchToPublic() {
     chatDiv.innerHTML = "";
     loadingIndicator.classList.remove("hidden");
     if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "get_history" }));
-    navCenter.textContent = "ChatterBox";
+    navCenter.textContent = t('appName');
 }
 
 function switchToPrivate(withNick) {
@@ -2045,7 +2448,7 @@ function switchToGroup(groupId) {
     callButtons.classList.add("hidden");
     backBtn.classList.remove("hidden");
     const group = myGroups.find(g => g.id === groupId);
-    modeTitle.textContent = `👥 ${group ? group.name : "Группа"}`;
+    modeTitle.textContent = `👥 ${group ? group.name : t('groups')}`;
     chatDiv.innerHTML = "";
     loadingIndicator.classList.remove("hidden");
     if (ws && ws.readyState === 1) {
@@ -2053,7 +2456,7 @@ function switchToGroup(groupId) {
         ws.send(JSON.stringify({ type: "get_group_info", groupId }));
     }
     clearUnread(`group_${groupId}`);
-    navCenter.textContent = group ? group.name : "Группа";
+    navCenter.textContent = group ? group.name : t('groups');
 }
 
 function switchToChannel(channelId) {
@@ -2068,7 +2471,7 @@ function switchToChannel(channelId) {
     groupSettingsBtn.classList.add("hidden");
     callButtons.classList.add("hidden");
     backBtn.classList.remove("hidden");
-    modeTitle.textContent = `📣 ${currentChannel ? currentChannel.name : "Канал"}`;
+    modeTitle.textContent = `📣 ${currentChannel ? currentChannel.name : t('channels')}`;
     chatDiv.innerHTML = "";
     loadingIndicator.classList.remove("hidden");
     if (ws && ws.readyState === 1) {
@@ -2076,7 +2479,7 @@ function switchToChannel(channelId) {
         ws.send(JSON.stringify({ type: "get_channel_info", channelId }));
     }
     clearUnread(`channel_${channelId}`);
-    navCenter.textContent = currentChannel?.name || "Канал";
+    navCenter.textContent = currentChannel?.name || t('channels');
 }
 
 backBtn.onclick = () => {
@@ -2512,7 +2915,7 @@ function replyToMessage(msg) {
 // ============================================================
 
 function updateMenuUI() {
-    menuUserName.textContent = currentNick || "Пользователь";
+    menuUserName.textContent = currentNick || t('profile');
     menuAvatar.textContent = currentNick ? currentNick.charAt(0).toUpperCase() : "👤";
 }
 
@@ -2557,7 +2960,7 @@ menuChannelsBtn.onclick = () => {
 
 menuCreateGroup.onclick = () => {
     menuPanel.classList.remove("open");
-    const name = prompt("Введите название группы:");
+    const name = prompt(t('createGroup'));
     if (name && name.trim()) {
         if (ws && ws.readyState === 1) {
             ws.send(JSON.stringify({ type: "create_group", name: name.trim() }));
@@ -2571,7 +2974,7 @@ menuCreateChannel.onclick = () => {
         alert("❌ Только администратор может создавать каналы");
         return;
     }
-    const name = prompt("Введите название канала:");
+    const name = prompt(t('createChannel'));
     if (name && name.trim()) {
         if (ws && ws.readyState === 1) {
             ws.send(JSON.stringify({ type: "create_channel", name: name.trim() }));
@@ -2622,12 +3025,12 @@ menuFontSize.onclick = () => {
 
 menuStats.onclick = () => {
     menuPanel.classList.remove("open");
-    alert(`📊 Статистика\n👤 Онлайн: ${usersOnline.length}\n👥 Всего: ${allUsers.length}\n💬 Групп: ${myGroups.length}\n📣 Каналов: ${myChannels.length}`);
+    alert(`📊 ${t('statistics')}\n👤 ${t('online')}: ${usersOnline.length}\n👥 ${t('groups')}: ${myGroups.length}\n📣 ${t('channels')}: ${myChannels.length}`);
 };
 
 menuHelp.onclick = () => {
     menuPanel.classList.remove("open");
-    alert("❓ Помощь\n\n📌 Основные функции:\n• 💬 Чаты — общение в группах и лично\n• 📣 Каналы — публичные каналы\n• 👥 Контакты — список пользователей\n• ⚙️ Настройки — тема, звук, шрифт\n• 🔄 Видеосообщения\n• 📌 Закреплённые\n• 🌐 Перевод\n• ⏰ Планировщик\n• 👥 Группы — полное управление");
+    alert(`❓ ${t('help')}\n\n📌 ${t('chat')}\n📣 ${t('channels')}\n👥 ${t('contacts')}\n⚙️ ${t('settings')}\n👥 ${t('groups')}`);
 };
 
 menuPrivacy.onclick = () => {
@@ -2636,7 +3039,7 @@ menuPrivacy.onclick = () => {
 };
 
 menuLogout.onclick = () => {
-    if (confirm("Выйти из аккаунта?")) {
+    if (confirm(t('logout') + "?")) {
         localStorage.removeItem("chat_token");
         if (ws) ws.close();
         location.reload();
@@ -2653,8 +3056,8 @@ function toggleTheme() {
     else document.body.classList.remove("dark");
     localStorage.setItem("theme", isDark ? "dark" : "light");
     const icon = isDark ? "●" : "○";
-    menuTheme.innerHTML = `<span class="icon">🌓</span> Сменить тему <span class="arrow">${icon}</span>`;
-    settingsTheme.innerHTML = `🌓 Сменить тему <span class="toggle">${icon}</span>`;
+    menuTheme.innerHTML = `<span class="icon">🌓</span> ${t('theme')} <span class="arrow">${icon}</span>`;
+    settingsTheme.innerHTML = `🌓 ${t('theme')} <span class="toggle">${icon}</span>`;
 }
 
 if (isDark) {
@@ -2665,8 +3068,8 @@ if (isDark) {
 
 document.body.classList.add("font-" + fontSize);
 const fontLabels = { small: "Маленький", medium: "Средний", large: "Большой" };
-menuFontSize.innerHTML = `<span class="icon">📏</span> Размер шрифта <span class="arrow">${fontLabels[fontSize]}</span>`;
-settingsFontSize.innerHTML = `📏 Размер шрифта <span class="sub">${fontLabels[fontSize]}</span>`;
+menuFontSize.innerHTML = `<span class="icon">📏</span> ${t('fontSize')} <span class="arrow">${fontLabels[fontSize]}</span>`;
+settingsFontSize.innerHTML = `📏 ${t('fontSize')} <span class="sub">${fontLabels[fontSize]}</span>`;
 
 closeSettings.onclick = () => { settingsScreen.classList.remove("open"); };
 
@@ -2681,7 +3084,7 @@ settingsSound.onclick = () => {
 settingsFontSize.onclick = menuFontSize.onclick;
 
 settingsLogout.onclick = () => {
-    if (confirm("Выйти из аккаунта?")) {
+    if (confirm(t('logout') + "?")) {
         localStorage.removeItem("chat_token");
         if (ws) ws.close();
         location.reload();
@@ -2693,6 +3096,31 @@ settingsScreen.addEventListener("click", (e) => {
 });
 
 // ============================================================
+// ЯЗЫКИ В НАСТРОЙКАХ
+// ============================================================
+
+// Инициализация языка
+setLanguage(currentLang);
+
+settingsLang.onclick = () => {
+    const langs = ['ru', 'en', 'zh'];
+    const langNames = { ru: '🇷🇺 Русский', en: '🇬🇧 English', zh: '🇨🇳 中文' };
+    const currentIdx = langs.indexOf(currentLang);
+    const nextIdx = (currentIdx + 1) % langs.length;
+    setLanguage(langs[nextIdx]);
+    // Обновляем переводы интерфейса
+    updateLanguageUI();
+    // Обновляем заголовки
+    authTitle.textContent = isLoginMode ? t('welcome') : t('register');
+    authActionBtn.textContent = isLoginMode ? t('login') : t('register');
+    authSwitchBtn.textContent = isLoginMode ? t('noAccount') : t('hasAccount');
+    authNick.placeholder = t('nick');
+    authPassword.placeholder = t('password');
+    document.title = t('appName');
+    navCenter.textContent = t('appName');
+};
+
+// ============================================================
 // САЙДБАР
 // ============================================================
 
@@ -2702,8 +3130,8 @@ function renderSidebar() {
     items.push({
         id: "public",
         type: "public",
-        name: "Общий чат",
-        lastMsg: "Последние сообщения",
+        name: t('chat'),
+        lastMsg: t('noChats'),
         time: "",
         unread: getUnreadCount("public"),
         avatar: "📢"
@@ -2729,7 +3157,7 @@ function renderSidebar() {
                     id: `private_${u}`,
                     type: "private",
                     name: u,
-                    lastMsg: "Начать диалог",
+                    lastMsg: t('message'),
                     time: "",
                     unread: unread,
                     avatar: u.charAt(0).toUpperCase()
@@ -2745,7 +3173,7 @@ function renderSidebar() {
             id: `group_${g.id}`,
             type: "group",
             name: g.name,
-            lastMsg: last ? last.text || "📎 Вложение" : "Группа создана",
+            lastMsg: last ? last.text || "📎 Вложение" : t('groups'),
             time: last ? formatTime(last.time) : formatTime(g.createdAt),
             unread: unread,
             avatar: "👥",
@@ -2762,7 +3190,7 @@ function renderSidebar() {
                 id: `channel_${c.id}`,
                 type: "channel",
                 name: c.name,
-                lastMsg: last ? last.text || "📎 Вложение" : "Канал создан",
+                lastMsg: last ? last.text || "📎 Вложение" : t('channels'),
                 time: last ? formatTime(last.time) : formatTime(c.createdAt),
                 unread: unread,
                 avatar: "📣",
@@ -2779,7 +3207,7 @@ function renderSidebar() {
     );
     
     if (filtered.length === 0) {
-        sidebarList.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">📭 Нет чатов</div>';
+        sidebarList.innerHTML = `<div style="padding:20px; text-align:center; color:#888;">📭 ${t('noChats')}</div>`;
         return;
     }
     
@@ -2885,7 +3313,7 @@ function renderGroupMembers(group) {
             <button id="addMemberBtn">➕ Добавить</button>
         </div>
         <div style="margin-bottom: 12px; font-size: 13px; color: #888;">
-            👥 ${group.members.length} участников
+            👥 ${group.members.length} ${t('members')}
             ${group.creator === currentNick ? '👑 Вы создатель' : group.admins?.includes(currentNick) ? '🛡️ Вы админ' : ''}
         </div>
         <div id="membersList">
@@ -2908,8 +3336,8 @@ function renderGroupMembers(group) {
         
         let role = 'Участник';
         let roleClass = '';
-        if (isCreator) { role = '👑 Создатель'; roleClass = 'creator'; }
-        else if (isAdmin) { role = '🛡️ Админ'; roleClass = 'admin'; }
+        if (isCreator) { role = '👑 ' + t('creator'); roleClass = 'creator'; }
+        else if (isAdmin) { role = '🛡️ ' + t('admin'); roleClass = 'admin'; }
         
         html += `
             <div class="member-item">
@@ -3379,7 +3807,6 @@ langSelect.addEventListener("click", (e) => {
     document.querySelectorAll(".lang-select button").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     selectedLanguage = btn.dataset.lang;
-    settingsLang.innerHTML = `Выберите язык <span class="sub">${btn.textContent.trim()}</span>`;
 });
 
 closeTranslator.onclick = () => translatorPanel.classList.remove("open");
@@ -3446,7 +3873,7 @@ function sendText() {
     pendingMusic = null;
     pendingVoice = null;
     pendingSticker = null;
-    msgInput.placeholder = "Сообщение...";
+    msgInput.placeholder = t('message');
 }
 
 // ============================================================
@@ -4702,7 +5129,8 @@ function addChannelMessage(m) {
 console.log("🚀 ChatterBox готов!");
 console.log("👤 Пользователь:", currentNick || "не авторизован");
 
-// Инициализация списка чатов
+// Инициализация
+updateLanguageUI();
 renderSidebar();
 </script>
 </body>
