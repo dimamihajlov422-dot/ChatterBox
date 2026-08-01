@@ -1584,6 +1584,14 @@ body.dark .dir-item:active { background: var(--border-dark); }
 .dir-info { flex: 1; min-width: 0; }
 .dir-name { font-weight: 600; font-size: 15px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dir-sub { font-size: 12px; opacity: 0.55; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dir-badge {
+    background: #0084ff; color: #fff; font-size: 11px; font-weight: 700;
+    min-width: 20px; height: 20px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 6px; flex-shrink: 0;
+}
+.dir-time { font-size: 11px; opacity: 0.45; color: var(--text); flex-shrink: 0; }
+.dir-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
 
 .directory-fabs { position: absolute; right: 18px; bottom: 84px; display: flex; flex-direction: column; gap: 10px; z-index: 5; }
 .directory-fab {
@@ -1658,7 +1666,7 @@ body.device-tablet .directory-footer,
 body.device-desktop .directory-footer {
     display: flex;
 }
-.directory-footer { display: none; } /* по умолчанию скрыт — на мобильном хватает bottom-nav */
+.directory-footer { display: flex; } /* всегда видна внутри справочника, независимо от режима устройства */
 
 /* Настройки/Профиль/Политика в desktop/tablet тоже открываются как левая
    панель (в том же месте, где справочник), а не на весь экран —
@@ -1834,12 +1842,6 @@ body.dark .directory-screen {
         <input type="text" id="msgInput" placeholder="Сообщение..." autocomplete="off">
         <button id="sendBtn">➤</button>
         <button id="attachBtn">📎</button>
-    </div>
-
-    <div class="bottom-nav" id="bottomNav">
-        <button class="bn-item active" data-view="chats"><span class="bn-icon">💬</span><span class="bn-label" data-i18n="tabChats">Чаты</span></button>
-        <button class="bn-item" data-view="settings"><span class="bn-icon">⚙️</span><span class="bn-label" data-i18n="tabSettings">Настройки</span></button>
-        <button class="bn-item" data-view="profile"><span class="bn-icon">👤</span><span class="bn-label" data-i18n="tabProfile">Профиль</span></button>
     </div>
 </div>
 
@@ -4002,6 +4004,7 @@ function markUnread(chatId, msgId) {
     if (!unreadCounts[chatId].includes(msgId)) {
         unreadCounts[chatId].push(msgId);
         saveUnreadCounts();
+        refreshDirectoryIfOpen();
     }
 }
 
@@ -4009,6 +4012,16 @@ function clearUnread(chatId) {
     if (unreadCounts[chatId]) {
         delete unreadCounts[chatId];
         saveUnreadCounts();
+        refreshDirectoryIfOpen();
+    }
+}
+
+// Если справочник сейчас открыт, перерисовываем его — бейджи и превью
+// последних сообщений обновляются вживую, без необходимости заново открывать ☰
+function refreshDirectoryIfOpen() {
+    if (typeof directoryScreen === "undefined" || !directoryScreen) return;
+    if (directoryScreen.classList.contains("open")) {
+        renderDirectory(dirSearchInput ? dirSearchInput.value : "");
     }
 }
 
@@ -5402,14 +5415,28 @@ function closeDirectory() {
 
 function dirEsc(s) { return String(s).replace(/'/g, "\\'"); }
 
-function directoryItemHTML(icon, name, sub, onclick) {
+function directoryItemHTML(icon, name, sub, onclick, badgeCount, timeLabel) {
+    const meta = (badgeCount || timeLabel)
+        ? `<div class="dir-meta">
+             ${timeLabel ? `<span class="dir-time">${escapeHtml(timeLabel)}</span>` : ""}
+             ${badgeCount ? `<span class="dir-badge">${badgeCount > 99 ? "99+" : badgeCount}</span>` : ""}
+           </div>`
+        : "";
     return `<div class="dir-item" onclick="${onclick}">
         <div class="dir-avatar">${icon}</div>
         <div class="dir-info">
             <div class="dir-name">${escapeHtml(name)}</div>
             <div class="dir-sub">${escapeHtml(sub || "")}</div>
         </div>
+        ${meta}
     </div>`;
+}
+
+// Достаёт последнее сообщение + время для чата любого типа, если оно известно
+function getLastChatPreview(chatType, chatId) {
+    const entry = (myLastChats || []).find(c => c.chatType === chatType && String(c.chatId) === String(chatId));
+    if (entry) return { text: entry.lastMessage || "", time: entry.timestamp ? formatTime(entry.timestamp) : "" };
+    return null;
 }
 
 function renderDirectory(filter) {
@@ -5418,15 +5445,20 @@ function renderDirectory(filter) {
     let html = "";
 
     if (!q || tr("dirGeneralChat").toLowerCase().includes(q) || "общий чат общее public general".includes(q)) {
-        html += directoryItemHTML("🌐", tr("dirGeneralChat"), `${usersOnline.length} ${currentUiLang === 'ru' ? 'онлайн' : currentUiLang === 'zh' ? '在线' : 'online'}`, `openDirectoryChat('public')`);
+        const preview = getLastChatPreview("public", "public");
+        const sub = preview ? preview.text : `${usersOnline.length} ${currentUiLang === 'ru' ? 'онлайн' : currentUiLang === 'zh' ? '在线' : 'online'}`;
+        html += directoryItemHTML("🌐", tr("dirGeneralChat"), sub, `openDirectoryChat('public')`, getUnreadCount("public"), preview ? preview.time : "");
     }
 
     const groupsList = (myGroups || []).filter(g => !q || g.name.toLowerCase().includes(q));
     if (groupsList.length) {
         html += `<div class="dir-section">${tr("dirSectionGroups")}</div>`;
         groupsList.forEach(g => {
+            const lastMsg = g.messages && g.messages.length ? g.messages[g.messages.length - 1] : null;
             const membersWord = currentUiLang === 'ru' ? 'участников' : currentUiLang === 'zh' ? '名成员' : 'members';
-            html += directoryItemHTML("👥", g.name, `${g.members.length} ${membersWord}`, `openDirectoryChat('group','${dirEsc(g.id)}')`);
+            const sub = lastMsg ? `${lastMsg.from}: ${lastMsg.text || "📎"}` : `${g.members.length} ${membersWord}`;
+            const time = lastMsg ? formatTime(lastMsg.time) : "";
+            html += directoryItemHTML("👥", g.name, sub, `openDirectoryChat('group','${dirEsc(g.id)}')`, getUnreadCount(`group_${g.id}`), time);
         });
     }
 
@@ -5434,18 +5466,36 @@ function renderDirectory(filter) {
     if (channelsList.length) {
         html += `<div class="dir-section">${tr("dirSectionChannels")}</div>`;
         channelsList.forEach(c => {
+            const lastMsg = c.messages && c.messages.length ? c.messages[c.messages.length - 1] : null;
             const subsWord = currentUiLang === 'ru' ? 'подписчиков' : currentUiLang === 'zh' ? '订阅者' : 'subscribers';
-            html += directoryItemHTML("📣", c.name, `${c.subscribers?.length || 0} ${subsWord}`, `openDirectoryChat('channel','${dirEsc(c.id)}')`);
+            const sub = lastMsg ? (lastMsg.text || "📎") : `${c.subscribers?.length || 0} ${subsWord}`;
+            const time = lastMsg ? formatTime(lastMsg.time) : "";
+            html += directoryItemHTML("📣", c.name, sub, `openDirectoryChat('channel','${dirEsc(c.id)}')`, getUnreadCount(`channel_${c.id}`), time);
         });
     }
 
     const contactsList = (allUsers || []).filter(u => u !== currentNick && (!q || u.toLowerCase().includes(q)));
     if (contactsList.length) {
         html += `<div class="dir-section">${tr("dirSectionContacts")}</div>`;
+        // Сначала те, с кем уже есть переписка (свежее — выше), потом остальные контакты
+        const withHistory = [];
+        const withoutHistory = [];
         contactsList.forEach(u => {
+            const preview = getLastChatPreview("private", u);
+            if (preview) withHistory.push({ u, preview }); else withoutHistory.push(u);
+        });
+        withHistory.sort((a, b) => {
+            const ea = (myLastChats || []).find(c => c.chatType === "private" && c.chatId === a.u);
+            const eb = (myLastChats || []).find(c => c.chatType === "private" && c.chatId === b.u);
+            return (eb?.timestamp || 0) - (ea?.timestamp || 0);
+        });
+        withHistory.forEach(({ u, preview }) => {
+            html += directoryItemHTML(u.charAt(0).toUpperCase(), u, preview.text, `openDirectoryChat('contact','${dirEsc(u)}')`, getUnreadCount(`private_${u}`), preview.time);
+        });
+        withoutHistory.forEach(u => {
             const online = usersOnline.includes(u);
             const statusWord = online ? tr("statusOnline") : tr("statusOffline");
-            html += directoryItemHTML(u.charAt(0).toUpperCase(), u, statusWord, `openDirectoryChat('contact','${dirEsc(u)}')`);
+            html += directoryItemHTML(u.charAt(0).toUpperCase(), u, statusWord, `openDirectoryChat('contact','${dirEsc(u)}')`, getUnreadCount(`private_${u}`));
         });
     }
 
