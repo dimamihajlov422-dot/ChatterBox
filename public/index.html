@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>ChatterBox</title>
-<style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0084ff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>ChatterBox</title>
+    <style>
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 :root {
@@ -97,13 +101,14 @@ body.dark .chat::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
 .incoming-call, .call-status, .group-members-panel, .modal, .profile-screen,
 .settings-screen, .channels-screen, .contacts-screen, .groups-screen,
 .privacy-screen, .permissions-screen, .translator-panel, .scheduler-panel,
-.pinned-messages-panel {
+.pinned-messages-panel, .group-screen {
     position: relative;
     z-index: 1;
 }
 
 .hidden { display: none !important; }
 
+/* ===== ЭКРАН ВХОДА ===== */
 .auth-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -245,23 +250,6 @@ body.dark .header { background: var(--card-bg-dark); border-bottom-color: var(--
 body.dark .connection-status.online { color: #66bb6a; }
 body.dark .connection-status.offline { color: #ef5350; }
 body.dark .connection-status.connecting { color: #ffca28; }
-
-/* ===== КРАСИВЫЕ ИКОНКИ (СТИЛЬНЫЕ) ===== */
-.icon-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text);
-    padding: 6px;
-    border-radius: 50%;
-    transition: 0.2s;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-}
-.icon-btn:active { transform: scale(0.9); background: var(--border); }
-body.dark .icon-btn:active { background: var(--border-dark); }
 
 /* ===== ПОИСК ===== */
 .search-overlay {
@@ -710,6 +698,317 @@ body.dark .menu-item { background: var(--border-dark); }
 }
 body.dark .menu-divider { background: var(--border-dark); }
 
+/* ===== ЭКРАН ГРУППЫ ===== */
+.group-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--card-bg);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    z-index: 1800;
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+}
+body.dark .group-screen { background: var(--card-bg-dark); }
+.group-screen.open { display: flex; }
+
+.group-screen .header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+body.dark .group-screen .header { background: var(--card-bg-dark); border-color: var(--border-dark); }
+.group-screen .header button {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 22px;
+    cursor: pointer;
+}
+.group-screen .header .title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+}
+.group-screen .header .group-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius);
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    overflow: hidden;
+    cursor: pointer;
+}
+.group-screen .header .group-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.group-screen .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 8px 16px;
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    overflow-x: auto;
+}
+body.dark .group-screen .tabs { background: var(--card-bg-dark); border-color: var(--border-dark); }
+.group-screen .tabs .tab {
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text);
+    opacity: 0.6;
+    transition: 0.2s;
+    white-space: nowrap;
+    background: transparent;
+    border: none;
+}
+.group-screen .tabs .tab.active {
+    opacity: 1;
+    background: var(--border);
+}
+body.dark .group-screen .tabs .tab.active { background: var(--border-dark); }
+.group-screen .tabs .tab:active { transform: scale(0.95); }
+
+.group-screen .content {
+    flex: 1;
+    padding: 16px 20px;
+    overflow-y: auto;
+}
+
+/* ===== УЧАСТНИКИ ===== */
+.member-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--border);
+    border-radius: 12px;
+    margin-bottom: 4px;
+    transition: 0.15s;
+}
+body.dark .member-item { background: var(--border-dark); }
+.member-item .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius);
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+.member-item .info { flex: 1; }
+.member-item .info .name { font-weight: 600; font-size: 15px; color: var(--text); }
+.member-item .info .role { font-size: 11px; opacity: 0.5; color: var(--text); }
+.member-item .info .role.creator { color: gold; }
+.member-item .info .role.admin { color: #0084ff; }
+.member-item .actions { display: flex; gap: 4px; }
+.member-item .actions button {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: 0.2s;
+}
+.member-item .actions button:active { transform: scale(0.9); background: var(--border); }
+body.dark .member-item .actions button:active { background: var(--border-dark); }
+
+/* ===== НАСТРОЙКИ ГРУППЫ ===== */
+.group-settings-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--border);
+    border-radius: 12px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: 0.15s;
+}
+body.dark .group-settings-item { background: var(--border-dark); }
+.group-settings-item:active { transform: scale(0.97); }
+.group-settings-item .label { font-weight: 500; color: var(--text); }
+.group-settings-item .value { font-size: 13px; opacity: 0.6; color: var(--text); }
+.group-settings-item .arrow { opacity: 0.4; }
+
+/* ===== ЖУРНАЛ ДЕЙСТВИЙ ===== */
+.log-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+body.dark .log-item { border-color: var(--border-dark); }
+.log-item .time { font-size: 11px; opacity: 0.4; flex-shrink: 0; }
+.log-item .action { flex: 1; }
+
+/* ===== МЕДИА, ФАЙЛЫ, ССЫЛКИ ===== */
+.media-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+.media-item {
+    aspect-ratio: 1;
+    background: var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+}
+body.dark .media-item { background: var(--border-dark); }
+.media-item img, .media-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.media-item .play-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 24px;
+}
+
+.file-item, .link-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--border);
+    border-radius: 12px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    transition: 0.15s;
+}
+body.dark .file-item, .link-item { background: var(--border-dark); }
+.file-item:active, .link-item:active { transform: scale(0.97); }
+.file-item .icon, .link-item .icon { font-size: 20px; }
+.file-item .info, .link-item .info { flex: 1; }
+.file-item .info .name { font-weight: 500; font-size: 14px; color: var(--text); }
+.file-item .info .from { font-size: 11px; opacity: 0.4; color: var(--text); }
+
+/* ===== ДОБАВЛЕНИЕ УЧАСТНИКОВ ===== */
+.add-member-input {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.add-member-input input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 15px;
+    outline: none;
+    background: rgba(255,255,255,0.1);
+    color: var(--text);
+}
+body.dark .add-member-input input { background: rgba(255,255,255,0.03); border-color: var(--border-dark); }
+.add-member-input button {
+    padding: 10px 20px;
+    background: #0084ff;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.add-member-input button:active { transform: scale(0.95); }
+
+/* ===== ПРИГЛАСИТЕЛЬНАЯ ССЫЛКА ===== */
+.invite-link-box {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    background: var(--border);
+    border-radius: 12px;
+    margin-top: 8px;
+}
+body.dark .invite-link-box { background: var(--border-dark); }
+.invite-link-box input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    background: rgba(255,255,255,0.1);
+    color: var(--text);
+}
+body.dark .invite-link-box input { background: rgba(255,255,255,0.03); border-color: var(--border-dark); }
+.invite-link-box button {
+    padding: 8px 16px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    cursor: pointer;
+}
+body.dark .invite-link-box button { background: var(--border-dark); border-color: var(--border-dark); }
+.invite-link-box button:active { transform: scale(0.95); }
+
+/* ===== ПОИСК В ГРУППЕ ===== */
+.group-search {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.group-search input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 15px;
+    outline: none;
+    background: rgba(255,255,255,0.1);
+    color: var(--text);
+}
+body.dark .group-search input { background: rgba(255,255,255,0.03); border-color: var(--border-dark); }
+.group-search button {
+    padding: 10px 20px;
+    background: #0084ff;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.group-search button:active { transform: scale(0.95); }
+
+.group-search-results .message {
+    max-width: 100%;
+    margin-bottom: 4px;
+    cursor: pointer;
+}
+
+/* ===== НАСТРОЙКИ ===== */
 .settings-screen {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -1177,7 +1476,7 @@ body.dark .scheduler-panel input { background: rgba(255,255,255,0.03); border-co
     cursor: pointer;
 }
 
-/* ===== ЗАКРЕПЛЁННЫЕ СООБЩЕНИЯ ===== */
+/* ===== ЗАКРЕПЛЁННЫЕ ===== */
 .pinned-messages-panel {
     position: fixed;
     top: 0;
@@ -1231,6 +1530,7 @@ body.dark .pinned-message { background: var(--border-dark); }
 .pinned-message .pin-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pinned-message .pin-close { background: none; border: none; color: var(--text); font-size: 16px; cursor: pointer; }
 
+/* ===== ЗВОНКИ ===== */
 .incoming-call {
     position: fixed;
     bottom: 90px;
@@ -1360,13 +1660,15 @@ body.dark .group-members-panel .member button { color: var(--text); }
 .profile-avatar,
 .avatar,
 .menu-header .user-info .avatar,
-.contact-item .avatar {
+.contact-item .avatar,
+.member-item .avatar {
     border-radius: var(--radius) !important;
 }
-</style>
+    </style>
 </head>
 <body>
 
+<!-- ===== ЭКРАН ВХОДА ===== -->
 <div class="auth-screen" id="authScreen">
     <div class="auth-card">
         <h2 id="authTitle">Добро пожаловать</h2>
@@ -1379,6 +1681,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== РАЗРЕШЕНИЯ ===== -->
 <div class="permissions-screen" id="permissionsScreen">
     <div class="permissions-card">
         <h2>🔐 Разрешения</h2>
@@ -1413,6 +1716,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== ОСНОВНОЕ ПРИЛОЖЕНИЕ ===== -->
 <div class="main-app hidden" id="mainApp">
     <div class="header">
         <div class="nav-left">
@@ -1451,6 +1755,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== ПОИСК ===== -->
 <div class="search-overlay" id="searchOverlay">
     <div class="search-box">
         <input type="text" id="searchInputGlobal" placeholder="🔍 Поиск пользователей, групп, каналов...">
@@ -1459,6 +1764,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="close-search" id="closeSearch">✕</div>
 </div>
 
+<!-- ===== ПАНЕЛЬ ВЛОЖЕНИЙ ===== -->
 <div class="attach-panel" id="attachPanel">
     <div class="attach-item" id="attachPhoto"><span class="icon">🖼️</span><span class="label">Фото</span></div>
     <div class="attach-item" id="attachVideo"><span class="icon">🎥</span><span class="label">Видео</span></div>
@@ -1471,6 +1777,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="attach-item" id="attachPoll"><span class="icon">📊</span><span class="label">Опрос</span></div>
 </div>
 
+<!-- ===== МЕНЮ СООБЩЕНИЯ ===== -->
 <div class="message-menu" id="messageMenu">
     <span id="menuEdit">✏️ Редактировать</span>
     <span id="menuCopy">📋 Копировать</span>
@@ -1484,6 +1791,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <span id="menuDelete">🗑️ Удалить</span>
 </div>
 
+<!-- ===== ПАНЕЛЬ ПЕРЕВОДЧИКА ===== -->
 <div class="translator-panel" id="translatorPanel">
     <button class="close-translator" id="closeTranslator">✕</button>
     <div class="lang-select" id="langSelect">
@@ -1494,6 +1802,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="translated-text" id="translatedText">Перевод появится здесь</div>
 </div>
 
+<!-- ===== ПАНЕЛЬ ПЛАНИРОВЩИКА ===== -->
 <div class="scheduler-panel" id="schedulerPanel">
     <button class="close-scheduler" id="closeScheduler">✕</button>
     <input type="text" id="schedulerText" placeholder="Сообщение для отложенной отправки...">
@@ -1504,6 +1813,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <button class="schedule-btn" id="scheduleSendBtn">📅 Запланировать</button>
 </div>
 
+<!-- ===== ЗАКРЕПЛЁННЫЕ ===== -->
 <div class="pinned-messages-panel" id="pinnedMessagesPanel">
     <div class="header">
         <button id="closePinned">←</button>
@@ -1512,6 +1822,29 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="list" id="pinnedList"></div>
 </div>
 
+<!-- ===== ЭКРАН ГРУППЫ ===== -->
+<div class="group-screen" id="groupScreen">
+    <div class="header">
+        <button id="closeGroupScreen">←</button>
+        <div class="group-avatar" id="groupScreenAvatar">👥</div>
+        <span class="title" id="groupScreenTitle">Группа</span>
+        <button id="groupScreenSettingsBtn">⚙️</button>
+    </div>
+    <div class="tabs" id="groupTabs">
+        <button class="tab active" data-tab="members">👥 Участники</button>
+        <button class="tab" data-tab="settings">⚙️ Настройки</button>
+        <button class="tab" data-tab="media">📂 Медиа</button>
+        <button class="tab" data-tab="files">📁 Файлы</button>
+        <button class="tab" data-tab="links">🔗 Ссылки</button>
+        <button class="tab" data-tab="log">📝 Журнал</button>
+        <button class="tab" data-tab="search">🔍 Поиск</button>
+    </div>
+    <div class="content" id="groupScreenContent">
+        <div class="loading-indicator">Загрузка...</div>
+    </div>
+</div>
+
+<!-- ===== ГЛАВНОЕ МЕНЮ ===== -->
 <div class="menu-panel" id="menuPanel">
     <div class="menu-header">
         <div class="user-info">
@@ -1544,6 +1877,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== НАСТРОЙКИ ===== -->
 <div class="settings-screen" id="settingsScreen">
     <div class="settings-header">
         <button id="closeSettings">←</button>
@@ -1568,6 +1902,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== ПРОФИЛЬ ===== -->
 <div class="profile-screen" id="profileScreen">
     <div class="profile-header">
         <button id="closeProfile">←</button>
@@ -1588,6 +1923,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== КАНАЛЫ ===== -->
 <div class="channels-screen" id="channelsScreen">
     <div class="channels-header">
         <button id="closeChannels">←</button>
@@ -1596,6 +1932,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="channels-body" id="channelsList"></div>
 </div>
 
+<!-- ===== КОНТАКТЫ ===== -->
 <div class="contacts-screen" id="contactsScreen">
     <div class="contacts-header">
         <button id="closeContacts">←</button>
@@ -1604,6 +1941,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="contacts-body" id="contactsList"></div>
 </div>
 
+<!-- ===== ГРУППЫ (СПИСОК) ===== -->
 <div class="groups-screen" id="groupsScreen">
     <div class="groups-header">
         <button id="closeGroups">←</button>
@@ -1612,6 +1950,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <div class="groups-body" id="groupsListScreen"></div>
 </div>
 
+<!-- ===== ПОЛИТИКА ===== -->
 <div class="privacy-screen" id="privacyScreen">
     <div class="privacy-header">
         <button id="closePrivacy">←</button>
@@ -1627,12 +1966,14 @@ body.dark .group-members-panel .member button { color: var(--text); }
     </div>
 </div>
 
+<!-- ===== УЧАСТНИКИ ГРУППЫ (старое) ===== -->
 <div class="group-members-panel" id="groupMembersPanel">
     <div style="font-weight: bold; text-align: center;">👥 Участники группы</div>
     <div id="membersList"></div>
     <button id="closeMembersPanel" style="margin-top:6px; padding:8px; border-radius:20px; background:var(--border); color:var(--text); border:1px solid var(--border); cursor:pointer;">Закрыть</button>
 </div>
 
+<!-- ===== ЗВОНКИ ===== -->
 <div class="incoming-call" id="incomingCall">
     <span id="incomingCaller">📞 Звонит...</span>
     <div>
@@ -1646,6 +1987,7 @@ body.dark .group-members-panel .member button { color: var(--text); }
     <button id="endCallBtn">Завершить</button>
 </div>
 
+<!-- ===== МОДАЛ ===== -->
 <div class="modal" id="modal"><span class="close">&times;</span><img id="modalImg" src=""></div>
 
 <script>
@@ -1767,6 +2109,13 @@ const pinnedMessagesPanel = document.getElementById("pinnedMessagesPanel");
 const closePinned = document.getElementById("closePinned");
 const pinnedList = document.getElementById("pinnedList");
 const messageMenu = document.getElementById("messageMenu");
+const groupScreen = document.getElementById("groupScreen");
+const closeGroupScreen = document.getElementById("closeGroupScreen");
+const groupScreenAvatar = document.getElementById("groupScreenAvatar");
+const groupScreenTitle = document.getElementById("groupScreenTitle");
+const groupTabs = document.getElementById("groupTabs");
+const groupScreenContent = document.getElementById("groupScreenContent");
+const groupScreenSettingsBtn = document.getElementById("groupScreenSettingsBtn");
 
 // ===== ПЕРЕМЕННЫЕ =====
 let ws = null;
@@ -1810,6 +2159,9 @@ let draftMessage = {};
 let scheduledMessages = [];
 let pinnedMessages = [];
 let selectedLanguage = "ru";
+let currentGroupScreen = null;
+let currentGroupTab = 'members';
+let groupData = {};
 
 // WebRTC
 let iceQueue = [];
@@ -2102,6 +2454,7 @@ function connect() {
             if (d.lastChats) myLastChats = d.lastChats;
             if (d.profile) updateProfileUI(d.profile, false);
             if (d.stickers) myStickers = d.stickers;
+            renderSidebar();
             switchToPublic();
             loadUnreadCounts();
             updateOnlineCount();
@@ -2120,6 +2473,7 @@ function connect() {
             addMessage(d.data);
             notify(d.data.text);
             markUnread("public", d.data.id);
+            renderSidebar();
             return;
         }
         if (d.type === "users") {
@@ -2127,6 +2481,7 @@ function connect() {
             userStatuses = d.statuses || {};
             userLastSeen = d.lastSeen || {};
             allUsers = [...new Set([...allUsers, ...usersOnline])];
+            renderSidebar();
             updateOnlineCount();
             updateMenuUI();
         }
@@ -2137,6 +2492,7 @@ function connect() {
                 markUnread(`private_${d.with}`, d.data.id);
             }
             notify(`📩 ${d.with}: ${d.data.text}`);
+            renderSidebar();
             return;
         }
         if (d.type === "private_history" && currentMode === "private" && currentPrivateWith === d.with) {
@@ -2146,6 +2502,7 @@ function connect() {
         }
         if (d.type === "group_msg" && currentMode === "group" && currentGroupId === d.groupId) {
             addGroupMessage(d.data);
+            renderSidebar();
             return;
         }
         if (d.type === "group_history" && currentMode === "group" && currentGroupId === d.groupId) {
@@ -2153,38 +2510,124 @@ function connect() {
             renderGroupMessages(d.data);
             return;
         }
-        if (d.type === "group_update") {
-            myGroups = myGroups.map(g => g.id === d.group.id ? d.group : g);
-            if (!myGroups.find(g => g.id === d.group.id)) myGroups.push(d.group);
-            if (currentGroupId === d.group.id) { currentGroup = d.group; updateGroupUI(); }
-        }
-        if (d.type === "group_created") {
-            myGroups.push(d.group);
-        }
-        if (d.type === "group_info") { currentGroup = d.group; updateGroupUI(); }
-        if (d.type === "my_groups") { myGroups = d.groups; }
-        if (d.type === "my_channels") { myChannels = d.channels; }
-        if (d.type === "channel_update") {
-            myChannels = myChannels.map(c => c.id === d.channel.id ? d.channel : c);
-            if (!myChannels.find(c => c.id === d.channel.id)) myChannels.push(d.channel);
-            if (currentChannelId === d.channel.id) { currentChannel = d.channel; updateChannelUI(); }
-        }
-        if (d.type === "channel_created") {
-            myChannels.push(d.channel);
-        }
-        if (d.type === "channel_info") { currentChannel = d.channel; updateChannelUI(); }
-        if (d.type === "channel_msg" && currentMode === "channel" && currentChannelId === d.channelId) {
-            addChannelMessage(d.data);
+        if (d.type === "group_info") {
+            const idx = myGroups.findIndex(g => g.id === d.groupId);
+            if (idx !== -1) {
+                myGroups[idx] = d.group;
+                if (currentGroupScreen === d.groupId) {
+                    groupData = d.group;
+                    switchGroupTab(currentGroupTab);
+                    groupScreenTitle.textContent = d.group.name;
+                    if (d.group.avatar) {
+                        groupScreenAvatar.innerHTML = `<img src="${d.group.avatar}">`;
+                    } else {
+                        groupScreenAvatar.textContent = '👥';
+                    }
+                }
+                renderSidebar();
+            }
             return;
         }
-        if (d.type === "channel_history" && currentMode === "channel" && currentChannelId === d.channelId) {
-            loadingIndicator.classList.add("hidden");
-            renderChannelMessages(d.data);
+        if (d.type === "group_log") {
+            const idx = myGroups.findIndex(g => g.id === d.groupId);
+            if (idx !== -1) {
+                myGroups[idx].actionLog = d.log;
+                if (currentGroupScreen === d.groupId && currentGroupTab === 'log') {
+                    renderGroupLog();
+                }
+            }
+            return;
+        }
+        if (d.type === "group_media") {
+            if (currentGroupScreen === d.groupId && currentGroupTab === 'media') {
+                renderGroupMedia(d.media);
+            }
+            return;
+        }
+        if (d.type === "group_files") {
+            if (currentGroupScreen === d.groupId && currentGroupTab === 'files') {
+                renderGroupFiles(d.files);
+            }
+            return;
+        }
+        if (d.type === "group_links") {
+            if (currentGroupScreen === d.groupId && currentGroupTab === 'links') {
+                renderGroupLinks(d.links);
+            }
+            return;
+        }
+        if (d.type === "invite_link") {
+            const input = document.getElementById('inviteLinkInput');
+            if (input) {
+                input.value = d.link;
+            }
+            return;
+        }
+        if (d.type === "search_results") {
+            const container = document.getElementById('groupSearchResults');
+            if (container) {
+                const results = d.results || [];
+                if (results.length === 0) {
+                    container.innerHTML = '<div style="padding:12px; color:#888;">🔍 Ничего не найдено</div>';
+                    return;
+                }
+                let html = '';
+                results.forEach(m => {
+                    html += `
+                        <div class="message" onclick="switchToGroup('${d.groupId}')">
+                            <div class="author">${m.from || m.owner}</div>
+                            <div class="msg-text">${escapeHtml(m.text || '')}</div>
+                            <div class="time">${m.timeFormatted || formatTime(m.time)}</div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            }
+            return;
+        }
+        if (d.type === "group_deleted") {
+            myGroups = myGroups.filter(g => g.id !== d.groupId);
+            renderSidebar();
+            if (currentGroupScreen === d.groupId) {
+                groupScreen.classList.remove('open');
+                switchToPublic();
+            }
+            return;
+        }
+        if (d.type === "group_update" || d.type === "group_created") {
+            const idx = myGroups.findIndex(g => g.id === d.group.id);
+            if (idx !== -1) {
+                myGroups[idx] = d.group;
+            } else {
+                myGroups.push(d.group);
+            }
+            renderSidebar();
+            if (currentGroupScreen === d.group.id) {
+                groupData = d.group;
+                groupScreenTitle.textContent = d.group.name;
+                if (d.group.avatar) {
+                    groupScreenAvatar.innerHTML = `<img src="${d.group.avatar}">`;
+                } else {
+                    groupScreenAvatar.textContent = '👥';
+                }
+                if (d.type === 'group_update') {
+                    switchGroupTab(currentGroupTab);
+                }
+            }
+            return;
+        }
+        if (d.type === "group_invite") {
+            if (confirm(`👥 ${d.from} пригласил вас в группу! Присоединиться?`)) {
+                if (ws && ws.readyState === 1) {
+                    ws.send(JSON.stringify({ type: 'join_by_link', groupId: d.groupId, token: 'auto' }));
+                }
+            }
             return;
         }
         if (d.type === "delete") { 
             const el = document.getElementById(d.id); 
             if (el) el.remove(); 
+            renderSidebar();
         }
         if (d.type === "edit") {
             const el = document.getElementById(d.id);
@@ -2332,7 +2775,8 @@ function switchToGroup(groupId) {
     groupSettingsBtn.classList.remove("hidden");
     callButtons.classList.add("hidden");
     backBtn.classList.remove("hidden");
-    modeTitle.textContent = `👥 ${currentGroup ? currentGroup.name : "Группа"}`;
+    const group = myGroups.find(g => g.id === groupId);
+    modeTitle.textContent = `👥 ${group ? group.name : "Группа"}`;
     chatDiv.innerHTML = "";
     loadingIndicator.classList.remove("hidden");
     if (ws && ws.readyState === 1) {
@@ -2340,7 +2784,7 @@ function switchToGroup(groupId) {
         ws.send(JSON.stringify({ type: "get_group_info", groupId }));
     }
     clearUnread(`group_${groupId}`);
-    navCenter.textContent = currentGroup?.name || "Группа";
+    navCenter.textContent = group ? group.name : "Группа";
 }
 
 function switchToChannel(channelId) {
@@ -2364,20 +2808,6 @@ function switchToChannel(channelId) {
     }
     clearUnread(`channel_${channelId}`);
     navCenter.textContent = currentChannel?.name || "Канал";
-}
-
-function updateGroupUI() {
-    if (currentGroup) { 
-        modeTitle.textContent = currentGroup.name;
-        navCenter.textContent = currentGroup.name;
-    }
-}
-
-function updateChannelUI() {
-    if (currentChannel) {
-        modeTitle.textContent = currentChannel.name;
-        navCenter.textContent = currentChannel.name;
-    }
 }
 
 backBtn.onclick = () => {
@@ -2928,7 +3358,7 @@ menuStats.onclick = () => {
 
 menuHelp.onclick = () => {
     menuPanel.classList.remove("open");
-    alert("❓ Помощь\n\n📌 Основные функции:\n• 💬 Чаты — общение в группах и лично\n• 📣 Каналы — публичные каналы\n• 👥 Контакты — список пользователей\n• ⚙️ Настройки — тема, звук, шрифт\n• 🔄 Видеосообщения — квадратные\n• 📌 Закреплённые сообщения\n• 🌐 Перевод сообщений\n• ⏰ Планировщик сообщений\n\n🔍 Поиск — ⋮ в шапке");
+    alert("❓ Помощь\n\n📌 Основные функции:\n• 💬 Чаты — общение в группах и лично\n• 📣 Каналы — публичные каналы\n• 👥 Контакты — список пользователей\n• ⚙️ Настройки — тема, звук, шрифт\n• 🔄 Видеосообщения — квадратные\n• 📌 Закреплённые сообщения\n• 🌐 Перевод сообщений\n• ⏰ Планировщик сообщений\n• 👥 Группы — полное управление\n\n🔍 Поиск — ⋮ в шапке");
 };
 
 menuPrivacy.onclick = () => {
@@ -2994,7 +3424,559 @@ settingsScreen.addEventListener("click", (e) => {
 });
 
 // ============================================================
-// КАНАЛЫ, КОНТАКТЫ, ГРУППЫ
+// САЙДБАР (СПИСОК ЧАТОВ)
+// ============================================================
+
+function renderSidebar() {
+    const items = [];
+    
+    items.push({
+        id: "public",
+        type: "public",
+        name: "Общий чат",
+        lastMsg: "Последние сообщения",
+        time: "",
+        unread: getUnreadCount("public"),
+        avatar: "📢"
+    });
+    
+    const privateChats = new Set();
+    allUsers.forEach(u => {
+        if (u !== currentNick) {
+            const key = getPrivateKey(currentNick, u);
+            const unread = getUnreadCount(`private_${u}`);
+            if (privateHistory[key] && privateHistory[key].length > 0) {
+                const last = privateHistory[key][privateHistory[key].length - 1];
+                items.push({
+                    id: `private_${u}`,
+                    type: "private",
+                    name: u,
+                    lastMsg: last.text || "📎 Вложение",
+                    time: formatTime(last.time),
+                    unread: unread,
+                    avatar: u.charAt(0).toUpperCase()
+                });
+            } else if (unread > 0 || allUsers.includes(u)) {
+                items.push({
+                    id: `private_${u}`,
+                    type: "private",
+                    name: u,
+                    lastMsg: "Начать диалог",
+                    time: "",
+                    unread: unread,
+                    avatar: u.charAt(0).toUpperCase()
+                });
+            }
+        }
+    });
+    
+    myGroups.forEach(g => {
+        const unread = getUnreadCount(`group_${g.id}`);
+        const last = g.messages && g.messages.length > 0 ? g.messages[g.messages.length - 1] : null;
+        items.push({
+            id: `group_${g.id}`,
+            type: "group",
+            name: g.name,
+            lastMsg: last ? last.text || "📎 Вложение" : "Группа создана",
+            time: last ? formatTime(last.time) : formatTime(g.createdAt),
+            unread: unread,
+            avatar: "👥",
+            groupId: g.id
+        });
+    });
+    
+    myChannels.forEach(c => {
+        const unread = getUnreadCount(`channel_${c.id}`);
+        const last = c.messages && c.messages.length > 0 ? c.messages[c.messages.length - 1] : null;
+        const isSubscribed = c.subscribers?.includes(currentNick);
+        if (isSubscribed) {
+            items.push({
+                id: `channel_${c.id}`,
+                type: "channel",
+                name: c.name,
+                lastMsg: last ? last.text || "📎 Вложение" : "Канал создан",
+                time: last ? formatTime(last.time) : formatTime(c.createdAt),
+                unread: unread,
+                avatar: "📣",
+                channelId: c.id
+            });
+        }
+    });
+    
+    items.sort((a, b) => {
+        if (a.time && b.time) {
+            const ta = a.time.split(":").map(Number);
+            const tb = b.time.split(":").map(Number);
+            return (tb[0] - ta[0]) || (tb[1] - ta[1]);
+        }
+        return a.time ? -1 : 1;
+    });
+    
+    sidebarList.innerHTML = "";
+    const searchText = searchChats.value.toLowerCase();
+    const filtered = items.filter(item => 
+        item.name.toLowerCase().includes(searchText) ||
+        item.lastMsg.toLowerCase().includes(searchText)
+    );
+    
+    if (filtered.length === 0) {
+        sidebarList.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">📭 Нет чатов</div>';
+        return;
+    }
+    
+    filtered.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "chat-item";
+        const isActive = 
+            (item.type === "public" && currentMode === "public") ||
+            (item.type === "private" && currentMode === "private" && currentPrivateWith === item.name) ||
+            (item.type === "group" && currentMode === "group" && currentGroupId === item.groupId) ||
+            (item.type === "channel" && currentMode === "channel" && currentChannelId === item.channelId);
+        if (isActive) div.classList.add("active");
+        
+        div.innerHTML = `
+            <div class="avatar">${item.avatar}</div>
+            <div class="info">
+                <div class="name">${escapeHtml(item.name)}</div>
+                <div class="last-msg">${escapeHtml(item.lastMsg)}</div>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+                ${item.time ? `<div class="time">${item.time}</div>` : ''}
+                ${item.unread > 0 ? `<span class="unread">${item.unread}</span>` : ''}
+            </div>
+        `;
+        
+        div.onclick = () => {
+            if (item.type === "public") switchToPublic();
+            else if (item.type === "private") switchToPrivate(item.name);
+            else if (item.type === "group") {
+                // Открываем экран управления группой
+                openGroupScreen(item.groupId);
+            } else if (item.type === "channel") switchToChannel(item.channelId);
+        };
+        sidebarList.appendChild(div);
+    });
+}
+
+searchChats.addEventListener("input", renderSidebar);
+
+// ============================================================
+// ГРУППЫ — КЛИЕНТСКИЕ ФУНКЦИИ
+// ============================================================
+
+function openGroupScreen(groupId) {
+    currentGroupScreen = groupId;
+    groupScreen.classList.add('open');
+    const group = myGroups.find(g => g.id === groupId);
+    if (group) {
+        groupData = group;
+        groupScreenTitle.textContent = group.name;
+        if (group.avatar) {
+            groupScreenAvatar.innerHTML = `<img src="${group.avatar}">`;
+        } else {
+            groupScreenAvatar.textContent = '👥';
+        }
+    }
+    switchGroupTab('members');
+    if (ws && ws.readyState === 1) {
+        ws.send(JSON.stringify({ type: 'get_group_info', groupId }));
+        ws.send(JSON.stringify({ type: 'get_group_log', groupId }));
+        ws.send(JSON.stringify({ type: 'get_group_media', groupId }));
+        ws.send(JSON.stringify({ type: 'get_group_files', groupId }));
+        ws.send(JSON.stringify({ type: 'get_group_links', groupId }));
+    }
+}
+
+closeGroupScreen.onclick = () => {
+    groupScreen.classList.remove('open');
+    currentGroupScreen = null;
+};
+
+document.querySelectorAll('#groupTabs .tab').forEach(tab => {
+    tab.onclick = () => {
+        document.querySelectorAll('#groupTabs .tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        switchGroupTab(tab.dataset.tab);
+    };
+});
+
+function switchGroupTab(tab) {
+    currentGroupTab = tab;
+    switch(tab) {
+        case 'members': renderGroupMembers(); break;
+        case 'settings': renderGroupSettings(); break;
+        case 'media': renderGroupMedia(); break;
+        case 'files': renderGroupFiles(); break;
+        case 'links': renderGroupLinks(); break;
+        case 'log': renderGroupLog(); break;
+        case 'search': renderGroupSearch(); break;
+        default: groupScreenContent.innerHTML = '<div class="loading-indicator">Выберите вкладку</div>';
+    }
+}
+
+function renderGroupMembers() {
+    const group = myGroups.find(g => g.id === currentGroupScreen);
+    if (!group) {
+        groupScreenContent.innerHTML = '<div class="loading-indicator">Группа не найдена</div>';
+        return;
+    }
+    
+    let html = `
+        <div class="add-member-input">
+            <input type="text" id="addMemberInput" placeholder="👤 Введите ник пользователя...">
+            <button id="addMemberBtn">➕ Добавить</button>
+        </div>
+        <div style="margin-bottom: 12px; font-size: 13px; color: #888;">
+            👥 ${group.members.length} участников
+            ${group.creator === currentNick ? '👑 Вы создатель' : group.admins?.includes(currentNick) ? '🛡️ Вы администратор' : ''}
+        </div>
+        <div id="membersList">
+    `;
+    
+    const sorted = [...group.members].sort((a, b) => {
+        if (a === group.creator) return -1;
+        if (b === group.creator) return 1;
+        if (group.admins?.includes(a) && !group.admins?.includes(b)) return -1;
+        if (!group.admins?.includes(a) && group.admins?.includes(b)) return 1;
+        return 0;
+    });
+    
+    sorted.forEach(member => {
+        const isCreator = member === group.creator;
+        const isAdmin = group.admins?.includes(member);
+        const isOnline = usersOnline.includes(member);
+        const isMe = member === currentNick;
+        const canManage = group.creator === currentNick || (group.admins?.includes(currentNick) && !isCreator);
+        
+        let role = 'Участник';
+        let roleClass = '';
+        if (isCreator) { role = '👑 Создатель'; roleClass = 'creator'; }
+        else if (isAdmin) { role = '🛡️ Админ'; roleClass = 'admin'; }
+        
+        html += `
+            <div class="member-item">
+                <div class="avatar">${member.charAt(0).toUpperCase()}</div>
+                <div class="info">
+                    <div class="name">${member} ${isOnline ? '🟢' : '⚫'} ${isMe ? '(Вы)' : ''}</div>
+                    <div class="role ${roleClass}">${role}</div>
+                </div>
+                <div class="actions">
+                    ${canManage && !isCreator && !isMe ? `
+                        ${isAdmin ? `<button onclick="removeAdminFromGroup('${currentGroupScreen}', '${member}')" title="Снять админа">🛡️</button>` : `<button onclick="addAdminToGroup('${currentGroupScreen}', '${member}')" title="Назначить админом">👑</button>`}
+                        <button onclick="removeMemberFromGroup('${currentGroupScreen}', '${member}')" title="Удалить">🗑️</button>
+                    ` : ''}
+                    ${isMe && !isCreator ? `<button onclick="leaveGroupConfirm('${currentGroupScreen}')" title="Выйти">🚪</button>` : ''}
+                    ${isCreator && isMe ? `<button onclick="deleteGroupConfirm('${currentGroupScreen}')" title="Удалить группу" style="color:#d32f2f;">🗑️</button>` : ''}
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `</div>`;
+    groupScreenContent.innerHTML = html;
+    
+    document.getElementById('addMemberBtn')?.addEventListener('click', () => {
+        const input = document.getElementById('addMemberInput');
+        const nick = input.value.trim();
+        if (!nick) return;
+        if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: 'add_member', groupId: currentGroupScreen, nick }));
+        }
+        input.value = '';
+    });
+    
+    document.getElementById('addMemberInput')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('addMemberBtn')?.click();
+    });
+}
+
+function addAdminToGroup(groupId, nick) {
+    if (ws && ws.readyState === 1) {
+        ws.send(JSON.stringify({ type: 'add_admin', groupId, nick }));
+    }
+}
+
+function removeAdminFromGroup(groupId, nick) {
+    if (ws && ws.readyState === 1) {
+        ws.send(JSON.stringify({ type: 'remove_admin', groupId, nick }));
+    }
+}
+
+function removeMemberFromGroup(groupId, nick) {
+    if (confirm(`Удалить ${nick} из группы?`)) {
+        if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: 'remove_member', groupId, nick }));
+        }
+    }
+}
+
+function leaveGroupConfirm(groupId) {
+    if (confirm('Выйти из группы?')) {
+        if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: 'leave_group', groupId }));
+        }
+    }
+}
+
+function deleteGroupConfirm(groupId) {
+    if (confirm('⚠️ Удалить группу навсегда? Это действие необратимо!')) {
+        if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: 'delete_group', groupId }));
+        }
+    }
+}
+
+function renderGroupSettings() {
+    const group = myGroups.find(g => g.id === currentGroupScreen);
+    if (!group) {
+        groupScreenContent.innerHTML = '<div class="loading-indicator">Группа не найдена</div>';
+        return;
+    }
+    
+    const settings = group.settings || {};
+    const canChange = group.creator === currentNick || group.admins?.includes(currentNick);
+    
+    const permissionLabels = { 'all': 'Все', 'admins': 'Админы', 'creator': 'Создатель' };
+    
+    let html = `
+        <div style="margin-bottom: 16px;">
+            <div class="group-settings-item" onclick="changeGroupName()">
+                <span class="label">📝 Название группы</span>
+                <span class="value">${group.name}</span>
+                <span class="arrow">›</span>
+            </div>
+            <div class="group-settings-item" onclick="changeGroupDescription()">
+                <span class="label">📄 Описание</span>
+                <span class="value">${group.description || 'Нет описания'}</span>
+                <span class="arrow">›</span>
+            </div>
+            <div class="group-settings-item" onclick="changeGroupAvatar()">
+                <span class="label">🖼️ Аватар группы</span>
+                <span class="value">${group.avatar ? 'Есть' : 'Нет'}</span>
+                <span class="arrow">›</span>
+            </div>
+        </div>
+        <div style="margin-bottom: 12px; font-weight: 600; color: var(--text);">🔒 Права участников</div>
+    `;
+    
+    const permissions = [
+        { key: 'whoCanSendMessages', label: '✏️ Писать сообщения' },
+        { key: 'whoCanCall', label: '📞 Звонить' },
+        { key: 'whoCanInvite', label: '➕ Приглашать' },
+        { key: 'whoCanChangeName', label: '📝 Менять название' },
+        { key: 'whoCanChangeAvatar', label: '🖼️ Менять аватар' },
+        { key: 'whoCanPin', label: '📌 Закреплять' }
+    ];
+    
+    permissions.forEach(p => {
+        const value = settings[p.key] || 'all';
+        html += `
+            <div class="group-settings-item" onclick="changeGroupPermission('${p.key}')">
+                <span class="label">${p.label}</span>
+                <span class="value">${permissionLabels[value] || 'Все'}</span>
+                <span class="arrow">${canChange ? '›' : ''}</span>
+            </div>
+        `;
+    });
+    
+    html += `
+        <div style="margin-top: 16px; font-weight: 600; color: var(--text);">🔗 Пригласительная ссылка</div>
+        <div class="invite-link-box">
+            <input type="text" id="inviteLinkInput" readonly value="${group.inviteLink || 'Создайте ссылку'}">
+            <button id="generateInviteBtn">🔄 Создать</button>
+            <button id="copyInviteBtn">📋 Копировать</button>
+        </div>
+    `;
+    
+    groupScreenContent.innerHTML = html;
+    
+    document.getElementById('generateInviteBtn')?.addEventListener('click', () => {
+        if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: 'get_invite_link', groupId: currentGroupScreen }));
+        }
+    });
+    
+    document.getElementById('copyInviteBtn')?.addEventListener('click', () => {
+        const input = document.getElementById('inviteLinkInput');
+        if (input && input.value && input.value !== 'Создайте ссылку') {
+            navigator.clipboard.writeText(window.location.origin + input.value);
+            alert('✅ Ссылка скопирована!');
+        }
+    });
+}
+
+function changeGroupName() {
+    const group = myGroups.find(g => g.id === currentGroupScreen);
+    if (!group) return;
+    const newName = prompt('Введите новое название группы:', group.name);
+    if (newName && newName.trim() && newName.trim() !== group.name) {
+        if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: 'update_group_name', groupId: currentGroupScreen, newName: newName.trim() }));
+        }
+    }
+}
+
+function changeGroupDescription() {
+    const group = myGroups.find(g => g.id === currentGroupScreen);
+    if (!group) return;
+    const newDesc = prompt('Введите новое описание группы:', group.description || '');
+    if (newDesc !== null) {
+        if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: 'update_group_description', groupId: currentGroupScreen, description: newDesc.trim() }));
+        }
+    }
+}
+
+function changeGroupAvatar() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = () => {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            if (ws && ws.readyState === 1) {
+                ws.send(JSON.stringify({ type: 'update_group_avatar', groupId: currentGroupScreen, avatar: reader.result }));
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+    input.click();
+}
+
+function changeGroupPermission(key) {
+    const group = myGroups.find(g => g.id === currentGroupScreen);
+    if (!group) return;
+    if (group.creator !== currentNick && !group.admins?.includes(currentNick)) return;
+    
+    const options = ['all', 'admins', 'creator'];
+    const labels = { 'all': 'Все', 'admins': 'Админы', 'creator': 'Создатель' };
+    const current = group.settings?.[key] || 'all';
+    const idx = options.indexOf(current);
+    const next = options[(idx + 1) % options.length];
+    
+    if (ws && ws.readyState === 1) {
+        ws.send(JSON.stringify({
+            type: 'update_group_settings',
+            groupId: currentGroupScreen,
+            settings: { [key]: next }
+        }));
+    }
+}
+
+function renderGroupMedia(data) {
+    const content = groupScreenContent;
+    const media = data || [];
+    if (media.length === 0) {
+        content.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">📂 Нет медиа</div>';
+        return;
+    }
+    let html = '<div class="media-grid">';
+    media.forEach(m => {
+        if (m.image) {
+            html += `<div class="media-item" onclick="openModal('${m.image}')"><img src="${m.image}"></div>`;
+        } else if (m.video) {
+            html += `<div class="media-item" onclick="openModal('${m.video}')"><video src="${m.video}"></video><div class="play-icon">▶</div></div>`;
+        } else if (m.circle) {
+            html += `<div class="media-item" onclick="openModal('${m.circle}')"><video src="${m.circle}"></video><div class="play-icon">🔄</div></div>`;
+        }
+    });
+    html += '</div>';
+    content.innerHTML = html;
+}
+
+function renderGroupFiles(data) {
+    const content = groupScreenContent;
+    const files = data || [];
+    if (files.length === 0) {
+        content.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">📁 Нет файлов</div>';
+        return;
+    }
+    let html = '';
+    files.forEach(f => {
+        html += `
+            <div class="file-item" onclick="window.open('${f.file.url}')">
+                <span class="icon">📎</span>
+                <div class="info">
+                    <div class="name">${f.file.name}</div>
+                    <div class="from">${f.from || f.owner} • ${f.timeFormatted || formatTime(f.time)}</div>
+                </div>
+            </div>
+        `;
+    });
+    content.innerHTML = html;
+}
+
+function renderGroupLinks(data) {
+    const content = groupScreenContent;
+    const links = data || [];
+    if (links.length === 0) {
+        content.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">🔗 Нет ссылок</div>';
+        return;
+    }
+    let html = '';
+    links.forEach(l => {
+        html += `
+            <div class="link-item" onclick="window.open('${l.url}')">
+                <span class="icon">🔗</span>
+                <div class="info">
+                    <div class="name">${l.url}</div>
+                    <div class="from">${l.from || 'Неизвестно'} • ${l.timeFormatted || formatTime(l.time)}</div>
+                </div>
+            </div>
+        `;
+    });
+    content.innerHTML = html;
+}
+
+function renderGroupLog() {
+    const group = myGroups.find(g => g.id === currentGroupScreen);
+    if (!group) {
+        groupScreenContent.innerHTML = '<div class="loading-indicator">Группа не найдена</div>';
+        return;
+    }
+    const log = group.actionLog || [];
+    if (log.length === 0) {
+        groupScreenContent.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">📝 Журнал действий пуст</div>';
+        return;
+    }
+    let html = '';
+    log.slice().reverse().forEach(item => {
+        html += `
+            <div class="log-item">
+                <span class="time">${item.timeFormatted || formatTime(item.time)}</span>
+                <span class="action">${escapeHtml(item.action)}</span>
+            </div>
+        `;
+    });
+    groupScreenContent.innerHTML = html;
+}
+
+function renderGroupSearch() {
+    groupScreenContent.innerHTML = `
+        <div class="group-search">
+            <input type="text" id="groupSearchInput" placeholder="🔍 Поиск по сообщениям...">
+            <button id="groupSearchBtn">Найти</button>
+        </div>
+        <div class="group-search-results" id="groupSearchResults"></div>
+    `;
+    
+    document.getElementById('groupSearchBtn').onclick = () => {
+        const query = document.getElementById('groupSearchInput').value.trim();
+        if (!query) return;
+        if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: 'search_group_messages', groupId: currentGroupScreen, query }));
+        }
+    };
+    
+    document.getElementById('groupSearchInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('groupSearchBtn').click();
+    });
+}
+
+// ============================================================
+// КАНАЛЫ, КОНТАКТЫ, ГРУППЫ (СПИСКИ)
 // ============================================================
 
 function renderChannelsScreen() {
@@ -3074,7 +4056,7 @@ function renderGroupsScreen() {
         `;
         div.onclick = () => {
             groupsScreen.classList.remove("open");
-            switchToGroup(g.id);
+            openGroupScreen(g.id);
         };
         groupsListScreen.appendChild(div);
     });
@@ -3083,7 +4065,7 @@ function renderGroupsScreen() {
 closeGroups.onclick = () => { groupsScreen.classList.remove("open"); };
 
 // ============================================================
-// ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ
+// ПОЛИТИКА
 // ============================================================
 
 closePrivacy.onclick = () => { privacyScreen.classList.remove("open"); };
@@ -3150,6 +4132,7 @@ function markUnread(chatId, msgId) {
     if (!unreadCounts[chatId].includes(msgId)) {
         unreadCounts[chatId].push(msgId);
         saveUnreadCounts();
+        renderSidebar();
     }
 }
 
@@ -3157,6 +4140,7 @@ function clearUnread(chatId) {
     if (unreadCounts[chatId]) {
         delete unreadCounts[chatId];
         saveUnreadCounts();
+        renderSidebar();
     }
 }
 
@@ -3173,14 +4157,6 @@ function getUnreadCount(chatId) {
 }
 
 // ============================================================
-// ONLINE COUNT
-// ============================================================
-
-function updateOnlineCount() {
-    onlineCount.textContent = usersOnline.length;
-}
-
-// ============================================================
 // СТАТУСЫ
 // ============================================================
 
@@ -3194,6 +4170,14 @@ document.querySelectorAll(".status-opt").forEach(el => {
         }
     });
 });
+
+// ============================================================
+// ONLINE COUNT
+// ============================================================
+
+function updateOnlineCount() {
+    onlineCount.textContent = usersOnline.length;
+}
 
 // ============================================================
 // ОСТАЛЬНЫЕ ФУНКЦИИ
@@ -3382,7 +4366,6 @@ document.getElementById("attachVideo").onclick = () => {
     input.click();
 };
 
-// ===== КВАДРАТНОЕ ВИДЕОСООБЩЕНИЕ =====
 document.getElementById("attachCircle").onclick = () => {
     attachPanel.classList.remove("open");
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 480, height: 480 }, audio: true })
@@ -3619,7 +4602,7 @@ function createPoll() {
 }
 
 // ============================================================
-// ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ
+// ПОИСК
 // ============================================================
 
 dotsBtn.onclick = () => {
@@ -3675,7 +4658,7 @@ searchInputGlobal.addEventListener("input", () => {
             div.innerHTML = `<div class="name">${g.name}</div><div class="desc">${g.members.length} участников</div>`;
             div.onclick = () => {
                 searchOverlay.classList.remove("open");
-                switchToGroup(g.id);
+                openGroupScreen(g.id);
             };
             searchResults.appendChild(div);
         });
@@ -3948,13 +4931,9 @@ rejectCallBtn.onclick = rejectCall;
 endCallBtn.onclick = endCall;
 
 // ============================================================
-// ЗАПУСК
+// ПРИВАТНЫЕ СООБЩЕНИЯ (ЗАГЛУШКИ)
 // ============================================================
 
-console.log("🚀 ChatterBox готов!");
-console.log("👤 Пользователь:", currentNick || "не авторизован");
-
-// ===== ПРИВАТНЫЕ СООБЩЕНИЯ (заглушки для совместимости) =====
 function renderPrivateMessages(messages) {
     chatDiv.innerHTML = "";
     let lastDate = "";
@@ -4177,7 +5156,6 @@ function addPrivateMessage(m) {
     ws.send(JSON.stringify({ type: "mark_read", chatType: "private", chatId: currentPrivateWith, msgId: m.id }));
 }
 
-// ===== ГРУППОВЫЕ СООБЩЕНИЯ =====
 function renderGroupMessages(messages) {
     chatDiv.innerHTML = "";
     let lastDate = "";
@@ -4400,7 +5378,6 @@ function addGroupMessage(m) {
     ws.send(JSON.stringify({ type: "mark_read", chatType: "group", chatId: currentGroupId, msgId: m.id }));
 }
 
-// ===== КАНАЛЬНЫЕ СООБЩЕНИЯ =====
 function renderChannelMessages(messages) {
     chatDiv.innerHTML = "";
     let lastDate = "";
@@ -4622,6 +5599,13 @@ function addChannelMessage(m) {
     chatDiv.scrollTop = chatDiv.scrollHeight;
     ws.send(JSON.stringify({ type: "mark_read", chatType: "channel", chatId: currentChannelId, msgId: m.id }));
 }
+
+// ============================================================
+// ЗАПУСК
+// ============================================================
+
+console.log("🚀 ChatterBox готов!");
+console.log("👤 Пользователь:", currentNick || "не авторизован");
 </script>
 </body>
 </html>
