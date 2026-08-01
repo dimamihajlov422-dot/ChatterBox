@@ -1524,6 +1524,68 @@ body.dark .gs-search-box input { background: rgba(255,255,255,0.05); border-colo
 body.dark .gs-search-result { background: var(--border-dark); }
 .gs-search-result .from { font-size: 12px; font-weight: 600; color: #0084ff; }
 .gs-search-result .text { font-size: 13px; color: var(--text); }
+
+/* ============================================================
+   ЕДИНЫЕ ОБОИ ДЛЯ ВСЕХ ПОЛНОЭКРАННЫХ ПАНЕЛЕЙ
+   (те же /images/bg.jpg и /images/db2.jpg, что и в чате)
+   ============================================================ */
+.menu-panel, .settings-screen, .profile-screen, .channels-screen, .contacts-screen,
+.groups-screen, .privacy-screen, .group-screen {
+    background-image: linear-gradient(var(--card-bg), var(--card-bg)), url('/images/bg.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+body.dark .menu-panel, body.dark .settings-screen, body.dark .profile-screen, body.dark .channels-screen,
+body.dark .contacts-screen, body.dark .groups-screen, body.dark .privacy-screen, body.dark .group-screen {
+    background-image: linear-gradient(var(--card-bg-dark), var(--card-bg-dark)), url('/images/db2.jpg');
+}
+
+/* ============================================================
+   MATERIAL 3 STYLE PASS
+   Единая форма (rounded shapes), elevation-тени, тональные поверхности
+   ============================================================ */
+:root {
+    --m3-elevation-1: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --m3-elevation-2: 0 3px 8px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.08);
+    --m3-elevation-3: 0 6px 16px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.08);
+}
+
+/* Верхние панели и панель ввода получают лёгкую "elevation" */
+.header, .input-bar, .mode-bar { box-shadow: var(--m3-elevation-1); }
+
+/* Карточки/строки списков — более крупный радиус в духе M3 (Medium shape) */
+.menu-item, .settings-item, .contact-item, .channel-item,
+.gs-member, .gs-setting-row, .gs-file-item, .gs-link-item,
+.gs-search-result, .pinned-message {
+    border-radius: 18px;
+}
+
+/* Кнопки-пилюли (Filled/Tonal buttons M3) единообразно скруглены и с тенью при нажатии */
+.mode-bar button, .attach-item, .gs-tab, .status-opt,
+.gs-invite-box button, .gs-search-box button, .gs-add-row button {
+    border-radius: 20px;
+}
+
+/* FAB-стиль для кнопки отправки сообщения (M3 Filled Icon Button / small FAB) */
+#sendBtn {
+    background: #0084ff;
+    color: #fff;
+    box-shadow: var(--m3-elevation-2);
+    border-color: transparent;
+}
+#sendBtn:active { box-shadow: var(--m3-elevation-1); }
+
+/* Основные диалоговые "поверхности" (surfaces) с тенью, как M3 Dialog/Sheet */
+.attach-panel, .message-menu, .translator-panel, .scheduler-panel,
+.group-members-panel, .incoming-call, .call-status {
+    box-shadow: var(--m3-elevation-3);
+}
+
+/* Аватарки — форма Squircle-подобная (M3 предпочитает мягкие прямоугольные формы для контента) */
+.gs-member .avatar, .contact-item .avatar, .channel-item, .menu-header .user-info .avatar {
+    border-radius: 16px;
+}
 </style>
 </head>
 <body>
@@ -3347,7 +3409,6 @@ function renderGroupsScreen() {
         div.onclick = () => {
             groupsScreen.classList.remove("open");
             switchToGroup(g.id);
-            openGroupScreen(g.id, "members");
         };
         groupsListScreen.appendChild(div);
     });
@@ -3987,17 +4048,39 @@ videoCallBtn.onclick = () => {
     }
 };
 
+let callRingTimeout = null;
+
 async function startCall(targetNick, video = false) {
+    if (!usersOnline.includes(targetNick)) {
+        alert(`❌ ${targetNick} сейчас не в сети — звонок недоступен`);
+        return;
+    }
     if (currentCallUser || groupCallActive) endCall();
     currentCallUser = targetNick;
     isVideoCall = video;
-    showCallStatus(targetNick);
+    showCallStatus(targetNick, true);
     iceQueue = [];
     remoteDescriptionSet = false;
     try {
         pc = new RTCPeerConnection(servers);
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: video });
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: video });
+        } catch(mediaErr) {
+            alert(mediaErr.name === "NotAllowedError" ? "❌ Нет доступа к камере/микрофону — разрешите доступ в настройках браузера" : "❌ Не удалось получить камеру/микрофон: " + mediaErr.message);
+            endCall();
+            return;
+        }
         localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        pc.oniceconnectionstatechange = () => {
+            if (!pc) return;
+            if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+                if (callRingTimeout) { clearTimeout(callRingTimeout); callRingTimeout = null; }
+                showCallStatus(targetNick, false);
+            } else if (pc.iceConnectionState === "failed" || pc.iceConnectionState === "disconnected") {
+                alert("❌ Соединение прервалось (возможно, сети без общего TURN-сервера)");
+                endCall();
+            }
+        };
         pc.ontrack = (event) => {
             if (event.track.kind === "video") {
                 let remoteVideo = document.getElementById("remoteVideo");
@@ -4051,6 +4134,13 @@ async function startCall(targetNick, video = false) {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         ws.send(JSON.stringify({ type: "offer", to: targetNick, offer, video }));
+        if (callRingTimeout) clearTimeout(callRingTimeout);
+        callRingTimeout = setTimeout(() => {
+            if (currentCallUser === targetNick && !remoteDescriptionSet) {
+                alert(`📵 ${targetNick} не отвечает`);
+                endCall();
+            }
+        }, 30000);
     } catch(e) { endCall(); }
 }
 
@@ -4092,11 +4182,24 @@ async function acceptCall() {
     stopRingtone();
     currentCallUser = pendingOffer.from;
     isVideoCall = pendingOffer.video || false;
-    showCallStatus(currentCallUser);
+    showCallStatus(currentCallUser, false);
     try {
         pc = new RTCPeerConnection(servers);
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
+        } catch(mediaErr) {
+            alert(mediaErr.name === "NotAllowedError" ? "❌ Нет доступа к камере/микрофону — разрешите доступ в настройках браузера" : "❌ Не удалось получить камеру/микрофон: " + mediaErr.message);
+            endCall();
+            return;
+        }
         localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        pc.oniceconnectionstatechange = () => {
+            if (!pc) return;
+            if (pc.iceConnectionState === "failed" || pc.iceConnectionState === "disconnected") {
+                alert("❌ Соединение прервалось (возможно, сети без общего TURN-сервера)");
+                endCall();
+            }
+        };
         pc.ontrack = (event) => {
             if (event.track.kind === "video") {
                 let remoteVideo = document.getElementById("remoteVideo");
@@ -4201,6 +4304,7 @@ function handleGroupOrCallIce(msg) {
 }
 
 function endCall() {
+    if (callRingTimeout) { clearTimeout(callRingTimeout); callRingTimeout = null; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     if (pc) { pc.close(); pc = null; }
     let localVideo = document.getElementById("localVideo");
@@ -4219,8 +4323,8 @@ function endCall() {
     if (groupCallActive) endGroupCall();
 }
 
-function showCallStatus(withNick) {
-    callStatusText.innerHTML = `📞 В звонке с ${withNick}`;
+function showCallStatus(withNick, ringing) {
+    callStatusText.innerHTML = ringing ? `📞 Звоним ${withNick}...` : `🟢 В звонке с ${withNick}`;
     callStatusDiv.style.display = "flex";
 }
 
@@ -4242,12 +4346,23 @@ endCallBtn.onclick = endCall;
 
 async function startGroupCall(video) {
     if (!gsGroupData) return;
+    const others = (gsGroupData.members || []).filter(m => m !== currentNick && usersOnline.includes(m));
+    if (others.length === 0) {
+        alert("❌ В группе сейчас никого нет онлайн — звонить некому");
+        return;
+    }
     if (currentCallUser) endCall();
     groupCallActive = true;
     groupCallVideo = video;
     groupPeers = {};
     try {
-        groupLocalStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
+        try {
+            groupLocalStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
+        } catch(mediaErr) {
+            alert(mediaErr.name === "NotAllowedError" ? "❌ Нет доступа к камере/микрофону — разрешите доступ в настройках браузера" : "❌ Не удалось получить камеру/микрофон: " + mediaErr.message);
+            groupCallActive = false;
+            return;
+        }
         if (video) {
             let localVideo = document.getElementById("localVideo");
             if (!localVideo) {
@@ -4266,8 +4381,7 @@ async function startGroupCall(video) {
             }
             localVideo.srcObject = groupLocalStream;
         }
-        const others = (gsGroupData.members || []).filter(m => m !== currentNick && usersOnline.includes(m));
-        showCallStatus(`группе «${gsGroupData.name}» (${others.length})`);
+        showCallStatus(`группе «${gsGroupData.name}» (${others.length})`, false);
         for (const nick of others) {
             await callGroupMember(nick, video);
         }
