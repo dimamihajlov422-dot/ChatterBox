@@ -4960,9 +4960,51 @@ function updateCallDiag(text) {
     if (callDiagLine) callDiagLine.textContent = text;
 }
 
+// Показывает РЕАЛЬНЫЙ уровень входящего звука через Web Audio API.
+// Это отвечает на главный вопрос: звук вообще идёт от собеседника
+// (проблема на его стороне — молчащий/выключенный микрофон), или
+// поток нормальный, но не доходит до динамиков (проблема вывода на
+// вашем устройстве — громкость, беззвучный режим, не то устройство
+// вывода и т.д.). Раньше это было неотличимо друг от друга.
+function attachAudioLevelMeter(stream) {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const audioCtx = new AudioCtx();
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        let silentTicks = 0;
+        let warned = false;
+        const interval = setInterval(() => {
+            if (!currentCallUser && !groupCallActive) { clearInterval(interval); audioCtx.close().catch(()=>{}); return; }
+            analyser.getByteFrequencyData(data);
+            const avg = data.reduce((a, b) => a + b, 0) / data.length;
+            if (avg < 2) {
+                silentTicks++;
+                if (silentTicks >= 6 && !warned) {
+                    warned = true;
+                    updateCallDiag("⚠️ От собеседника идёт ПОЛНАЯ ТИШИНА (проблема на его стороне — микрофон)");
+                }
+            } else {
+                silentTicks = 0;
+                warned = false;
+                updateCallDiag(`🔊 Звук идёт от собеседника (уровень: ${Math.round(avg)}) — если не слышно, проблема в выводе на ВАШЕМ устройстве`);
+            }
+        }, 500);
+    } catch (e) {
+        console.log("⚠️ Не удалось запустить анализатор звука:", e.message);
+    }
+}
+
 function attemptPlayRemoteAudio(audio) {
+    audio.volume = 1.0;
+    audio.muted = false;
+    if (audio.srcObject) attachAudioLevelMeter(audio.srcObject);
     audio.play().then(() => {
-        updateCallDiag("🔊 Звук от собеседника воспроизводится");
+        updateCallDiag("🔊 Звук запущен, анализирую поток...");
     }).catch(() => {
         updateCallDiag("🔇 Браузер заблокировал звук — нажмите баннер выше");
         showUnmuteBanner(audio);
