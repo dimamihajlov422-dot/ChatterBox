@@ -392,6 +392,8 @@ body.dark .message { background: var(--msg-bg); border-color: rgba(255,255,255,0
 .message .read-status { font-size: 10px; }
 .message .read-status.read { color: #4caf50; }
 .message .mention { background: rgba(0,132,255,0.15); border-radius: 12px; padding: 2px 6px; cursor: pointer; display: inline-block; }
+.message .msg-code { background: rgba(0,0,0,0.08); padding: 2px 6px; border-radius: 6px; font-family: "SF Mono", Consolas, monospace; font-size: 0.9em; }
+body.dark .message .msg-code { background: rgba(255,255,255,0.12); }
 
 .message .video-message {
     width: 160px;
@@ -491,6 +493,30 @@ body.dark .message { background: var(--msg-bg); border-color: rgba(255,255,255,0
     transition: width 0.1s;
 }
 .message .voice-note .time-label { font-size: 11px; opacity: 0.6; }
+.message .voice-note .voice-speed-btn {
+    font-size: 10px; font-weight: 700; opacity: 0.8;
+    background: rgba(0,0,0,0.08); border-radius: 8px; padding: 2px 6px;
+    cursor: pointer; flex-shrink: 0;
+}
+body.dark .message .voice-note .voice-speed-btn { background: rgba(255,255,255,0.15); }
+
+.poll-message { max-width: 85%; }
+.poll-question { font-weight: 700; font-size: 15px; margin-bottom: 10px; color: var(--text); }
+.poll-option {
+    position: relative; padding: 10px 12px; margin-bottom: 6px; border-radius: 12px;
+    background: rgba(0,0,0,0.05); cursor: pointer; overflow: hidden;
+    display: flex; align-items: center; justify-content: space-between;
+}
+body.dark .poll-option { background: rgba(255,255,255,0.08); }
+.poll-option:active { transform: scale(0.98); }
+.poll-option-voted { border: 1.5px solid #0084ff; }
+.poll-option-bar {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: rgba(0,132,255,0.18); border-radius: 12px; transition: width 0.3s;
+}
+.poll-option-label { position: relative; z-index: 1; font-size: 14px; color: var(--text); }
+.poll-option-pct { position: relative; z-index: 1; font-size: 13px; font-weight: 700; color: #0084ff; }
+.poll-meta { font-size: 11px; opacity: 0.55; margin-top: 4px; color: var(--text); }
 .message .file-attach { display: flex; align-items: center; gap: 8px; margin-top: 4px; padding: 4px; background: rgba(0,0,0,0.03); border-radius: 8px; cursor: pointer; }
 .message .music-attach { display: flex; align-items: center; gap: 8px; margin-top: 4px; padding: 4px; background: rgba(0,0,0,0.03); border-radius: 8px; cursor: pointer; }
 .message .sticker { max-width: 128px; margin-top: 4px; cursor: pointer; border-radius: 12px; }
@@ -1239,7 +1265,7 @@ body.dark .pinned-message { background: var(--border-dark); }
     display: none;
     align-items: center;
     justify-content: space-between;
-    z-index: 400;
+    z-index: 9000;
     border: 1px solid var(--border);
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
@@ -1268,7 +1294,7 @@ body.dark .incoming-call button { background: var(--border-dark); border-color: 
     display: none;
     align-items: center;
     justify-content: space-between;
-    z-index: 150;
+    z-index: 8500;
     border: 1px solid var(--border);
 }
 body.dark .call-status { background: var(--card-bg-dark); border-color: var(--border-dark); }
@@ -1946,6 +1972,45 @@ body.dark .directory-screen {
     <div class="gs-body" id="gsBody"></div>
 </div>
 
+<!-- ===== ЭКРАН КАНАЛА: ава/название/описание, админы канала, админы комментариев ===== -->
+<div class="group-screen" id="channelInfoScreen">
+    <div class="gs-header">
+        <button id="ciCloseBtn">←</button>
+        <div class="gs-avatar" id="ciAvatar">📣</div>
+        <div class="gs-title">
+            <div class="gs-name" id="ciName">Канал</div>
+            <div class="gs-sub" id="ciSub">0 подписчиков</div>
+        </div>
+    </div>
+    <div class="gs-body" id="ciBody"></div>
+</div>
+
+<!-- ===== КОММЕНТАРИИ К ПОСТУ КАНАЛА ===== -->
+<div class="group-screen" id="commentsScreen">
+    <div class="gs-header">
+        <button id="commentsCloseBtn">←</button>
+        <div class="gs-title">
+            <div class="gs-name" data-i18n="commentsTitle">💬 Комментарии</div>
+        </div>
+    </div>
+    <div class="gs-body" id="commentsBody"></div>
+    <div class="gs-add-row" style="padding: 10px 16px;">
+        <input type="text" id="commentInput" placeholder="Написать комментарий...">
+        <button id="commentSendBtn">➤</button>
+    </div>
+</div>
+
+<!-- ===== ЗАБЛОКИРОВАННЫЕ ПОЛЬЗОВАТЕЛИ ===== -->
+<div class="group-screen" id="blockedScreen">
+    <div class="gs-header">
+        <button id="blockedCloseBtn">←</button>
+        <div class="gs-title">
+            <div class="gs-name">🚫 Заблокированные</div>
+        </div>
+    </div>
+    <div class="gs-body" id="blockedBody"></div>
+</div>
+
 <div class="menu-panel" id="menuPanel">
     <div class="menu-header">
         <div class="user-info">
@@ -2011,6 +2076,7 @@ body.dark .directory-screen {
         <div class="settings-item" id="settingsStats2" data-i18n="settingsStatsLabel">📊 Статистика <span class="toggle">→</span></div>
         <div class="settings-item" id="settingsHelp2" data-i18n="settingsHelpLabel">❓ Помощь <span class="toggle">→</span></div>
         <div class="settings-item" id="settingsPrivacy2" data-i18n="settingsPrivacyLabel">🔒 Политика конфиденциальности <span class="toggle">→</span></div>
+        <div class="settings-item" id="settingsBlocked">🚫 Заблокированные <span class="sub" id="settingsBlockedValue">0</span></div>
 
         <div style="margin-top:16px; padding:8px 4px; color:#888; font-size:13px;" data-i18n="settingsAccountLabel">Аккаунт</div>
         <div class="settings-item danger" id="settingsLogout"><span data-i18n="settingsLogoutLabel">🚪 Выйти</span> <span class="toggle">→</span></div>
@@ -2265,6 +2331,24 @@ const settingsBackup2 = document.getElementById("settingsBackup2");
 const settingsStats2 = document.getElementById("settingsStats2");
 const settingsHelp2 = document.getElementById("settingsHelp2");
 const settingsPrivacy2 = document.getElementById("settingsPrivacy2");
+
+// ===== КАНАЛ: экран управления + комментарии (DOM) =====
+const channelInfoScreen = document.getElementById("channelInfoScreen");
+const ciCloseBtn = document.getElementById("ciCloseBtn");
+const ciAvatar = document.getElementById("ciAvatar");
+const ciName = document.getElementById("ciName");
+const ciSub = document.getElementById("ciSub");
+const ciBody = document.getElementById("ciBody");
+const commentsScreen = document.getElementById("commentsScreen");
+const commentsCloseBtn = document.getElementById("commentsCloseBtn");
+const commentsBody = document.getElementById("commentsBody");
+const commentInput = document.getElementById("commentInput");
+const commentSendBtn = document.getElementById("commentSendBtn");
+const settingsBlocked = document.getElementById("settingsBlocked");
+const settingsBlockedValue = document.getElementById("settingsBlockedValue");
+const blockedScreen = document.getElementById("blockedScreen");
+const blockedCloseBtn = document.getElementById("blockedCloseBtn");
+const blockedBody = document.getElementById("blockedBody");
 
 // ===== ПЕРЕМЕННЫЕ =====
 let ws = null;
@@ -2862,6 +2946,7 @@ function connect() {
             setTimeout(checkAndRequestPermissions, 500);
             setTimeout(subscribeToPush, 800);
             if (typeof applyDeviceMode === "function") applyDeviceMode();
+            ws.send(JSON.stringify({ type: "get_blocked_users" }));
             return;
         }
         if (!logged) return;
@@ -2908,10 +2993,23 @@ function connect() {
             return;
         }
         if (d.type === "group_update") {
-            myGroups = myGroups.map(g => g.id === d.group.id ? d.group : g);
-            if (!myGroups.find(g => g.id === d.group.id)) myGroups.push(d.group);
+            const isMember = d.group.members && d.group.members.includes(currentNick);
+            if (isMember) {
+                myGroups = myGroups.map(g => g.id === d.group.id ? d.group : g);
+                if (!myGroups.find(g => g.id === d.group.id)) myGroups.push(d.group);
+            } else {
+                // Сервер рассылает обновления групп всем подключённым, а не только
+                // участникам — если нас нет в members, эта группа не должна
+                // висеть в нашем списке (иначе видно, но нельзя читать/писать)
+                myGroups = myGroups.filter(g => g.id !== d.group.id);
+                if (currentGroupId === d.group.id) {
+                    alert("❌ Вы больше не состоите в этой группе");
+                    openDirectory();
+                }
+            }
             if (currentGroupId === d.group.id) { currentGroup = d.group; updateGroupUI(); }
             if (gsGroupId === d.group.id) { gsGroupData = d.group; renderGroupScreenHeader(); renderGsTab(); }
+            refreshDirectoryIfOpen();
         }
         if (d.type === "group_created") {
             myGroups.push(d.group);
@@ -2974,6 +3072,40 @@ function connect() {
             myChannels = myChannels.map(c => c.id === d.channel.id ? d.channel : c);
             if (!myChannels.find(c => c.id === d.channel.id)) myChannels.push(d.channel);
             if (currentChannelId === d.channel.id) { currentChannel = d.channel; updateChannelUI(); }
+            if (ciChannelId === d.channel.id) { ciChannelData = d.channel; renderChannelInfo(); }
+            refreshDirectoryIfOpen();
+        }
+        if (d.type === "global_search_results") {
+            renderMessageSearchResults(d.results);
+        }
+        if (d.type === "blocked_users") {
+            blockedUsersList = d.list || [];
+            if (settingsBlockedValue) settingsBlockedValue.textContent = blockedUsersList.length;
+            if (blockedScreen.classList.contains("open")) renderBlockedUsers();
+        }
+        if (d.type === "channel_comment_added" || d.type === "channel_comment_deleted") {
+            const channel = myChannels.find(c => c.id === d.channelId);
+            if (channel && channel.messages) {
+                const post = channel.messages.find(m => m.id === d.msgId);
+                if (post) {
+                    if (!post.comments) post.comments = [];
+                    if (d.type === "channel_comment_added") {
+                        if (!post.comments.find(c => c.id === d.comment.id)) post.comments.push(d.comment);
+                    } else {
+                        post.comments = post.comments.filter(c => c.id !== d.commentId);
+                    }
+                }
+            }
+            if (currentMode === "channel" && currentChannelId === d.channelId) {
+                const el = document.getElementById(`comments-count-${d.msgId}`);
+                if (el && channel) {
+                    const post = channel.messages.find(m => m.id === d.msgId);
+                    el.textContent = `💬 ${(post && post.comments ? post.comments.length : 0)}`;
+                }
+            }
+            if (commentsScreen.classList.contains("open") && commentsChannelId === d.channelId && commentsMsgId === d.msgId) {
+                renderComments();
+            }
         }
         if (d.type === "channel_created") {
             myChannels.push(d.channel);
@@ -3140,7 +3272,6 @@ function switchToPublic() {
 }
 
 function switchToPrivate(withNick) {
-    if (withNick === currentNick) { return; }
     loadDraft();
     currentMode = "private";
     currentPrivateWith = withNick;
@@ -3150,14 +3281,15 @@ function switchToPrivate(withNick) {
     inviteBtn.classList.add("hidden");
     groupMembersBtn.classList.add("hidden");
     groupSettingsBtn.classList.add("hidden");
-    callButtons.classList.remove("hidden");
+    const isSavedMessages = withNick === currentNick;
+    if (isSavedMessages) callButtons.classList.add("hidden"); else callButtons.classList.remove("hidden");
     backBtn.classList.remove("hidden");
-    modeTitle.textContent = `💬 ${withNick}`;
+    modeTitle.textContent = isSavedMessages ? "⭐ Избранное" : `💬 ${withNick}`;
     chatDiv.innerHTML = "";
     loadingIndicator.classList.remove("hidden");
     if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "get_private_history", with: withNick }));
     clearUnread(`private_${withNick}`);
-    navCenter.textContent = withNick;
+    navCenter.textContent = isSavedMessages ? "Избранное" : withNick;
 }
 
 function switchToGroup(groupId) {
@@ -3220,7 +3352,12 @@ function updateGroupUI() {
 
 function updateChannelUI() {
     if (currentChannel) {
-        modeTitle.textContent = currentChannel.name;
+        let badge = "";
+        if (currentChannel.creator === currentNick) badge = " 👑";
+        else if ((currentChannel.admins || []).includes(currentNick)) badge = " 🛡️";
+        modeTitle.textContent = currentChannel.name + badge;
+        modeTitle.style.cursor = "pointer";
+        modeTitle.onclick = () => openChannelInfo(currentChannel.id);
         navCenter.textContent = currentChannel.name;
     }
 }
@@ -3280,6 +3417,12 @@ function addMessage(m) {
     authorSpan.onclick = () => viewProfile(m.owner);
     div.appendChild(authorSpan);
     
+    if (m.forwardedFrom) {
+        const fwdDiv = document.createElement("div");
+        fwdDiv.className = "reply-header";
+        fwdDiv.textContent = `➡️ Переслано от ${m.forwardedFrom}`;
+        div.appendChild(fwdDiv);
+    }
     if (m.replyTo) {
         const replyDiv = document.createElement("div");
         replyDiv.className = "reply-header";
@@ -3364,6 +3507,8 @@ function addMessage(m) {
         voiceDiv.className = "voice-note";
         const audio = new Audio(m.voice);
         let isPlaying = false;
+        const speeds = [1, 1.5, 2];
+        let speedIdx = 0;
         const waveform = document.createElement("div");
         waveform.className = "waveform";
         for (let i = 0; i < 20; i++) {
@@ -3378,10 +3523,20 @@ function addMessage(m) {
         const timeLabel = document.createElement("span");
         timeLabel.className = "time-label";
         timeLabel.textContent = "0:00";
+        const speedBtn = document.createElement("span");
+        speedBtn.className = "voice-speed-btn";
+        speedBtn.textContent = "1x";
+        speedBtn.onclick = (e) => {
+            e.stopPropagation();
+            speedIdx = (speedIdx + 1) % speeds.length;
+            audio.playbackRate = speeds[speedIdx];
+            speedBtn.textContent = speeds[speedIdx] + "x";
+        };
         voiceDiv.innerHTML = "🎙️ ";
         voiceDiv.appendChild(waveform);
         voiceDiv.appendChild(progressBar);
         voiceDiv.appendChild(timeLabel);
+        voiceDiv.appendChild(speedBtn);
         voiceDiv.onclick = () => {
             if (isPlaying) { audio.pause(); isPlaying = false; }
             else { audio.play(); isPlaying = true; }
@@ -3469,7 +3624,14 @@ function addMessage(m) {
 
 function formatTextWithTags(text) {
     if (!text) return "";
-    return text.replace(/@(\w+)/g, '<span class="mention" data-nick="$1">@$1</span>');
+    let html = text;
+    // Порядок важен: код обрабатываем первым, чтобы не форматировать его содержимое
+    html = html.replace(/`([^`\n]+)`/g, '<code class="msg-code">$1</code>');
+    html = html.replace(/\*\*([^\*\n]+)\*\*/g, '<b>$1</b>');
+    html = html.replace(/~~([^~\n]+)~~/g, '<s>$1</s>');
+    html = html.replace(/(^|[\s(])_([^_\n]+)_(?=[\s).,!?]|$)/g, '$1<i>$2</i>');
+    html = html.replace(/@(\w+)/g, '<span class="mention" data-nick="$1">@$1</span>');
+    return html;
 }
 
 function attachSwipeReply(div, msg) {
@@ -3590,13 +3752,39 @@ document.getElementById("menuReply").onclick = () => {
     messageMenu.style.display = "none";
 };
 
+let forwardingMessage = null;
+
 document.getElementById("menuForward").onclick = () => {
     if (currentMsgTarget) {
-        msgInput.value = currentMsgTarget.msg.text || "";
-        msgInput.focus();
+        forwardingMessage = currentMsgTarget.msg;
+        openDirectory();
+        directoryBody.insertAdjacentHTML("afterbegin", `<div class="gs-empty" id="fwdBanner" style="padding:10px; background:rgba(0,132,255,0.12); border-radius:14px; color:#0084ff; font-weight:600;">➡️ Выберите чат для пересылки сообщения</div>`);
     }
     messageMenu.style.display = "none";
 };
+
+function sendForwardTo(type, id) {
+    if (!forwardingMessage) return;
+    const original = forwardingMessage;
+    forwardingMessage = null;
+    const authorName = original.from || original.owner || "неизвестно";
+    const data = {
+        text: original.text || "",
+        image: original.image || null,
+        video: original.video || null,
+        circle: original.circle || null,
+        file: original.file || null,
+        music: original.music || null,
+        voice: original.voice || null,
+        sticker: original.sticker || null,
+        location: original.location || null,
+        forwardedFrom: authorName
+    };
+    if (type === "public") ws.send(JSON.stringify({ type: "chat", ...data }));
+    else if (type === "contact") ws.send(JSON.stringify({ type: "private_chat", target: id, ...data }));
+    else if (type === "group") ws.send(JSON.stringify({ type: "group_chat", groupId: id, ...data }));
+    closeDirectory();
+}
 
 document.getElementById("menuReaction").onclick = () => {
     if (currentMsgTarget) {
@@ -3627,20 +3815,29 @@ function showQuickReactionPicker(msg, chatType) {
     picker.style.bottom = "100px";
     picker.style.left = "16px";
     picker.style.right = "16px";
-    picker.style.background = "rgba(255,255,255,0.9)";
-    picker.style.borderRadius = "30px";
-    picker.style.padding = "12px";
+    picker.style.maxHeight = "220px";
+    picker.style.overflowY = "auto";
+    picker.style.background = "rgba(255,255,255,0.95)";
+    picker.style.borderRadius = "24px";
+    picker.style.padding = "14px";
     picker.style.display = "flex";
-    picker.style.gap = "16px";
+    picker.style.flexWrap = "wrap";
+    picker.style.gap = "10px";
     picker.style.justifyContent = "center";
     picker.style.zIndex = "1001";
-    picker.style.boxShadow = "0 4px 20px rgba(0,0,0,0.1)";
-    const reactions = ["👍", "❤️", "🔥", "🥰", "👏", "😁", "🤯", "😱", "🤬", "😢", "🤝", "🫶", "🙈"];
+    picker.style.boxShadow = "0 4px 20px rgba(0,0,0,0.15)";
+    const reactions = [
+        "👍", "👎", "❤️", "🔥", "🥰", "😍", "👏", "🎉", "😁", "😂",
+        "🤔", "🤯", "😱", "😢", "😭", "😡", "🤬", "🙄", "😴", "🤝",
+        "🫶", "🙏", "💯", "✅", "❌", "⚡", "💔", "🎊", "🤗", "🙈"
+    ];
     reactions.forEach(r => {
         const span = document.createElement("span");
         span.textContent = r;
-        span.style.fontSize = "32px";
+        span.style.fontSize = "28px";
         span.style.cursor = "pointer";
+        span.style.width = "40px";
+        span.style.textAlign = "center";
         span.onclick = () => { 
             ws.send(JSON.stringify({ type: "reaction", chatType, id: msg.id, reaction: r })); 
             picker.remove(); 
@@ -4069,7 +4266,25 @@ function updateReadStatus(msgId, readBy) {
     }
 }
 
-function updatePollUI(groupId, poll) {}
+function updatePollUI(groupId, poll) {
+    if (currentGroup && currentGroup.id === groupId) {
+        if (!currentGroup.polls) currentGroup.polls = [];
+        const idx = currentGroup.polls.findIndex(p => p.id === poll.id);
+        if (idx !== -1) currentGroup.polls[idx] = poll; else currentGroup.polls.push(poll);
+    }
+    const gCache = myGroups.find(g => g.id === groupId);
+    if (gCache) {
+        if (!gCache.polls) gCache.polls = [];
+        const idx = gCache.polls.findIndex(p => p.id === poll.id);
+        if (idx !== -1) gCache.polls[idx] = poll; else gCache.polls.push(poll);
+    }
+    const el = document.getElementById("poll-" + poll.id);
+    if (el) {
+        el.innerHTML = pollCardHTML(poll, groupId);
+    } else if (currentMode === "group" && currentGroupId === groupId) {
+        addPollMessage(poll, groupId);
+    }
+}
 
 function updateReactionUI(id, from, reaction, remove) {}
 
@@ -4491,6 +4706,8 @@ closeSearch.onclick = () => {
     searchOverlay.classList.remove("open");
 };
 
+let globalSearchDebounce = null;
+
 searchInputGlobal.addEventListener("input", () => {
     const query = searchInputGlobal.value.trim().toLowerCase();
     searchResults.innerHTML = "";
@@ -4499,11 +4716,6 @@ searchInputGlobal.addEventListener("input", () => {
     const users = allUsers.filter(u => u.toLowerCase().includes(query));
     const groups = myGroups.filter(g => g.name.toLowerCase().includes(query));
     const channels = myChannels.filter(c => c.name.toLowerCase().includes(query));
-    
-    if (users.length === 0 && groups.length === 0 && channels.length === 0) {
-        searchResults.innerHTML = '<div style="padding:12px; color:#888;">Ничего не найдено</div>';
-        return;
-    }
     
     if (users.length > 0) {
         const title = document.createElement("div");
@@ -4555,7 +4767,55 @@ searchInputGlobal.addEventListener("input", () => {
             searchResults.appendChild(div);
         });
     }
+
+    // Поиск по тексту сообщений во всех своих чатах — с задержкой, чтобы не
+    // спамить сервер при каждом нажатии клавиши
+    const msgSection = document.createElement("div");
+    msgSection.id = "searchMsgSection";
+    searchResults.appendChild(msgSection);
+
+    if (users.length === 0 && groups.length === 0 && channels.length === 0) {
+        msgSection.innerHTML = '<div style="padding:12px; color:#888;">🔍 Ищу в переписке...</div>';
+    }
+
+    if (globalSearchDebounce) clearTimeout(globalSearchDebounce);
+    if (query.length >= 2) {
+        globalSearchDebounce = setTimeout(() => {
+            ws.send(JSON.stringify({ type: "global_search", query }));
+        }, 350);
+    }
 });
+
+function renderMessageSearchResults(results) {
+    const msgSection = document.getElementById("searchMsgSection");
+    if (!msgSection) return; // окно поиска уже закрыто/изменилось
+    if (!results || results.length === 0) {
+        if (!searchResults.querySelector(".result-item")) {
+            msgSection.innerHTML = '<div style="padding:12px; color:#888;">Ничего не найдено</div>';
+        } else {
+            msgSection.innerHTML = "";
+        }
+        return;
+    }
+    const title = document.createElement("div");
+    title.style.cssText = "font-weight:600; padding:8px 0; color:#888; font-size:13px;";
+    title.textContent = "💬 Сообщения";
+    msgSection.innerHTML = "";
+    msgSection.appendChild(title);
+    results.forEach(r => {
+        const div = document.createElement("div");
+        div.className = "result-item";
+        div.innerHTML = `<div class="name">${escapeHtml(r.from)} · ${escapeHtml(r.chatName)}</div><div class="desc">${escapeHtml((r.text || "").slice(0, 80))}</div>`;
+        div.onclick = () => {
+            searchOverlay.classList.remove("open");
+            if (r.chatType === "public") switchToPublic();
+            else if (r.chatType === "private") switchToPrivate(r.chatId);
+            else if (r.chatType === "group") switchToGroup(r.chatId);
+            else if (r.chatType === "channel") switchToChannel(r.chatId);
+        };
+        msgSection.appendChild(div);
+    });
+}
 
 // ============================================================
 // WEBRTC — ЛИЧНЫЕ ЗВОНКИ
@@ -4618,7 +4878,7 @@ async function startCall(targetNick, video = false) {
                     remoteVideo.style.right = "10px";
                     remoteVideo.style.width = "200px";
                     remoteVideo.style.borderRadius = "12px";
-                    remoteVideo.style.zIndex = "1000";
+                    remoteVideo.style.zIndex = "8800";
                     remoteVideo.style.background = "#000";
                     document.body.appendChild(remoteVideo);
                 }
@@ -4650,7 +4910,7 @@ async function startCall(targetNick, video = false) {
                 localVideo.style.right = "10px";
                 localVideo.style.width = "150px";
                 localVideo.style.borderRadius = "12px";
-                localVideo.style.zIndex = "1000";
+                localVideo.style.zIndex = "8800";
                 localVideo.style.background = "#000";
                 document.body.appendChild(localVideo);
             }
@@ -4737,7 +4997,7 @@ async function acceptCall() {
                     remoteVideo.style.right = "10px";
                     remoteVideo.style.width = "200px";
                     remoteVideo.style.borderRadius = "12px";
-                    remoteVideo.style.zIndex = "1000";
+                    remoteVideo.style.zIndex = "8800";
                     remoteVideo.style.background = "#000";
                     document.body.appendChild(remoteVideo);
                 }
@@ -4769,7 +5029,7 @@ async function acceptCall() {
                 localVideo.style.right = "10px";
                 localVideo.style.width = "150px";
                 localVideo.style.borderRadius = "12px";
-                localVideo.style.zIndex = "1000";
+                localVideo.style.zIndex = "8800";
                 localVideo.style.background = "#000";
                 document.body.appendChild(localVideo);
             }
@@ -4906,7 +5166,7 @@ async function startGroupCall(video) {
                 localVideo.style.right = "10px";
                 localVideo.style.width = "150px";
                 localVideo.style.borderRadius = "12px";
-                localVideo.style.zIndex = "1000";
+                localVideo.style.zIndex = "8800";
                 localVideo.style.background = "#000";
                 document.body.appendChild(localVideo);
             }
@@ -5228,8 +5488,25 @@ function renderGsPermissions() {
             </div>
         `;
     });
+
+    const slowMode = settings.slowMode || 0;
+    const slowLabel = slowMode === 0 ? "Выключен" : `${slowMode} сек.`;
+    html += `<div class="gs-section-title">🐢 Медленный режим</div>
+        <div class="gs-setting-row" ${canManage ? 'onclick="gsChangeSlowMode()"' : ''}>
+            <span class="label">Интервал между сообщениями</span>
+            <span class="value">${slowLabel} ${canManage ? '›' : ''}</span>
+        </div>`;
+
     if (!canManage) html += `<div class="gs-empty">Только создатель и админы могут менять права</div>`;
     gsBody.innerHTML = html;
+}
+
+const SLOW_MODE_OPTIONS = [0, 10, 30, 60, 300, 900];
+function gsChangeSlowMode() {
+    const current = (gsGroupData.settings || {}).slowMode || 0;
+    const idx = SLOW_MODE_OPTIONS.indexOf(current);
+    const next = SLOW_MODE_OPTIONS[(idx === -1 ? 0 : idx + 1) % SLOW_MODE_OPTIONS.length];
+    ws.send(JSON.stringify({ type: "update_group_settings", groupId: gsGroupId, settings: { slowMode: next } }));
 }
 
 function gsChangePermission(key) {
@@ -5391,6 +5668,225 @@ function openGroupFromList(groupId) {
 }
 
 // ============================================================
+// КАНАЛ — экран управления (ава/название/описание, админы, comment-админы)
+// ============================================================
+
+let ciChannelId = null;
+let ciChannelData = null;
+
+function ciIsAdmin() {
+    if (!ciChannelData) return false;
+    if (ciChannelData.creator === currentNick || currentNick === "Дима") return true;
+    return (ciChannelData.admins || []).includes(currentNick);
+}
+
+function openChannelInfo(channelId) {
+    ciChannelId = channelId;
+    ciChannelData = myChannels.find(c => c.id === channelId) || currentChannel;
+    channelInfoScreen.classList.add("open");
+    pushBackGuard();
+    renderChannelInfo();
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "get_channel_info", channelId }));
+}
+
+function closeChannelInfo() {
+    channelInfoScreen.classList.remove("open");
+    syncBackGuardOnManualClose();
+}
+ciCloseBtn.onclick = closeChannelInfo;
+
+function renderChannelInfo() {
+    if (!ciChannelData) { ciBody.innerHTML = '<div class="gs-empty">Загрузка...</div>'; return; }
+    ciName.textContent = ciChannelData.name || "Канал";
+    ciSub.textContent = `${ciChannelData.subscribers?.length || 0} подписчиков`;
+    ciAvatar.innerHTML = ciChannelData.avatar ? `<img src="${ciChannelData.avatar}">` : "📣";
+
+    const canManage = ciIsAdmin();
+    let html = `
+        <div class="gs-section-title">🖼️ Фото и описание</div>
+        <div class="gs-setting-row" ${canManage ? 'onclick="ciChangeAvatar()"' : ''}>
+            <span class="label">Аватар канала</span>
+            <span class="value">${ciChannelData.avatar ? "Установлен" : "Нет"} ${canManage ? '›' : ''}</span>
+        </div>
+        <div class="gs-setting-row" ${canManage ? 'onclick="ciChangeName()"' : ''}>
+            <span class="label">Название</span>
+            <span class="value">${escapeHtml(ciChannelData.name || "")} ${canManage ? '›' : ''}</span>
+        </div>
+        <div class="gs-setting-row" ${canManage ? 'onclick="ciChangeDescription()"' : ''}>
+            <span class="label">Описание</span>
+            <span class="value">${escapeHtml(ciChannelData.description || "Нет описания")} ${canManage ? '›' : ''}</span>
+        </div>
+
+        <div class="gs-section-title">🛡️ Админы канала <span style="opacity:.6; font-weight:400; text-transform:none;">(постинг, ава, название)</span></div>
+    `;
+
+    if (canManage) {
+        html += `
+            <div class="gs-add-row">
+                <input type="text" id="ciAddAdminInput" placeholder="👤 Ник подписчика...">
+                <button onclick="ciAddAdmin()">Добавить</button>
+            </div>
+        `;
+    }
+    const admins = ciChannelData.admins || [];
+    admins.forEach(nick => {
+        const isCreator = nick === ciChannelData.creator;
+        html += `<div class="gs-member">
+            <div class="avatar">${nick.charAt(0).toUpperCase()}</div>
+            <div class="info">
+                <div class="name">${escapeHtml(nick)}</div>
+                <div class="role ${isCreator ? 'badge-creator' : 'badge-admin'}">${isCreator ? '👑 Создатель' : '🛡️ Админ'}</div>
+            </div>
+            <div class="actions">
+                ${canManage && !isCreator ? `<button class="danger" onclick="ciRemoveAdmin('${dirEsc(nick)}')">✕</button>` : ''}
+            </div>
+        </div>`;
+    });
+
+    html += `<div class="gs-section-title">💬 Админы комментариев <span style="opacity:.6; font-weight:400; text-transform:none;">(модерация обсуждений)</span></div>`;
+    if (canManage) {
+        html += `
+            <div class="gs-add-row">
+                <input type="text" id="ciAddCommentAdminInput" placeholder="👤 Ник подписчика...">
+                <button onclick="ciAddCommentAdmin()">Добавить</button>
+            </div>
+        `;
+    }
+    const commentAdmins = ciChannelData.commentAdmins || [];
+    commentAdmins.forEach(nick => {
+        const isCreator = nick === ciChannelData.creator;
+        html += `<div class="gs-member">
+            <div class="avatar">${nick.charAt(0).toUpperCase()}</div>
+            <div class="info">
+                <div class="name">${escapeHtml(nick)}</div>
+                <div class="role ${isCreator ? 'badge-creator' : ''}">${isCreator ? '👑 Создатель' : '💬 Модератор комментариев'}</div>
+            </div>
+            <div class="actions">
+                ${canManage && !isCreator ? `<button class="danger" onclick="ciRemoveCommentAdmin('${dirEsc(nick)}')">✕</button>` : ''}
+            </div>
+        </div>`;
+    });
+
+    ciBody.innerHTML = html;
+}
+
+function ciChangeAvatar() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = () => {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => ws.send(JSON.stringify({ type: "update_channel_avatar", channelId: ciChannelId, avatar: reader.result }));
+        reader.readAsDataURL(file);
+    };
+    input.click();
+}
+function ciChangeName() {
+    const newName = prompt("Новое название канала:", ciChannelData.name || "");
+    if (newName && newName.trim() && newName.trim() !== ciChannelData.name) {
+        ws.send(JSON.stringify({ type: "update_channel_name", channelId: ciChannelId, newName: newName.trim() }));
+    }
+}
+function ciChangeDescription() {
+    const newDesc = prompt("Новое описание канала:", ciChannelData.description || "");
+    if (newDesc !== null) {
+        ws.send(JSON.stringify({ type: "update_channel_description", channelId: ciChannelId, description: newDesc.trim() }));
+    }
+}
+function ciAddAdmin() {
+    const input = document.getElementById("ciAddAdminInput");
+    const nick = input.value.trim();
+    if (!nick) return;
+    ws.send(JSON.stringify({ type: "add_channel_admin", channelId: ciChannelId, nick }));
+    input.value = "";
+}
+function ciRemoveAdmin(nick) {
+    if (confirm(`Убрать ${nick} из админов канала?`)) {
+        ws.send(JSON.stringify({ type: "remove_channel_admin", channelId: ciChannelId, nick }));
+    }
+}
+function ciAddCommentAdmin() {
+    const input = document.getElementById("ciAddCommentAdminInput");
+    const nick = input.value.trim();
+    if (!nick) return;
+    ws.send(JSON.stringify({ type: "add_comment_admin", channelId: ciChannelId, nick }));
+    input.value = "";
+}
+function ciRemoveCommentAdmin(nick) {
+    if (confirm(`Убрать ${nick} из модераторов комментариев?`)) {
+        ws.send(JSON.stringify({ type: "remove_comment_admin", channelId: ciChannelId, nick }));
+    }
+}
+
+// ============================================================
+// КОММЕНТАРИИ К ПОСТАМ КАНАЛА
+// ============================================================
+
+let commentsChannelId = null;
+let commentsMsgId = null;
+
+function openComments(channelId, msgId) {
+    commentsChannelId = channelId;
+    commentsMsgId = msgId;
+    commentsScreen.classList.add("open");
+    pushBackGuard();
+    renderComments();
+    commentInput.value = "";
+    commentInput.focus();
+}
+function closeComments() {
+    commentsScreen.classList.remove("open");
+    syncBackGuardOnManualClose();
+    commentsChannelId = null;
+    commentsMsgId = null;
+}
+commentsCloseBtn.onclick = closeComments;
+
+function renderComments() {
+    const channel = myChannels.find(c => c.id === commentsChannelId);
+    const post = channel && channel.messages ? channel.messages.find(m => m.id === commentsMsgId) : null;
+    const comments = (post && post.comments) || [];
+    if (comments.length === 0) {
+        commentsBody.innerHTML = '<div class="gs-empty">💬 Пока нет комментариев — будь первым</div>';
+        return;
+    }
+    const canModerate = channel && ((channel.creator === currentNick) || currentNick === "Дима" ||
+        (channel.admins || []).includes(currentNick) || (channel.commentAdmins || []).includes(currentNick));
+    let html = "";
+    comments.forEach(c => {
+        const canDelete = canModerate || c.from === currentNick;
+        html += `<div class="gs-member" style="align-items:flex-start;">
+            <div class="avatar">${c.from.charAt(0).toUpperCase()}</div>
+            <div class="info">
+                <div class="name">${escapeHtml(c.from)} <span style="opacity:.5; font-weight:400; font-size:11px;">${c.timeFormatted || formatTime(c.time)}</span></div>
+                <div class="role" style="color:var(--text); opacity:.9;">${escapeHtml(c.text)}</div>
+            </div>
+            <div class="actions">
+                ${canDelete ? `<button class="danger" onclick="deleteComment('${dirEsc(c.id)}')">✕</button>` : ''}
+            </div>
+        </div>`;
+    });
+    commentsBody.innerHTML = html;
+    commentsBody.scrollTop = commentsBody.scrollHeight;
+}
+
+function sendComment() {
+    const text = commentInput.value.trim();
+    if (!text || !commentsChannelId || !commentsMsgId) return;
+    ws.send(JSON.stringify({ type: "add_channel_comment", channelId: commentsChannelId, msgId: commentsMsgId, text }));
+    commentInput.value = "";
+}
+commentSendBtn.onclick = sendComment;
+commentInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendComment(); });
+
+function deleteComment(commentId) {
+    if (!commentsChannelId || !commentsMsgId) return;
+    ws.send(JSON.stringify({ type: "delete_channel_comment", channelId: commentsChannelId, msgId: commentsMsgId, commentId }));
+}
+
+// ============================================================
 // СПРАВОЧНИК (☰) — контакты + группы + каналы одним списком
 // ============================================================
 
@@ -5401,6 +5897,7 @@ function openDirectory() {
 }
 
 function closeDirectory() {
+    if (typeof forwardingMessage !== "undefined") forwardingMessage = null;
     // В десктоп/планшет режиме справочник — постоянная левая панель, не закрываем
     const mode = document.body.className.match(/device-(\w+)/);
     if (mode && (mode[1] === "desktop" || mode[1] === "tablet")) return;
@@ -5437,6 +5934,12 @@ function renderDirectory(filter) {
     if (!directoryBody) return;
     const q = (filter || "").toLowerCase().trim();
     let html = "";
+
+    if (!q || "избранное saved favorites 收藏".includes(q)) {
+        const preview = getLastChatPreview("private", currentNick);
+        const savedWord = currentUiLang === 'ru' ? "Избранное" : currentUiLang === 'zh' ? "收藏" : "Saved Messages";
+        html += directoryItemHTML("⭐", savedWord, preview ? preview.text : "", `openDirectoryChat('contact','${dirEsc(currentNick)}')`, getUnreadCount(`private_${currentNick}`), preview ? preview.time : "");
+    }
 
     if (!q || tr("dirGeneralChat").toLowerCase().includes(q) || "общий чат общее public general".includes(q)) {
         const preview = getLastChatPreview("public", "public");
@@ -5497,6 +6000,11 @@ function renderDirectory(filter) {
 }
 
 function openDirectoryChat(type, id) {
+    if (forwardingMessage) {
+        if (type === "channel") { alert("❌ Пересылка в каналы недоступна"); return; }
+        sendForwardTo(type, id);
+        return;
+    }
     closeDirectory();
     if (type === "public") switchToPublic();
     else if (type === "group") switchToGroup(id);
@@ -5630,6 +6138,39 @@ if (settingsStats2) settingsStats2.onclick = () => menuStats.onclick();
 if (settingsHelp2) settingsHelp2.onclick = () => menuHelp.onclick();
 if (settingsPrivacy2) settingsPrivacy2.onclick = () => { settingsScreen.classList.remove("open"); privacyScreen.classList.add("open"); };
 
+// ===== ЗАБЛОКИРОВАННЫЕ =====
+let blockedUsersList = [];
+function openBlockedScreen() {
+    settingsScreen.classList.remove("open");
+    blockedScreen.classList.add("open");
+    pushBackGuard();
+    blockedBody.innerHTML = '<div class="gs-empty">Загрузка...</div>';
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "get_blocked_users" }));
+}
+function renderBlockedUsers() {
+    if (blockedUsersList.length === 0) {
+        blockedBody.innerHTML = '<div class="gs-empty">🚫 Нет заблокированных пользователей</div>';
+        return;
+    }
+    let html = "";
+    blockedUsersList.forEach(nick => {
+        html += `<div class="gs-member">
+            <div class="avatar">${nick.charAt(0).toUpperCase()}</div>
+            <div class="info"><div class="name">${escapeHtml(nick)}</div></div>
+            <div class="actions"><button onclick="unblockUserUI('${dirEsc(nick)}')">Разблокировать</button></div>
+        </div>`;
+    });
+    blockedBody.innerHTML = html;
+}
+function unblockUserUI(nick) {
+    ws.send(JSON.stringify({ type: "unblock_user", target: nick }));
+    blockedUsersList = blockedUsersList.filter(n => n !== nick);
+    renderBlockedUsers();
+    if (settingsBlockedValue) settingsBlockedValue.textContent = blockedUsersList.length;
+}
+if (settingsBlocked) settingsBlocked.onclick = openBlockedScreen;
+if (blockedCloseBtn) blockedCloseBtn.onclick = () => { blockedScreen.classList.remove("open"); syncBackGuardOnManualClose(); };
+
 // ☰ теперь открывает справочник (контакты+группы+каналы), а не старое меню
 menuBtn.onclick = () => { openDirectory(); };
 
@@ -5682,6 +6223,9 @@ window.addEventListener("popstate", () => {
     if (schedulerPanel.classList.contains("open")) { schedulerPanel.classList.remove("open"); return; }
     if (pinnedMessagesPanel.classList.contains("open")) { pinnedMessagesPanel.classList.remove("open"); return; }
     if (searchOverlay.classList.contains("open")) { searchOverlay.classList.remove("open"); return; }
+    if (commentsScreen.classList.contains("open")) { closeComments(); return; }
+    if (blockedScreen.classList.contains("open")) { blockedScreen.classList.remove("open"); return; }
+    if (channelInfoScreen.classList.contains("open")) { closeChannelInfo(); return; }
     if (groupScreen.classList.contains("open")) { closeGroupScreen(); return; }
     if (channelsScreen.classList.contains("open")) { channelsScreen.classList.remove("open"); return; }
     if (contactsScreen.classList.contains("open")) { contactsScreen.classList.remove("open"); return; }
@@ -5773,6 +6317,12 @@ function addPrivateMessage(m) {
     authorSpan.onclick = () => viewProfile(m.from);
     div.appendChild(authorSpan);
     
+    if (m.forwardedFrom) {
+        const fwdDiv = document.createElement("div");
+        fwdDiv.className = "reply-header";
+        fwdDiv.textContent = `➡️ Переслано от ${m.forwardedFrom}`;
+        div.appendChild(fwdDiv);
+    }
     if (m.replyTo) {
         const replyDiv = document.createElement("div");
         replyDiv.className = "reply-header";
@@ -5857,6 +6407,8 @@ function addPrivateMessage(m) {
         voiceDiv.className = "voice-note";
         const audio = new Audio(m.voice);
         let isPlaying = false;
+        const speeds = [1, 1.5, 2];
+        let speedIdx = 0;
         const waveform = document.createElement("div");
         waveform.className = "waveform";
         for (let i = 0; i < 20; i++) {
@@ -5871,10 +6423,20 @@ function addPrivateMessage(m) {
         const timeLabel = document.createElement("span");
         timeLabel.className = "time-label";
         timeLabel.textContent = "0:00";
+        const speedBtn = document.createElement("span");
+        speedBtn.className = "voice-speed-btn";
+        speedBtn.textContent = "1x";
+        speedBtn.onclick = (e) => {
+            e.stopPropagation();
+            speedIdx = (speedIdx + 1) % speeds.length;
+            audio.playbackRate = speeds[speedIdx];
+            speedBtn.textContent = speeds[speedIdx] + "x";
+        };
         voiceDiv.innerHTML = "🎙️ ";
         voiceDiv.appendChild(waveform);
         voiceDiv.appendChild(progressBar);
         voiceDiv.appendChild(timeLabel);
+        voiceDiv.appendChild(speedBtn);
         voiceDiv.onclick = () => {
             if (isPlaying) { audio.pause(); isPlaying = false; }
             else { audio.play(); isPlaying = true; }
@@ -5962,8 +6524,13 @@ function addPrivateMessage(m) {
 function renderGroupMessages(messages) {
     chatDiv.innerHTML = "";
     let lastDate = "";
-    messages.forEach(m => {
-        const msgDate = formatDate(m.time);
+    const polls = (currentGroup && currentGroup.polls) || [];
+    const timeline = [
+        ...messages.map(m => ({ type: "msg", time: m.time, data: m })),
+        ...polls.map(p => ({ type: "poll", time: p.createdAt, data: p }))
+    ].sort((a, b) => a.time - b.time);
+    timeline.forEach(item => {
+        const msgDate = formatDate(item.time);
         if (msgDate !== lastDate) {
             const div = document.createElement("div");
             div.className = "date-divider";
@@ -5971,9 +6538,43 @@ function renderGroupMessages(messages) {
             chatDiv.appendChild(div);
             lastDate = msgDate;
         }
-        addGroupMessage(m);
+        if (item.type === "msg") addGroupMessage(item.data);
+        else addPollMessage(item.data, currentGroupId);
     });
     clearUnread(`group_${currentGroupId}`);
+}
+
+function pollCardHTML(poll, groupId) {
+    const votes = poll.votes || {};
+    const totalVotes = Object.keys(votes).length;
+    const myVote = votes[currentNick];
+    let html = `<div class="poll-question">📊 ${escapeHtml(poll.question)}</div>`;
+    (poll.options || []).forEach(opt => {
+        const count = Object.values(votes).filter(v => v === opt).length;
+        const pct = totalVotes ? Math.round((count / totalVotes) * 100) : 0;
+        const isMine = myVote === opt;
+        html += `<div class="poll-option ${isMine ? 'poll-option-voted' : ''}" onclick="votePoll('${dirEsc(groupId)}','${dirEsc(poll.id)}','${dirEsc(opt)}')">
+            ${myVote ? `<div class="poll-option-bar" style="width:${pct}%"></div>` : ''}
+            <div class="poll-option-label">${escapeHtml(opt)}</div>
+            ${myVote ? `<div class="poll-option-pct">${pct}%</div>` : ''}
+        </div>`;
+    });
+    const votesWord = totalVotes === 1 ? "голос" : (totalVotes >= 2 && totalVotes <= 4 ? "голоса" : "голосов");
+    html += `<div class="poll-meta">${totalVotes} ${votesWord}${!myVote ? " · нажмите, чтобы проголосовать" : ""}</div>`;
+    return html;
+}
+
+function addPollMessage(poll, groupId) {
+    const div = document.createElement("div");
+    div.className = "message poll-message";
+    div.id = "poll-" + poll.id;
+    div.innerHTML = pollCardHTML(poll, groupId);
+    chatDiv.appendChild(div);
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+}
+
+function votePoll(groupId, pollId, option) {
+    ws.send(JSON.stringify({ type: "vote_poll", groupId, pollId, option }));
 }
 
 function addGroupMessage(m) {
@@ -5990,6 +6591,12 @@ function addGroupMessage(m) {
     authorSpan.onclick = () => viewProfile(m.from);
     div.appendChild(authorSpan);
     
+    if (m.forwardedFrom) {
+        const fwdDiv = document.createElement("div");
+        fwdDiv.className = "reply-header";
+        fwdDiv.textContent = `➡️ Переслано от ${m.forwardedFrom}`;
+        div.appendChild(fwdDiv);
+    }
     if (m.replyTo) {
         const replyDiv = document.createElement("div");
         replyDiv.className = "reply-header";
@@ -6074,6 +6681,8 @@ function addGroupMessage(m) {
         voiceDiv.className = "voice-note";
         const audio = new Audio(m.voice);
         let isPlaying = false;
+        const speeds = [1, 1.5, 2];
+        let speedIdx = 0;
         const waveform = document.createElement("div");
         waveform.className = "waveform";
         for (let i = 0; i < 20; i++) {
@@ -6088,10 +6697,20 @@ function addGroupMessage(m) {
         const timeLabel = document.createElement("span");
         timeLabel.className = "time-label";
         timeLabel.textContent = "0:00";
+        const speedBtn = document.createElement("span");
+        speedBtn.className = "voice-speed-btn";
+        speedBtn.textContent = "1x";
+        speedBtn.onclick = (e) => {
+            e.stopPropagation();
+            speedIdx = (speedIdx + 1) % speeds.length;
+            audio.playbackRate = speeds[speedIdx];
+            speedBtn.textContent = speeds[speedIdx] + "x";
+        };
         voiceDiv.innerHTML = "🎙️ ";
         voiceDiv.appendChild(waveform);
         voiceDiv.appendChild(progressBar);
         voiceDiv.appendChild(timeLabel);
+        voiceDiv.appendChild(speedBtn);
         voiceDiv.onclick = () => {
             if (isPlaying) { audio.pause(); isPlaying = false; }
             else { audio.play(); isPlaying = true; }
@@ -6138,8 +6757,16 @@ function addGroupMessage(m) {
     
     const readSpan = document.createElement("span");
     readSpan.className = "read-status";
-    readSpan.innerHTML = m.readBy?.includes(currentNick) ? '✓✓' : '✓';
-    if (m.readBy?.includes(currentNick)) readSpan.classList.add("read");
+    if (isOwn && currentGroup && currentGroup.members) {
+        const readCount = (m.readBy || []).length;
+        const totalCount = currentGroup.members.length;
+        readSpan.innerHTML = readCount >= totalCount ? '✓✓' : `✓ ${readCount}/${totalCount}`;
+        readSpan.title = `Прочитано ${readCount} из ${totalCount}`;
+        if (readCount >= totalCount) readSpan.classList.add("read");
+    } else {
+        readSpan.innerHTML = m.readBy?.includes(currentNick) ? '✓✓' : '✓';
+        if (m.readBy?.includes(currentNick)) readSpan.classList.add("read");
+    }
     const timeSpan = document.createElement("div");
     timeSpan.className = "time";
     timeSpan.appendChild(document.createTextNode(m.timeFormatted || ""));
@@ -6207,6 +6834,12 @@ function addChannelMessage(m) {
     authorSpan.onclick = () => viewProfile(m.from);
     div.appendChild(authorSpan);
     
+    if (m.forwardedFrom) {
+        const fwdDiv = document.createElement("div");
+        fwdDiv.className = "reply-header";
+        fwdDiv.textContent = `➡️ Переслано от ${m.forwardedFrom}`;
+        div.appendChild(fwdDiv);
+    }
     if (m.replyTo) {
         const replyDiv = document.createElement("div");
         replyDiv.className = "reply-header";
@@ -6291,6 +6924,8 @@ function addChannelMessage(m) {
         voiceDiv.className = "voice-note";
         const audio = new Audio(m.voice);
         let isPlaying = false;
+        const speeds = [1, 1.5, 2];
+        let speedIdx = 0;
         const waveform = document.createElement("div");
         waveform.className = "waveform";
         for (let i = 0; i < 20; i++) {
@@ -6305,10 +6940,20 @@ function addChannelMessage(m) {
         const timeLabel = document.createElement("span");
         timeLabel.className = "time-label";
         timeLabel.textContent = "0:00";
+        const speedBtn = document.createElement("span");
+        speedBtn.className = "voice-speed-btn";
+        speedBtn.textContent = "1x";
+        speedBtn.onclick = (e) => {
+            e.stopPropagation();
+            speedIdx = (speedIdx + 1) % speeds.length;
+            audio.playbackRate = speeds[speedIdx];
+            speedBtn.textContent = speeds[speedIdx] + "x";
+        };
         voiceDiv.innerHTML = "🎙️ ";
         voiceDiv.appendChild(waveform);
         voiceDiv.appendChild(progressBar);
         voiceDiv.appendChild(timeLabel);
+        voiceDiv.appendChild(speedBtn);
         voiceDiv.onclick = () => {
             if (isPlaying) { audio.pause(); isPlaying = false; }
             else { audio.play(); isPlaying = true; }
@@ -6383,6 +7028,17 @@ function addChannelMessage(m) {
         });
         div.appendChild(reactionsDiv);
     }
+    
+    const commentsBtn = document.createElement("div");
+    commentsBtn.className = "reaction";
+    commentsBtn.id = `comments-count-${m.id}`;
+    commentsBtn.style.marginTop = "4px";
+    commentsBtn.textContent = `💬 ${(m.comments && m.comments.length) || 0}`;
+    commentsBtn.onclick = (e) => {
+        e.stopPropagation();
+        openComments(currentChannelId, m.id);
+    };
+    div.appendChild(commentsBtn);
     
     attachMessageMenu(div, m, "channel", currentChannelId);
     div.ondblclick = () => { ws.send(JSON.stringify({ type: "reaction", chatType: "channel", id: m.id, reaction: "❤️" })); };
