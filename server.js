@@ -28,9 +28,99 @@ if (webpush) {
     webpush.setVapidDetails("mailto:admin@example.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 }
 
+// ============================================================
+// ШИФРОВАНИЕ ПЕРЕПИСКИ НА ДИСКЕ (AES-256-GCM)
+// ============================================================
+// Защищает от кражи/утечки файлов db.json, private.json, groups.json,
+// channels.json (например, если сервер взломают или скопируют бэкап).
+// НЕ является end-to-end шифрованием: сам сервер по-прежнему видит
+// сообщения в открытом виде в памяти, пока обрабатывает их — это
+// защита "на диске", а не "от администратора сервера".
+//
+// Чтобы включить: задайте переменную окружения CHATTERBOX_ENCRYPTION_KEY
+// (64 hex-символа = 32 байта). Сгенерировать можно командой:
+//   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+// ВАЖНО: никогда не храните этот ключ в коде или git — только в
+// переменных окружения/секретах хостинга. Если ключ потеряется —
+// старые данные будет невозможно расшифровать.
+let ENCRYPTION_KEY = null;
+if (process.env.CHATTERBOX_ENCRYPTION_KEY && process.env.CHATTERBOX_ENCRYPTION_KEY.length === 64) {
+    try {
+        ENCRYPTION_KEY = Buffer.from(process.env.CHATTERBOX_ENCRYPTION_KEY, "hex");
+        console.log("🔐 Шифрование хранилища ВКЛЮЧЕНО (AES-256-GCM)");
+    } catch (e) {
+        console.log("⚠️  CHATTERBOX_ENCRYPTION_KEY некорректен — шифрование хранилища отключено");
+    }
+} else {
+    console.log("⚠️  CHATTERBOX_ENCRYPTION_KEY не задан — сообщения хранятся в открытом виде. Задайте переменную окружения, чтобы включить шифрование на диске.");
+}
+
+function encryptText(text) {
+    if (!ENCRYPTION_KEY || text === null || text === undefined || text === "") return text;
+    try {
+        const iv = crypto.randomBytes(12);
+        const cipher = crypto.createCipheriv("aes-256-gcm", ENCRYPTION_KEY, iv);
+        const enc = Buffer.concat([cipher.update(String(text), "utf8"), cipher.final()]);
+        const tag = cipher.getAuthTag();
+        return "enc:" + iv.toString("hex") + ":" + tag.toString("hex") + ":" + enc.toString("hex");
+    } catch (e) { return text; }
+}
+
+function decryptText(payload) {
+    if (!ENCRYPTION_KEY || typeof payload !== "string" || !payload.startsWith("enc:")) return payload;
+    try {
+        const parts = payload.split(":");
+        if (parts.length !== 4) return payload;
+        const [, ivHex, tagHex, dataHex] = parts;
+        const decipher = crypto.createDecipheriv("aes-256-gcm", ENCRYPTION_KEY, Buffer.from(ivHex, "hex"));
+        decipher.setAuthTag(Buffer.from(tagHex, "hex"));
+        const dec = Buffer.concat([decipher.update(Buffer.from(dataHex, "hex")), decipher.final()]);
+        return dec.toString("utf8");
+    } catch (e) {
+        return "[не удалось расшифровать — неверный ключ?]";
+    }
+}
+
+// Шифрует/расшифровывает поле text у сообщений и их комментариев (для
+// каналов). Возвращает НОВЫЕ объекты, не мутирует исходные — это важно,
+// т.к. те же message-объекты рассылаются другим пользователям по WebSocket
+// в открытом виде (шифруется только то, что реально пишется на диск).
+function encryptMessagesForSave(messages) {
+    if (!ENCRYPTION_KEY || !Array.isArray(messages)) return messages;
+    return messages.map(m => {
+        const copy = { ...m };
+        if (copy.text) copy.text = encryptText(copy.text);
+        if (Array.isArray(copy.comments)) {
+            copy.comments = copy.comments.map(c => c.text ? { ...c, text: encryptText(c.text) } : c);
+        }
+        return copy;
+    });
+}
+
+function decryptMessagesAfterLoad(messages) {
+    if (!ENCRYPTION_KEY || !Array.isArray(messages)) return messages;
+    return messages.map(m => {
+        const copy = { ...m };
+        if (copy.text) copy.text = decryptText(copy.text);
+        if (Array.isArray(copy.comments)) {
+            copy.comments = copy.comments.map(c => c.text ? { ...c, text: decryptText(c.text) } : c);
+        }
+        return copy;
+    });
+}
+
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
+
+// Базовые security-заголовки (без внешних зависимостей вроде helmet)
+app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");   // запрет MIME-sniffing
+    res.setHeader("X-Frame-Options", "DENY");              // запрет встраивания в iframe (clickjacking)
+    res.setHeader("Referrer-Policy", "no-referrer");        // не палим URL в заголовке Referer
+    res.setHeader("Permissions-Policy", "interest-cohort=()"); // отключаем FLoC-подобное отслеживание
+    next();
+});
 
 app.use(express.static("public"));
 app.use("/files", express.static("files"));
@@ -79,6 +169,7 @@ const DEVICES_FILE = "devices.json";
 const PINNED_FILE = "pinned.json";
 const SCHEDULED_FILE = "scheduled.json";
 const PUSH_FILE = "push_subscriptions.json";
+const BLOCKS_FILE = "blocks.json";
 
 // ============================================================
 // ЗАГРУЗКА ДАННЫХ
@@ -97,7 +188,7 @@ function loadData() {
 
     try {
         if (fs.existsSync(DB_FILE)) {
-            history = JSON.parse(fs.readFileSync(DB_FILE, "utf8")) || [];
+            history = decryptMessagesAfterLoad(JSON.parse(fs.readFileSync(DB_FILE, "utf8")) || []);
             console.log(`✅ Загружено ${history.length} сообщений`);
         } else {
             history = [];
@@ -107,7 +198,9 @@ function loadData() {
 
     try {
         if (fs.existsSync(PRIVATE_FILE)) {
-            privateHistory = JSON.parse(fs.readFileSync(PRIVATE_FILE, "utf8")) || {};
+            const raw = JSON.parse(fs.readFileSync(PRIVATE_FILE, "utf8")) || {};
+            privateHistory = {};
+            for (const key in raw) privateHistory[key] = decryptMessagesAfterLoad(raw[key]);
             console.log(`✅ Загружено ${Object.keys(privateHistory).length} диалогов`);
         } else {
             privateHistory = {};
@@ -117,7 +210,9 @@ function loadData() {
 
     try {
         if (fs.existsSync(GROUPS_FILE)) {
-            groups = JSON.parse(fs.readFileSync(GROUPS_FILE, "utf8")) || {};
+            const raw = JSON.parse(fs.readFileSync(GROUPS_FILE, "utf8")) || {};
+            groups = {};
+            for (const id in raw) groups[id] = { ...raw[id], messages: decryptMessagesAfterLoad(raw[id].messages) };
             console.log(`✅ Загружено ${Object.keys(groups).length} групп`);
         } else {
             groups = {};
@@ -127,7 +222,9 @@ function loadData() {
 
     try {
         if (fs.existsSync(CHANNELS_FILE)) {
-            channels = JSON.parse(fs.readFileSync(CHANNELS_FILE, "utf8")) || {};
+            const raw = JSON.parse(fs.readFileSync(CHANNELS_FILE, "utf8")) || {};
+            channels = {};
+            for (const id in raw) channels[id] = { ...raw[id], messages: decryptMessagesAfterLoad(raw[id].messages) };
             console.log(`✅ Загружено ${Object.keys(channels).length} каналов`);
         } else {
             channels = {};
@@ -205,6 +302,17 @@ function loadData() {
             fs.writeFileSync(PUSH_FILE, JSON.stringify({}, null, 2));
         }
     } catch (e) { pushSubscriptions = {}; }
+
+    try {
+        if (fs.existsSync(BLOCKS_FILE)) {
+            const raw = JSON.parse(fs.readFileSync(BLOCKS_FILE, "utf8")) || {};
+            userBlocks = new Map(Object.entries(raw));
+            console.log(`✅ Загружено блокировок: у ${userBlocks.size} пользователей`);
+        } else {
+            userBlocks = new Map();
+            fs.writeFileSync(BLOCKS_FILE, JSON.stringify({}, null, 2));
+        }
+    } catch (e) { userBlocks = new Map(); }
 }
 
 loadData();
@@ -214,10 +322,32 @@ loadData();
 // ============================================================
 
 function saveUsers() { try { fs.writeFileSync(USERS_FILE, JSON.stringify(usersDB, null, 2)); } catch(e){} }
-function savePublic() { try { fs.writeFileSync(DB_FILE, JSON.stringify(history.slice(-500), null, 2)); } catch(e){} }
-function savePrivate() { try { fs.writeFileSync(PRIVATE_FILE, JSON.stringify(privateHistory, null, 2)); } catch(e){} }
-function saveGroups() { try { fs.writeFileSync(GROUPS_FILE, JSON.stringify(groups, null, 2)); } catch(e){} }
-function saveChannels() { try { fs.writeFileSync(CHANNELS_FILE, JSON.stringify(channels, null, 2)); } catch(e){} }
+function savePublic() {
+    try {
+        fs.writeFileSync(DB_FILE, JSON.stringify(encryptMessagesForSave(history.slice(-500)), null, 2));
+    } catch(e){}
+}
+function savePrivate() {
+    try {
+        const out = {};
+        for (const key in privateHistory) out[key] = encryptMessagesForSave(privateHistory[key]);
+        fs.writeFileSync(PRIVATE_FILE, JSON.stringify(out, null, 2));
+    } catch(e){}
+}
+function saveGroups() {
+    try {
+        const out = {};
+        for (const id in groups) out[id] = { ...groups[id], messages: encryptMessagesForSave(groups[id].messages) };
+        fs.writeFileSync(GROUPS_FILE, JSON.stringify(out, null, 2));
+    } catch(e){}
+}
+function saveChannels() {
+    try {
+        const out = {};
+        for (const id in channels) out[id] = { ...channels[id], messages: encryptMessagesForSave(channels[id].messages) };
+        fs.writeFileSync(CHANNELS_FILE, JSON.stringify(out, null, 2));
+    } catch(e){}
+}
 function saveSessions() { try { fs.writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(sessions), null, 2)); } catch(e){} }
 function saveComplaints() { try { fs.writeFileSync(COMPLAINTS_FILE, JSON.stringify(complaints, null, 2)); } catch(e){} }
 function saveReputation() { try { fs.writeFileSync(REPUTATION_FILE, JSON.stringify(Object.fromEntries(userReputation), null, 2)); } catch(e){} }
@@ -225,6 +355,7 @@ function saveDevices() { try { fs.writeFileSync(DEVICES_FILE, JSON.stringify(dev
 function savePinned() { try { fs.writeFileSync(PINNED_FILE, JSON.stringify(pinnedMessages, null, 2)); } catch(e){} }
 function saveScheduled() { try { fs.writeFileSync(SCHEDULED_FILE, JSON.stringify(scheduledMessages, null, 2)); } catch(e){} }
 function savePushSubscriptions() { try { fs.writeFileSync(PUSH_FILE, JSON.stringify(pushSubscriptions, null, 2)); } catch(e){} }
+function saveBlocks() { try { fs.writeFileSync(BLOCKS_FILE, JSON.stringify(Object.fromEntries(userBlocks), null, 2)); } catch(e){} }
 
 // Отправляет push-уведомление пользователю на ВСЕ его сохранённые устройства.
 // Вызывается только когда пользователь offline (иначе он и так получит
@@ -252,7 +383,33 @@ function sendPushToUser(nick, { title, body, tag }) {
 // УТИЛИТЫ
 // ============================================================
 
-function hashPassword(p) { return crypto.createHash("sha256").update(p).digest("hex"); }
+function hashPassword(p) { return crypto.createHash("sha256").update(p).digest("hex"); } // оставлено для обратной совместимости (старые аккаунты)
+
+// Надёжное хеширование: scrypt + случайная соль на каждого пользователя.
+// Формат хранения: "scrypt:<соль>:<хеш>" — так его можно отличить от старого
+// формата (просто 64 hex-символа sha256) и не сломать существующие аккаунты.
+function hashPasswordSecure(password, salt) {
+    salt = salt || crypto.randomBytes(16).toString("hex");
+    const hash = crypto.scryptSync(password, salt, 64).toString("hex");
+    return `scrypt:${salt}:${hash}`;
+}
+
+function verifyPassword(password, stored) {
+    if (typeof stored === "string" && stored.startsWith("scrypt:")) {
+        const parts = stored.split(":");
+        if (parts.length !== 3) return false;
+        const [, salt, hash] = parts;
+        try {
+            const check = crypto.scryptSync(password, salt, 64).toString("hex");
+            const a = Buffer.from(hash, "hex");
+            const b = Buffer.from(check, "hex");
+            return a.length === b.length && crypto.timingSafeEqual(a, b);
+        } catch (e) { return false; }
+    }
+    // Старый формат (нешифрованный sha256 без соли) — поддерживаем для уже
+    // зарегистрированных аккаунтов, чтобы никого не выкинуть из профиля
+    return hashPassword(password) === stored;
+}
 function generateToken() { return crypto.randomBytes(32).toString("hex"); }
 function generateDeviceId() { return crypto.randomBytes(16).toString("hex"); }
 function formatTime(t) { const d = new Date(t); d.setHours(d.getHours() + 3); return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }); }
@@ -638,6 +795,8 @@ function createChannel(name, creator) {
         id,
         name: escapeHtml(name),
         creator,
+        admins: [creator],          // могут постить, менять аву/название/описание, назначать comment-админов
+        commentAdmins: [creator],   // могут модерировать (удалять) комментарии под постами
         subscribers: [],
         messages: [],
         avatar: null,
@@ -658,9 +817,90 @@ function subscribeToChannel(channelId, nick) {
     return true;
 }
 
+function isChannelAdmin(channelId, nick) {
+    if (!channels[channelId]) return false;
+    if (channels[channelId].creator === nick || nick === "Дима") return true;
+    return (channels[channelId].admins || []).includes(nick);
+}
+
+function isCommentAdmin(channelId, nick) {
+    if (!channels[channelId]) return false;
+    if (isChannelAdmin(channelId, nick)) return true;
+    return (channels[channelId].commentAdmins || []).includes(nick);
+}
+
+function addChannelAdmin(channelId, nick, adder) {
+    if (!channels[channelId]) return false;
+    if (channels[channelId].creator !== adder && adder !== "Дима") return false;
+    if (!channels[channelId].subscribers.includes(nick)) return false;
+    if (!channels[channelId].admins) channels[channelId].admins = [];
+    if (channels[channelId].admins.includes(nick)) return false;
+    channels[channelId].admins.push(nick);
+    saveChannels();
+    broadcast({ type: "channel_update", channel: channels[channelId] });
+    return true;
+}
+
+function removeChannelAdmin(channelId, nick, remover) {
+    if (!channels[channelId]) return false;
+    if (channels[channelId].creator !== remover && remover !== "Дима") return false;
+    if (nick === channels[channelId].creator) return false;
+    channels[channelId].admins = (channels[channelId].admins || []).filter(a => a !== nick);
+    saveChannels();
+    broadcast({ type: "channel_update", channel: channels[channelId] });
+    return true;
+}
+
+function addCommentAdmin(channelId, nick, adder) {
+    if (!channels[channelId]) return false;
+    if (!isChannelAdmin(channelId, adder)) return false;
+    if (!channels[channelId].subscribers.includes(nick)) return false;
+    if (!channels[channelId].commentAdmins) channels[channelId].commentAdmins = [];
+    if (channels[channelId].commentAdmins.includes(nick)) return false;
+    channels[channelId].commentAdmins.push(nick);
+    saveChannels();
+    broadcast({ type: "channel_update", channel: channels[channelId] });
+    return true;
+}
+
+function removeCommentAdmin(channelId, nick, remover) {
+    if (!channels[channelId]) return false;
+    if (!isChannelAdmin(channelId, remover)) return false;
+    if (nick === channels[channelId].creator) return false;
+    channels[channelId].commentAdmins = (channels[channelId].commentAdmins || []).filter(a => a !== nick);
+    saveChannels();
+    broadcast({ type: "channel_update", channel: channels[channelId] });
+    return true;
+}
+
+function updateChannelAvatar(channelId, avatar, updater) {
+    if (!channels[channelId] || !isChannelAdmin(channelId, updater)) return false;
+    channels[channelId].avatar = avatar;
+    saveChannels();
+    broadcast({ type: "channel_update", channel: channels[channelId] });
+    return true;
+}
+
+function updateChannelName(channelId, newName, updater) {
+    if (!channels[channelId] || !isChannelAdmin(channelId, updater)) return false;
+    if (!newName || !newName.trim()) return false;
+    channels[channelId].name = escapeHtml(newName.trim().slice(0, 50));
+    saveChannels();
+    broadcast({ type: "channel_update", channel: channels[channelId] });
+    return true;
+}
+
+function updateChannelDescription(channelId, description, updater) {
+    if (!channels[channelId] || !isChannelAdmin(channelId, updater)) return false;
+    channels[channelId].description = escapeHtml((description || "").slice(0, 500));
+    saveChannels();
+    broadcast({ type: "channel_update", channel: channels[channelId] });
+    return true;
+}
+
 function sendChannelMessage(channelId, from, msgData) {
     if (!channels[channelId]) return;
-    if (channels[channelId].creator !== from) return;
+    if (!isChannelAdmin(channelId, from)) return;
     const m = {
         id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
         from,
@@ -677,6 +917,7 @@ function sendChannelMessage(channelId, from, msgData) {
         timeFormatted: formatTime(Date.now()),
         reactions: {},
         readBy: [],
+        comments: [],
         chatId: `channel_${channelId}`
     };
     channels[channelId].messages.push(m);
@@ -687,6 +928,44 @@ function sendChannelMessage(channelId, from, msgData) {
     for (const sub of channels[channelId].subscribers) {
         sendToUser(sub, { type: "channel_msg", channelId, data: m });
     }
+}
+
+// ===== КОММЕНТАРИИ К ПОСТАМ КАНАЛА =====
+function addChannelComment(channelId, msgId, from, text) {
+    if (!channels[channelId]) return null;
+    if (!channels[channelId].subscribers.includes(from)) return null;
+    const post = channels[channelId].messages.find(m => m.id === msgId);
+    if (!post) return null;
+    if (!post.comments) post.comments = [];
+    const comment = {
+        id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 6),
+        from,
+        text: escapeHtml((text || "").slice(0, 500)),
+        time: Date.now(),
+        timeFormatted: formatTime(Date.now())
+    };
+    post.comments.push(comment);
+    if (post.comments.length > 500) post.comments = post.comments.slice(-500);
+    saveChannels();
+    for (const sub of channels[channelId].subscribers) {
+        sendToUser(sub, { type: "channel_comment_added", channelId, msgId, comment });
+    }
+    return comment;
+}
+
+function deleteChannelComment(channelId, msgId, commentId, deleter) {
+    if (!channels[channelId]) return false;
+    const post = channels[channelId].messages.find(m => m.id === msgId);
+    if (!post || !post.comments) return false;
+    const comment = post.comments.find(c => c.id === commentId);
+    if (!comment) return false;
+    if (comment.from !== deleter && !isCommentAdmin(channelId, deleter)) return false;
+    post.comments = post.comments.filter(c => c.id !== commentId);
+    saveChannels();
+    for (const sub of channels[channelId].subscribers) {
+        sendToUser(sub, { type: "channel_comment_deleted", channelId, msgId, commentId });
+    }
+    return true;
 }
 
 function getChannelsForUser(nick) {
@@ -716,8 +995,10 @@ function createGroup(name, creator) {
             whoCanInvite: "all",
             whoCanChangeName: "admins",
             whoCanChangeAvatar: "admins",
-            whoCanPin: "admins"
+            whoCanPin: "admins",
+            slowMode: 0
         },
+        lastMessageAt: {},
         pinnedMessages: [],
         actionLog: [],
         notifications: {},
@@ -765,6 +1046,18 @@ function sendGroupMessage(groupId, from, msgData) {
         sendToUser(from, { type: "error", text: "У вас нет прав на отправку сообщений в этой группе" });
         return;
     }
+    const slowMode = (groups[groupId].settings || {}).slowMode || 0;
+    const isPrivileged = groups[groupId].creator === from || (groups[groupId].admins || []).includes(from) || from === "Дима";
+    if (slowMode > 0 && !isPrivileged) {
+        if (!groups[groupId].lastMessageAt) groups[groupId].lastMessageAt = {};
+        const last = groups[groupId].lastMessageAt[from] || 0;
+        const waitLeft = slowMode * 1000 - (Date.now() - last);
+        if (waitLeft > 0) {
+            sendToUser(from, { type: "error", text: `⏳ Медленный режим: подождите ещё ${Math.ceil(waitLeft / 1000)} сек.` });
+            return;
+        }
+        groups[groupId].lastMessageAt[from] = Date.now();
+    }
     const m = {
         id: Date.now().toString() + "-" + Math.random().toString(36).substr(2, 8),
         from,
@@ -781,6 +1074,9 @@ function sendGroupMessage(groupId, from, msgData) {
         timeFormatted: formatTime(Date.now()),
         reactions: {},
         readBy: [from],
+        replyTo: msgData.replyTo || null,
+        forwardedFrom: msgData.forwardedFrom || null,
+        edited: false,
         chatId: `group_${groupId}`
     };
     groups[groupId].messages.push(m);
@@ -973,13 +1269,42 @@ function deleteMessage(chatType, chatId, msgId, deleter) {
 // ЗАГРУЗКА ФАЙЛОВ
 // ============================================================
 
+// Расширения, которые НЕЛЬЗЯ загружать как обычный файл (исполняемые/скрипты) —
+// иначе их можно будет открыть по прямой ссылке /files/... и получить RCE-подобный риск
+const DANGEROUS_EXTENSIONS = [
+    ".exe", ".bat", ".cmd", ".sh", ".ps1", ".msi", ".com", ".scr",
+    ".js", ".mjs", ".cjs", ".vbs", ".jar", ".php", ".phtml", ".py",
+    ".rb", ".pl", ".dll", ".so", ".app", ".apk", ".htaccess", ".html", ".htm"
+];
+
+// Убираем из имени файла всё, что могло бы вывести путь за пределы
+// целевой папки (../, абсолютные пути, разделители директорий и т.д.)
+function sanitizeFilename(name) {
+    if (!name) return "file";
+    let base = path.basename(String(name)); // отбрасывает любые директории из пути
+    base = base.replace(/[^a-zA-Z0-9а-яА-Я0-9_.\-]/g, "_"); // только безопасные символы
+    if (!base || base === "." || base === "..") base = "file";
+    return base.slice(0, 150);
+}
+
 function handleUpload(ws, msg, folder, type) {
     if (msg.data && msg.data.length > 10 * 1024 * 1024) {
         ws.send(JSON.stringify({ type: "error", text: "Файл слишком большой (макс 10MB)" }));
         return;
     }
-    const filename = Date.now() + "_" + ws.nick + "_" + (msg.filename || "video.webm");
+    const safeOriginalName = sanitizeFilename(msg.filename || "video.webm");
+    const ext = path.extname(safeOriginalName).toLowerCase();
+    if (folder === "files" && DANGEROUS_EXTENSIONS.includes(ext)) {
+        ws.send(JSON.stringify({ type: "error", text: "Этот тип файла запрещён к загрузке из соображений безопасности" }));
+        return;
+    }
+    const filename = Date.now() + "_" + sanitizeFilename(ws.nick) + "_" + safeOriginalName;
     const filepath = path.join(folder, filename);
+    // Доп. проверка: итоговый путь должен остаться строго внутри целевой папки
+    if (!path.resolve(filepath).startsWith(path.resolve(folder) + path.sep)) {
+        ws.send(JSON.stringify({ type: "error", text: "Недопустимое имя файла" }));
+        return;
+    }
     try {
         fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
         ws.send(JSON.stringify({ type: type, url: `/${folder}/${filename}`, filename: msg.filename || filename }));
@@ -1251,7 +1576,7 @@ wss.on("connection", (ws) => {
                 return;
             }
             usersDB[nick] = {
-                password: hashPassword(password),
+                password: hashPasswordSecure(password),
                 created: new Date().toISOString(),
                 profile: { bio: "", age: "", phone: "", avatar: null },
                 lastChats: []
@@ -1287,10 +1612,16 @@ wss.on("connection", (ws) => {
                 recordIPAttempt(ip);
                 return;
             }
-            if (usersDB[nick].password !== hashPassword(password)) {
+            if (!verifyPassword(password, usersDB[nick].password)) {
                 ws.send(JSON.stringify({ type: "error", text: "Неверный пароль" }));
                 recordIPAttempt(ip);
                 return;
+            }
+            // Автоапгрейд: если пароль был в старом слабом формате (sha256 без
+            // соли), после успешного входа тихо перехешируем на scrypt+соль
+            if (!usersDB[nick].password.startsWith("scrypt:")) {
+                usersDB[nick].password = hashPasswordSecure(password);
+                saveUsers();
             }
             kickExistingSession(nick);
             ws.nick = nick;
@@ -1697,6 +2028,79 @@ wss.on("connection", (ws) => {
             return;
         }
 
+        // ===== КАНАЛЫ: АВАТАР / НАЗВАНИЕ / ОПИСАНИЕ =====
+        if (msg.type === "update_channel_avatar") {
+            if (updateChannelAvatar(msg.channelId, msg.avatar, currentUser)) {
+                ws.send(JSON.stringify({ type: "channel_avatar_updated", channelId: msg.channelId }));
+            }
+            return;
+        }
+
+        if (msg.type === "update_channel_name") {
+            if (updateChannelName(msg.channelId, msg.newName, currentUser)) {
+                ws.send(JSON.stringify({ type: "channel_name_updated", channelId: msg.channelId }));
+            } else {
+                ws.send(JSON.stringify({ type: "error", text: "Не удалось изменить название канала" }));
+            }
+            return;
+        }
+
+        if (msg.type === "update_channel_description") {
+            if (updateChannelDescription(msg.channelId, msg.description, currentUser)) {
+                ws.send(JSON.stringify({ type: "channel_description_updated", channelId: msg.channelId }));
+            }
+            return;
+        }
+
+        // ===== КАНАЛЫ: АДМИНЫ КАНАЛА / АДМИНЫ КОММЕНТАРИЕВ (отдельно) =====
+        if (msg.type === "add_channel_admin") {
+            if (addChannelAdmin(msg.channelId, msg.nick, currentUser)) {
+                ws.send(JSON.stringify({ type: "channel_admin_added", channelId: msg.channelId, nick: msg.nick }));
+            }
+            return;
+        }
+
+        if (msg.type === "remove_channel_admin") {
+            if (removeChannelAdmin(msg.channelId, msg.nick, currentUser)) {
+                ws.send(JSON.stringify({ type: "channel_admin_removed", channelId: msg.channelId, nick: msg.nick }));
+            }
+            return;
+        }
+
+        if (msg.type === "add_comment_admin") {
+            if (addCommentAdmin(msg.channelId, msg.nick, currentUser)) {
+                ws.send(JSON.stringify({ type: "comment_admin_added", channelId: msg.channelId, nick: msg.nick }));
+            }
+            return;
+        }
+
+        if (msg.type === "remove_comment_admin") {
+            if (removeCommentAdmin(msg.channelId, msg.nick, currentUser)) {
+                ws.send(JSON.stringify({ type: "comment_admin_removed", channelId: msg.channelId, nick: msg.nick }));
+            }
+            return;
+        }
+
+        // ===== КАНАЛЫ: КОММЕНТАРИИ К ПОСТАМ =====
+        if (msg.type === "add_channel_comment") {
+            if (!checkRate(ws)) {
+                ws.send(JSON.stringify({ type: "error", text: "Слишком много сообщений" }));
+                return;
+            }
+            const comment = addChannelComment(msg.channelId, msg.msgId, currentUser, msg.text);
+            if (!comment) {
+                ws.send(JSON.stringify({ type: "error", text: "Не удалось отправить комментарий" }));
+            }
+            return;
+        }
+
+        if (msg.type === "delete_channel_comment") {
+            if (deleteChannelComment(msg.channelId, msg.msgId, msg.commentId, currentUser)) {
+                ws.send(JSON.stringify({ type: "comment_delete_success", commentId: msg.commentId }));
+            }
+            return;
+        }
+
         // ============================================================
         // СООБЩЕНИЯ В ГРУППАХ
         // ============================================================
@@ -1777,6 +2181,7 @@ wss.on("connection", (ws) => {
                 reactions: {},
                 readBy: [currentUser],
                 replyTo: msg.replyTo || null,
+                forwardedFrom: msg.forwardedFrom || null,
                 edited: false,
                 chatId: "public"
             };
@@ -1825,6 +2230,7 @@ wss.on("connection", (ws) => {
                 reactions: {},
                 readBy: [currentUser],
                 replyTo: msg.replyTo || null,
+                forwardedFrom: msg.forwardedFrom || null,
                 edited: false,
                 chatId: `private_${msg.target}`
             };
@@ -1834,8 +2240,10 @@ wss.on("connection", (ws) => {
             updateLastChat(currentUser, "private", msg.target, m.text || "📎 Вложение");
             updateLastChat(msg.target, "private", currentUser, m.text || "📎 Вложение");
             sendToUser(currentUser, { type: "private_msg", data: m, with: msg.target });
-            const delivered = sendToUser(msg.target, { type: "private_msg", data: m, with: currentUser });
-            if (!delivered) sendPushToUser(msg.target, { title: currentUser, body: m.text || "📎 Вложение", tag: `private_${currentUser}` });
+            if (msg.target !== currentUser) {
+                const delivered = sendToUser(msg.target, { type: "private_msg", data: m, with: currentUser });
+                if (!delivered) sendPushToUser(msg.target, { title: currentUser, body: m.text || "📎 Вложение", tag: `private_${currentUser}` });
+            }
             return;
         }
 
@@ -2059,6 +2467,55 @@ wss.on("connection", (ws) => {
         }
 
         // ============================================================
+        // ГЛОБАЛЬНЫЙ ПОИСК ПО ТЕКСТУ СООБЩЕНИЙ (во всех своих чатах разом)
+        // ============================================================
+        if (msg.type === "global_search") {
+            const q = (msg.query || "").toLowerCase().trim();
+            if (!q || q.length < 2) {
+                ws.send(JSON.stringify({ type: "global_search_results", results: [] }));
+                return;
+            }
+            const results = [];
+
+            history.forEach(m => {
+                if (m.text && m.text.toLowerCase().includes(q)) {
+                    results.push({ chatType: "public", chatId: "public", chatName: "Общий чат", from: m.owner, text: m.text, time: m.time, msgId: m.id });
+                }
+            });
+
+            for (const key in privateHistory) {
+                privateHistory[key].forEach(m => {
+                    if (m.from !== currentUser && m.to !== currentUser) return;
+                    if (m.text && m.text.toLowerCase().includes(q)) {
+                        const otherNick = m.from === currentUser ? m.to : m.from;
+                        results.push({ chatType: "private", chatId: otherNick, chatName: otherNick, from: m.from, text: m.text, time: m.time, msgId: m.id });
+                    }
+                });
+            }
+
+            for (const gid in groups) {
+                if (!groups[gid].members.includes(currentUser)) continue;
+                groups[gid].messages.forEach(m => {
+                    if (m.text && m.text.toLowerCase().includes(q)) {
+                        results.push({ chatType: "group", chatId: gid, chatName: groups[gid].name, from: m.from, text: m.text, time: m.time, msgId: m.id });
+                    }
+                });
+            }
+
+            for (const cid in channels) {
+                if (!channels[cid].subscribers.includes(currentUser)) continue;
+                channels[cid].messages.forEach(m => {
+                    if (m.text && m.text.toLowerCase().includes(q)) {
+                        results.push({ chatType: "channel", chatId: cid, chatName: channels[cid].name, from: m.from, text: m.text, time: m.time, msgId: m.id });
+                    }
+                });
+            }
+
+            results.sort((a, b) => b.time - a.time);
+            ws.send(JSON.stringify({ type: "global_search_results", results: results.slice(0, 100) }));
+            return;
+        }
+
         // БЛОКИРОВКА
         // ============================================================
 
@@ -2066,6 +2523,7 @@ wss.on("connection", (ws) => {
             if (!userBlocks.has(currentUser)) userBlocks.set(currentUser, []);
             if (!userBlocks.get(currentUser).includes(msg.target)) {
                 userBlocks.get(currentUser).push(msg.target);
+                saveBlocks();
                 ws.send(JSON.stringify({ type: "block_success", target: msg.target }));
             }
             return;
@@ -2074,8 +2532,14 @@ wss.on("connection", (ws) => {
         if (msg.type === "unblock_user") {
             if (userBlocks.has(currentUser)) {
                 userBlocks.set(currentUser, userBlocks.get(currentUser).filter(b => b !== msg.target));
+                saveBlocks();
                 ws.send(JSON.stringify({ type: "unblock_success", target: msg.target }));
             }
+            return;
+        }
+
+        if (msg.type === "get_blocked_users") {
+            ws.send(JSON.stringify({ type: "blocked_users", list: userBlocks.get(currentUser) || [] }));
             return;
         }
 
