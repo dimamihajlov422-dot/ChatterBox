@@ -3337,7 +3337,14 @@ function connect() {
             authScreen.classList.add("hidden");
             mainApp.classList.remove("hidden");
             document.title = "ChatterBox - " + currentNick;
-            if (d.token && rememberMe.checked) localStorage.setItem("chat_token", d.token);
+            // Сохраняем токен, если сервер его прислал — сервер сам решает,
+            // выдавать ли токен (при обычном логине смотрит на remember,
+            // при автовходе может выдать новый взамен протухшего). Раньше
+            // тут дополнительно проверялся rememberMe.checked — но при
+            // автовходе эта галочка не трогается и стоит false по
+            // умолчанию, из-за чего свежий токен просто никогда не
+            // сохранялся обратно.
+            if (d.token) localStorage.setItem("chat_token", d.token);
             if (d.groups) myGroups = d.groups;
             if (d.channels) myChannels = d.channels;
             if (d.lastChats) myLastChats = d.lastChats;
