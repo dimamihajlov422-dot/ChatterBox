@@ -111,6 +111,22 @@ function decryptMessagesAfterLoad(messages) {
 
 const app = express();
 const server = http.createServer(app);
+
+// ============================================================
+// ЗАЩИТА ОТ ПАДЕНИЯ ВСЕГО СЕРВЕРА
+// ============================================================
+// Без этого ЛЮБАЯ необработанная ошибка (даже в одном крошечном обработчике
+// одного сообщения от одного пользователя) роняла весь Node.js процесс
+// целиком — отключая АБСОЛЮТНО ВСЕХ подключённых пользователей разом.
+// Именно так вела себя ошибка "Assignment to constant variable" в auto_login.
+// Теперь такие ошибки просто логируются, а сервер продолжает работать для
+// всех остальных.
+process.on("uncaughtException", (err) => {
+    console.error("🔴 Необработанная ошибка (сервер продолжает работать):", err);
+});
+process.on("unhandledRejection", (reason) => {
+    console.error("🔴 Необработанный отказ промиса (сервер продолжает работать):", reason);
+});
 const wss = new WebSocket.Server({ server });
 
 // Базовые security-заголовки (без внешних зависимостей вроде helmet)
@@ -1624,7 +1640,7 @@ wss.on("connection", (ws) => {
 
         // ===== АВТОВХОД =====
         if (msg.type === "auto_login") {
-            const token = msg.token;
+            let token = msg.token;
             const deviceId = msg.deviceId;
             let nick = sessions.get(token);
             if (!nick && deviceId && deviceTokens[deviceId]) {
