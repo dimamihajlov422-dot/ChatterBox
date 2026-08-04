@@ -151,6 +151,7 @@ let userReputation = new Map();
 let complaints = [];
 let deviceTokens = {};
 let pinnedMessages = [];
+let privatePinned = {};
 let scheduledMessages = [];
 let ipAttempts = new Map();
 let ipBlockedUntil = new Map();
@@ -170,6 +171,7 @@ const PINNED_FILE = "pinned.json";
 const SCHEDULED_FILE = "scheduled.json";
 const PUSH_FILE = "push_subscriptions.json";
 const BLOCKS_FILE = "blocks.json";
+const PRIVATE_PINNED_FILE = "private_pinned.json";
 
 // ============================================================
 // ЗАГРУЗКА ДАННЫХ
@@ -313,6 +315,16 @@ function loadData() {
             fs.writeFileSync(BLOCKS_FILE, JSON.stringify({}, null, 2));
         }
     } catch (e) { userBlocks = new Map(); }
+
+    try {
+        if (fs.existsSync(PRIVATE_PINNED_FILE)) {
+            privatePinned = JSON.parse(fs.readFileSync(PRIVATE_PINNED_FILE, "utf8")) || {};
+            console.log(`✅ Загружено закреплений в личных чатах: ${Object.keys(privatePinned).length}`);
+        } else {
+            privatePinned = {};
+            fs.writeFileSync(PRIVATE_PINNED_FILE, JSON.stringify({}, null, 2));
+        }
+    } catch (e) { privatePinned = {}; }
 }
 
 loadData();
@@ -678,6 +690,74 @@ function unpinGroupMessage(groupId, msgId, unpinner) {
     broadcast({ type: "group_update", group: groups[groupId] });
     addGroupLog(groupId, `${unpinner} открепил сообщение`);
     return true;
+}
+
+// ===== Закрепление в публичном и личном чате =====
+// pinnedMessages (публичный чат) — общий для всех, т.к. сам чат публичный.
+// privatePinned (личные чаты) — НЕ рассылается всем подряд, только двум
+// участникам конкретной переписки, иначе это была бы утечка чужих личных
+// сообщений остальным пользователям при подключении.
+function savePrivatePinned() { try { fs.writeFileSync(PRIVATE_PINNED_FILE, JSON.stringify(privatePinned, null, 2)); } catch(e){} }
+
+function pinMessage(chatType, chatId, msgId, pinner) {
+    let target = null;
+    if (chatType === "public") {
+        target = history.find(m => m.id === msgId);
+    } else if (chatType === "private") {
+        const arr = privateHistory[chatId];
+        target = arr ? arr.find(m => m.id === msgId) : null;
+        if (target && target.from !== pinner && target.to !== pinner) return null; // не участник переписки
+    }
+    if (!target) return null;
+
+    const pinEntry = {
+        id: msgId,
+        chatType,
+        chatId,
+        text: target.text || "",
+        from: target.from || target.owner,
+        time: target.time,
+        timeFormatted: target.timeFormatted
+    };
+
+    if (chatType === "public") {
+        if (!pinnedMessages.find(p => p.id === msgId)) pinnedMessages.push(pinEntry);
+        savePinned();
+        broadcast({ type: "pinned_updated", message: pinEntry });
+    } else if (chatType === "private") {
+        if (!privatePinned[chatId]) privatePinned[chatId] = [];
+        if (!privatePinned[chatId].find(p => p.id === msgId)) privatePinned[chatId].push(pinEntry);
+        savePrivatePinned();
+        sendToUser(target.from, { type: "pinned_updated", message: pinEntry });
+        sendToUser(target.to, { type: "pinned_updated", message: pinEntry });
+    }
+    return pinEntry;
+}
+
+function unpinMessage(chatType, chatId, msgId, unpinner) {
+    if (chatType === "public") {
+        pinnedMessages = pinnedMessages.filter(p => p.id !== msgId);
+        savePinned();
+        broadcast({ type: "pinned_removed", unpinId: msgId });
+        return true;
+    } else if (chatType === "private") {
+        if (!privatePinned[chatId]) return false;
+        const arr = privateHistory[chatId];
+        const target = arr ? arr.find(m => m.id === msgId) : null;
+        privatePinned[chatId] = privatePinned[chatId].filter(p => p.id !== msgId);
+        savePrivatePinned();
+        if (target) {
+            sendToUser(target.from, { type: "pinned_removed", unpinId: msgId });
+            sendToUser(target.to, { type: "pinned_removed", unpinId: msgId });
+        } else {
+            unbindFallbackUnpin(unpinner, msgId);
+        }
+        return true;
+    }
+    return false;
+}
+function unbindFallbackUnpin(unpinner, msgId) {
+    sendToUser(unpinner, { type: "pinned_removed", unpinId: msgId });
 }
 
 // ===== 10. 🖼️ Фото и описание =====
@@ -1217,7 +1297,9 @@ function editMessage(chatType, chatId, msgId, newText, editor) {
     }
     if (!target) return false;
     if (target.owner !== editor && target.from !== editor && editor !== "Дима") return false;
-    target.text = escapeHtml(newText.slice(0, 500));
+    const newEscaped = escapeHtml(newText.slice(0, 500));
+    if (newEscaped === target.text) return true; // текст не изменился — не помечаем как отредактированное
+    target.text = newEscaped;
     target.edited = true;
     if (chatType === "public") savePublic();
     else if (chatType === "private") savePrivate();
@@ -1957,6 +2039,32 @@ wss.on("connection", (ws) => {
             if (unpinGroupMessage(msg.groupId, msg.msgId, currentUser)) {
                 ws.send(JSON.stringify({ type: "unpin_success", groupId: msg.groupId, msgId: msg.msgId }));
             }
+            return;
+        }
+
+        // Закрепить/открепить в публичном или личном чате
+        if (msg.type === "pin_message") {
+            const pin = pinMessage(msg.chatType || (msg.chatId === "public" ? "public" : "private"), msg.chatId, msg.msgId, currentUser);
+            if (pin) ws.send(JSON.stringify({ type: "pin_success", id: msg.msgId }));
+            else ws.send(JSON.stringify({ type: "error", text: "Не удалось закрепить сообщение" }));
+            return;
+        }
+
+        if (msg.type === "unpin_message") {
+            const chatType = msg.chatType || (msg.chatId === "public" ? "public" : "private");
+            if (unpinMessage(chatType, msg.chatId, msg.msgId, currentUser)) {
+                ws.send(JSON.stringify({ type: "unpin_success", id: msg.msgId }));
+            }
+            return;
+        }
+
+        // Получить закреплённые сообщения конкретного личного чата
+        if (msg.type === "get_private_pinned") {
+            ws.send(JSON.stringify({
+                type: "private_pinned_list",
+                chatId: msg.chatId,
+                messages: privatePinned[msg.chatId] || []
+            }));
             return;
         }
 
