@@ -340,6 +340,7 @@ body.dark .search-overlay .search-box .results .result-item:hover { background: 
 .mode-bar.visible { display: flex; }
 body.dark .mode-bar { background: var(--card-bg-dark); border-color: var(--border-dark); }
 .mode-bar button { background: var(--border); color: var(--text); border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; font-weight: 500; font-size: 13px; cursor: pointer; flex-shrink: 0; transition: 0.2s; }
+#backBtn { display: none !important; } /* дублирует стрелочку в шапке — убрано по просьбе, JS-обвязка остаётся нетронутой */
 body.dark .mode-bar button { background: var(--border-dark); border-color: var(--border-dark); }
 .mode-bar button:active { transform: scale(0.95); }
 .mode-bar span { font-weight: 600; flex: 1; text-align: center; font-size: 14px; color: var(--text); }
@@ -547,8 +548,87 @@ body.dark .poll-option { background: rgba(255,255,255,0.08); }
 }
 body.dark .date-divider { color: #aaa; }
 
+.unread-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0;
+    max-width: 100%;
+}
+.unread-divider::before, .unread-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: rgba(0,132,255,0.35);
+}
+.unread-divider span {
+    font-size: 11px;
+    font-weight: 700;
+    color: #0084ff;
+    white-space: nowrap;
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .typing-indicator { font-size: 12px; color: #666; padding: 4px 12px; font-style: italic; }
 body.dark .typing-indicator { color: #aaa; }
+
+.scroll-bottom-btn {
+    position: absolute;
+    right: 16px;
+    bottom: 90px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 10;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+body.dark .scroll-bottom-btn { background: var(--card-bg-dark); border-color: var(--border-dark); }
+.scroll-bottom-btn.visible { display: flex; }
+
+.reply-banner {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+}
+body.dark .reply-banner { background: var(--card-bg-dark); border-color: var(--border-dark); }
+.reply-banner-text {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text);
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-left: 3px solid #0084ff;
+    padding-left: 8px;
+}
+.reply-banner button {
+    background: var(--border);
+    border: none;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    color: var(--text);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+body.dark .reply-banner button { background: var(--border-dark); }
 
 .input-bar {
     background: var(--card-bg);
@@ -594,6 +674,47 @@ body.dark .input-bar button { background: var(--border-dark); border-color: var(
 #sendBtn { background: rgba(0,132,255,0.15); border-color: rgba(0,132,255,0.1); }
 #attachBtn { background: var(--border); }
 body.dark #attachBtn { background: var(--border-dark); }
+
+.sticker-picker-panel {
+    position: fixed;
+    bottom: 80px;
+    left: 16px;
+    right: 16px;
+    max-height: 320px;
+    background: var(--card-bg);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border-radius: 28px;
+    padding: 12px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 260;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+body.dark .sticker-picker-panel { background: var(--card-bg-dark); border-color: var(--border-dark); }
+.sticker-picker-panel.open { display: flex; }
+.sticker-picker-header {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 600; color: var(--text);
+}
+.sticker-picker-header span { flex: 1; }
+.sticker-picker-header button {
+    background: var(--border); border: none; border-radius: 14px;
+    padding: 6px 10px; font-size: 12px; color: var(--text); cursor: pointer;
+}
+body.dark .sticker-picker-header button { background: var(--border-dark); }
+.sticker-picker-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    overflow-y: auto;
+}
+.sticker-picker-grid img {
+    width: 100%; aspect-ratio: 1; object-fit: contain;
+    border-radius: 14px; cursor: pointer; background: rgba(0,0,0,0.04);
+}
+body.dark .sticker-picker-grid img { background: rgba(255,255,255,0.06); }
+.sticker-picker-grid img:active { transform: scale(0.92); }
 
 .attach-panel {
     position: fixed;
@@ -824,10 +945,10 @@ body.dark .profile-avatar { border-color: var(--border-dark); }
 .profile-field label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 13px; color: #888; }
 .profile-field input, .profile-field textarea {
     width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px;
-    font-size: 15px; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px);
-    color: var(--text);
+    font-size: 15px; background: rgba(255,255,255,0.35);
+    color: var(--text); resize: none;
 }
-body.dark .profile-field input, body.dark .profile-field textarea { background: rgba(255,255,255,0.03); border-color: var(--border-dark); }
+body.dark .profile-field input, body.dark .profile-field textarea { background: rgba(255,255,255,0.06); border-color: var(--border-dark); }
 .profile-save {
     background: var(--border); color: var(--text); border: 1px solid var(--border);
     padding: 12px; border-radius: 28px; font-size: 16px; font-weight: 600;
@@ -1836,7 +1957,7 @@ body.dark .directory-screen {
 <div class="main-app hidden" id="mainApp">
     <div class="header">
         <div class="nav-left">
-            <button class="menu-btn" id="menuBtn">☰</button>
+            <button class="menu-btn" id="menuBtn">←</button>
             <span class="nick" id="currentNick">--</span>
         </div>
         <div class="nav-center" id="navCenter">ChatterBox</div>
@@ -1857,13 +1978,19 @@ body.dark .directory-screen {
         <button id="inviteBtn" class="hidden">➕</button>
         <button id="groupMembersBtn" class="hidden">👥</button>
         <button id="groupSettingsBtn" class="hidden">⚙️</button>
+        <button id="pinnedBtn" class="hidden">📌</button>
     </div>
 
     <div class="chat" id="chat">
         <div class="loading-indicator" id="loadingIndicator">Загрузка сообщений...</div>
         <div id="typingIndicator" class="typing-indicator hidden"></div>
     </div>
+    <button class="scroll-bottom-btn" id="scrollBottomBtn">⬇️</button>
 
+    <div class="reply-banner hidden" id="replyBanner">
+        <div class="reply-banner-text" id="replyBannerText"></div>
+        <button id="replyBannerCancel">✕</button>
+    </div>
     <div class="input-bar" id="inputBar">
         <input type="text" id="msgInput" placeholder="Сообщение..." autocomplete="off">
         <button id="sendBtn">➤</button>
@@ -1892,6 +2019,15 @@ body.dark .directory-screen {
         <button class="directory-fab" id="dirCreateGroupBtn" title="Создать группу">👥➕</button>
     </div>
     <div class="directory-footer" id="directoryFooter"></div>
+</div>
+
+<div class="sticker-picker-panel" id="stickerPickerPanel">
+    <div class="sticker-picker-header">
+        <span>😊 Стикеры</span>
+        <button id="stickerUploadOwnBtn">📁 Загрузить свой</button>
+        <button id="stickerPickerCloseBtn">✕</button>
+    </div>
+    <div class="sticker-picker-grid" id="stickerPickerGrid"></div>
 </div>
 
 <div class="attach-panel" id="attachPanel">
@@ -2177,6 +2313,7 @@ body.dark .directory-screen {
     <div style="display:flex; flex-direction:column; gap:2px;">
         <span id="callStatusText">📞 В звонке...</span>
         <span id="callDiagLine" style="font-size:10px; opacity:0.7;"></span>
+        <span id="callDiagLineMic" style="font-size:10px; opacity:0.7;"></span>
     </div>
     <button id="endCallBtn">Завершить</button>
 </div>
@@ -2211,6 +2348,8 @@ const backBtn = document.getElementById("backBtn");
 const inviteBtn = document.getElementById("inviteBtn");
 const groupMembersBtn = document.getElementById("groupMembersBtn");
 const groupSettingsBtn = document.getElementById("groupSettingsBtn");
+const pinnedBtn = document.getElementById("pinnedBtn");
+const scrollBottomBtn = document.getElementById("scrollBottomBtn");
 const callButtons = document.getElementById("callButtons");
 const audioCallBtn = document.getElementById("audioCallBtn");
 const videoCallBtn = document.getElementById("videoCallBtn");
@@ -2281,10 +2420,13 @@ const rejectCallBtn = document.getElementById("rejectCallBtn");
 const callStatusDiv = document.getElementById("callStatus");
 const callStatusText = document.getElementById("callStatusText");
 const callDiagLine = document.getElementById("callDiagLine");
+const callDiagLineMic = document.getElementById("callDiagLineMic");
 const endCallBtn = document.getElementById("endCallBtn");
 const modal = document.getElementById("modal");
 const modalImg = document.getElementById("modalImg");
 const modalClose = document.querySelector(".modal .close");
+modalClose.onclick = () => modal.classList.remove("open");
+modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.remove("open"); });
 const navCenter = document.getElementById("navCenter");
 const permissionsScreen = document.getElementById("permissionsScreen");
 const permGrantBtn = document.getElementById("permGrantBtn");
@@ -2376,6 +2518,17 @@ let soundEnabled = true;
 let isDark = localStorage.getItem("theme") === "dark";
 let fontSize = localStorage.getItem("fontSize") || "medium";
 let replyToMsg = null;
+
+// Гарантирует, что играет только ОДНА голосовая/музыкальная дорожка одновременно —
+// запуск новой останавливает предыдущую
+let currentlyPlayingAudio = null;
+function playAudioExclusive(audio) {
+    if (currentlyPlayingAudio && currentlyPlayingAudio !== audio) {
+        currentlyPlayingAudio.pause();
+    }
+    currentlyPlayingAudio = audio;
+    audio.play();
+}
 let pendingImage = null;
 let pendingVideo = null;
 let pendingCircle = null;
@@ -3202,15 +3355,24 @@ function connect() {
         }
         if (d.type === "pinned_messages") {
             pinnedMessages = d.messages || [];
+            if (pinnedMessagesPanel.classList.contains("open") && pinnedContext === "public") renderPinnedList();
         }
         if (d.type === "pinned_updated") {
             if (d.message) {
                 if (!pinnedMessages.find(m => m.id === d.message.id)) {
                     pinnedMessages.push(d.message);
                 }
-            } else if (d.unpinId) {
-                pinnedMessages = pinnedMessages.filter(m => m.id !== d.unpinId);
             }
+            if (pinnedMessagesPanel.classList.contains("open")) renderPinnedList();
+        }
+        if (d.type === "pinned_removed") {
+            pinnedMessages = pinnedMessages.filter(m => m.id !== d.unpinId);
+            privatePinnedList = privatePinnedList.filter(m => m.id !== d.unpinId);
+            if (pinnedMessagesPanel.classList.contains("open")) renderPinnedList();
+        }
+        if (d.type === "private_pinned_list") {
+            privatePinnedList = d.messages || [];
+            if (pinnedMessagesPanel.classList.contains("open") && pinnedContext === "private") renderPinnedList();
         }
         if (d.type === "scheduled_message") {
             scheduledMessages.push(d.data);
@@ -3258,7 +3420,9 @@ authActionBtn.onclick = () => {
 // ============================================================
 
 function switchToPublic() {
-    loadDraft();
+    msgInput.value = ""; // очищаем ввод при выходе из чата — независимо от того, отправлено или нет
+    replyToMsg = null;
+    document.getElementById("replyBanner").classList.add("hidden");
     currentMode = "public";
     currentPrivateWith = "";
     currentGroupId = null;
@@ -3276,7 +3440,9 @@ function switchToPublic() {
 }
 
 function switchToPrivate(withNick) {
-    loadDraft();
+    msgInput.value = ""; // очищаем ввод при выходе из чата — независимо от того, отправлено или нет
+    replyToMsg = null;
+    document.getElementById("replyBanner").classList.add("hidden");
     currentMode = "private";
     currentPrivateWith = withNick;
     currentGroupId = null;
@@ -3285,6 +3451,7 @@ function switchToPrivate(withNick) {
     inviteBtn.classList.add("hidden");
     groupMembersBtn.classList.add("hidden");
     groupSettingsBtn.classList.add("hidden");
+    pinnedBtn.classList.remove("hidden");
     const isSavedMessages = withNick === currentNick;
     if (isSavedMessages) callButtons.classList.add("hidden"); else callButtons.classList.remove("hidden");
     backBtn.classList.remove("hidden");
@@ -3297,7 +3464,9 @@ function switchToPrivate(withNick) {
 }
 
 function switchToGroup(groupId) {
-    loadDraft();
+    msgInput.value = ""; // очищаем ввод при выходе из чата — независимо от того, отправлено или нет
+    replyToMsg = null;
+    document.getElementById("replyBanner").classList.add("hidden");
     currentMode = "group";
     currentGroupId = groupId;
     currentPrivateWith = "";
@@ -3306,6 +3475,7 @@ function switchToGroup(groupId) {
     inviteBtn.classList.remove("hidden");
     groupMembersBtn.classList.remove("hidden");
     groupSettingsBtn.classList.remove("hidden");
+    pinnedBtn.classList.add("hidden");
     callButtons.classList.add("hidden");
     backBtn.classList.remove("hidden");
     modeTitle.textContent = `👥 ${currentGroup ? currentGroup.name : "Группа"}`;
@@ -3320,7 +3490,9 @@ function switchToGroup(groupId) {
 }
 
 function switchToChannel(channelId) {
-    loadDraft();
+    msgInput.value = ""; // очищаем ввод при выходе из чата — независимо от того, отправлено или нет
+    replyToMsg = null;
+    document.getElementById("replyBanner").classList.add("hidden");
     currentMode = "channel";
     currentChannelId = channelId;
     currentPrivateWith = "";
@@ -3329,6 +3501,7 @@ function switchToChannel(channelId) {
     inviteBtn.classList.add("hidden");
     groupMembersBtn.classList.add("hidden");
     groupSettingsBtn.classList.add("hidden");
+    pinnedBtn.classList.add("hidden");
     callButtons.classList.add("hidden");
     backBtn.classList.remove("hidden");
     modeTitle.textContent = `📣 ${currentChannel ? currentChannel.name : "Канал"}`;
@@ -3394,6 +3567,7 @@ groupSettingsBtn.onclick = () => {
 function renderMessages(messages) {
     chatDiv.innerHTML = "";
     let lastDate = "";
+    const insertUnreadDivider = makeUnreadDividerInserter("public", messages);
     messages.forEach(m => {
         const msgDate = formatDate(m.time);
         if (msgDate !== lastDate) {
@@ -3403,6 +3577,7 @@ function renderMessages(messages) {
             chatDiv.appendChild(div);
             lastDate = msgDate;
         }
+        insertUnreadDivider(m);
         addMessage(m);
     });
     clearUnread("public");
@@ -3503,7 +3678,7 @@ function addMessage(m) {
         const musicDiv = document.createElement("div");
         musicDiv.className = "music-attach";
         musicDiv.innerHTML = `🎵 ${m.music.name} ▶️`;
-        musicDiv.onclick = () => { const audio = new Audio(m.music.url); audio.play(); };
+        musicDiv.onclick = () => { const audio = new Audio(m.music.url); playAudioExclusive(audio); };
         div.appendChild(musicDiv);
     }
     if (m.voice) {
@@ -3543,7 +3718,7 @@ function addMessage(m) {
         voiceDiv.appendChild(speedBtn);
         voiceDiv.onclick = () => {
             if (isPlaying) { audio.pause(); isPlaying = false; }
-            else { audio.play(); isPlaying = true; }
+            else { playAudioExclusive(audio); isPlaying = true; }
         };
         audio.ontimeupdate = () => {
             const progress = (audio.currentTime / audio.duration) * 100;
@@ -3553,6 +3728,7 @@ function addMessage(m) {
             timeLabel.textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
         };
         audio.onended = () => { isPlaying = false; progressBar.style.width = "0%"; timeLabel.textContent = "0:00"; };
+        audio.addEventListener("pause", () => { isPlaying = false; });
         div.appendChild(voiceDiv);
     }
     if (m.location) {
@@ -3654,13 +3830,26 @@ function attachSwipeReply(div, msg) {
 function attachMessageMenu(div, msg, chatType, chatId) {
     const showMenu = (x, y) => {
         currentMsgTarget = { msg, chatType, chatId };
+        const isOwnMsg = (msg.from === currentNick) || (msg.owner === currentNick);
+        document.getElementById("menuEdit").style.display = isOwnMsg ? "flex" : "none";
+        document.getElementById("menuDelete").style.display = isOwnMsg ? "flex" : "none";
+
+        messageMenu.style.left = "-9999px";
+        messageMenu.style.top = "-9999px";
+        messageMenu.style.display = "flex";
+        // Меряем реальный размер меню (он меняется из-за скрытых пунктов выше)
+        const menuWidth = messageMenu.offsetWidth || 180;
+        const menuHeight = messageMenu.offsetHeight || 200;
+
         let left = x + 10;
         let top = y - 60;
-        if (left + 200 > window.innerWidth) left = x - 210;
-        if (top < 0) top = 10;
+        if (left + menuWidth > window.innerWidth) left = x - menuWidth - 10;
+        if (left < 10) left = 10;
+        if (top + menuHeight > window.innerHeight) top = window.innerHeight - menuHeight - 10;
+        if (top < 10) top = 10;
+
         messageMenu.style.left = left + "px";
         messageMenu.style.top = top + "px";
-        messageMenu.style.display = "flex";
         setTimeout(() => {
             document.addEventListener("click", () => messageMenu.style.display = "none", { once: true });
         }, 100);
@@ -3720,6 +3909,7 @@ document.getElementById("menuPin").onclick = () => {
         } else {
             ws.send(JSON.stringify({
                 type: "pin_message",
+                chatType: currentMsgTarget.chatType,
                 chatId: currentMsgTarget.chatId,
                 msgId: currentMsgTarget.msg.id
             }));
@@ -3856,9 +4046,18 @@ function showQuickReactionPicker(msg, chatType) {
 
 function replyToMessage(msg) {
     replyToMsg = msg;
-    msgInput.placeholder = `↩️ Ответ: ${(msg.text || "").substring(0, 30)}...`;
+    const replyBanner = document.getElementById("replyBanner");
+    const replyBannerText = document.getElementById("replyBannerText");
+    replyBannerText.textContent = `↩️ Ответ: ${(msg.text || "📎 Вложение").substring(0, 60)}`;
+    replyBanner.classList.remove("hidden");
     msgInput.focus();
 }
+
+function cancelReply() {
+    replyToMsg = null;
+    document.getElementById("replyBanner").classList.add("hidden");
+}
+document.getElementById("replyBannerCancel").onclick = cancelReply;
 
 // ============================================================
 // МЕНЮ
@@ -4186,7 +4385,8 @@ avatarPicker.onclick = () => {
     input.click();
 };
 
-currentNickSpan.onclick = () => viewProfile(currentNick);
+// Профиль теперь открывается только через кнопку "Профиль" (нижняя навигация/справочник),
+// не по клику на собственный ник в шапке
 
 // ============================================================
 // НЕПРОЧИТАННЫЕ
@@ -4230,6 +4430,22 @@ function loadUnreadCounts() {
 
 function getUnreadCount(chatId) {
     return unreadCounts[chatId] ? unreadCounts[chatId].length : 0;
+}
+
+// Вставляет разделитель "Непрочитанные сообщения" перед первым непрочитанным
+// сообщением в ленте — вызывать ДО clearUnread(), иначе список уже пуст
+function makeUnreadDividerInserter(chatId, messages) {
+    const unreadIds = new Set(unreadCounts[chatId] || []);
+    if (unreadIds.size === 0) return () => {};
+    let inserted = false;
+    return (msg) => {
+        if (inserted || !unreadIds.has(msg.id)) return;
+        inserted = true;
+        const div = document.createElement("div");
+        div.className = "unread-divider";
+        div.innerHTML = `<span>Непрочитанные сообщения</span>`;
+        chatDiv.appendChild(div);
+    };
 }
 
 // ============================================================
@@ -4317,9 +4533,6 @@ msgInput.addEventListener("input", () => {
     if (typingTimer) clearTimeout(typingTimer);
     sendTyping(true);
     typingTimer = setTimeout(() => sendTyping(false), 1000);
-    const chatId = getCurrentChatId();
-    draftMessage[chatId] = msgInput.value;
-    localStorage.setItem(`draft_${currentNick}`, JSON.stringify(draftMessage));
 });
 
 msgInput.addEventListener("keydown", (e) => {
@@ -4379,6 +4592,57 @@ closePinned.onclick = () => {
     pinnedMessagesPanel.classList.remove("open");
 };
 
+let privatePinnedList = [];
+let pinnedContext = "public";
+
+chatDiv.addEventListener("scroll", () => {
+    const distanceFromBottom = chatDiv.scrollHeight - chatDiv.scrollTop - chatDiv.clientHeight;
+    scrollBottomBtn.classList.toggle("visible", distanceFromBottom > 400);
+});
+scrollBottomBtn.onclick = () => {
+    chatDiv.scrollTo({ top: chatDiv.scrollHeight, behavior: "smooth" });
+};
+
+pinnedBtn.onclick = () => {
+    if (currentMode === "private") {
+        pinnedContext = "private";
+        const key = getPrivateKey(currentNick, currentPrivateWith);
+        ws.send(JSON.stringify({ type: "get_private_pinned", chatId: key }));
+        privatePinnedList = [];
+        renderPinnedList();
+    } else {
+        pinnedContext = "public";
+        renderPinnedList();
+    }
+    pinnedMessagesPanel.classList.add("open");
+};
+
+function renderPinnedList() {
+    const list = pinnedContext === "public" ? pinnedMessages : privatePinnedList;
+    if (!list || list.length === 0) {
+        pinnedList.innerHTML = '<div class="gs-empty">📌 Нет закреплённых сообщений</div>';
+        return;
+    }
+    let html = "";
+    list.slice().sort((a, b) => (b.time || 0) - (a.time || 0)).forEach(p => {
+        html += `<div class="pinned-message" onclick="jumpToPinnedChat('${dirEsc(pinnedContext)}')">
+            <span class="pin-icon">📌</span>
+            <span class="pin-text"><b>${escapeHtml(p.from || "")}:</b> ${escapeHtml(p.text || "📎 Вложение")}</span>
+            <button class="pin-close" onclick="event.stopPropagation(); unpinFromPanel('${dirEsc(p.chatType || pinnedContext)}','${dirEsc(p.chatId || (pinnedContext === 'public' ? 'public' : ''))}','${dirEsc(p.id)}')">✕</button>
+        </div>`;
+    });
+    pinnedList.innerHTML = html;
+}
+
+function jumpToPinnedChat(context) {
+    pinnedMessagesPanel.classList.remove("open");
+    if (context === "public") switchToPublic();
+}
+
+function unpinFromPanel(chatType, chatId, msgId) {
+    ws.send(JSON.stringify({ type: "unpin_message", chatType, chatId, msgId }));
+}
+
 // ============================================================
 // ОТПРАВКА СООБЩЕНИЙ
 // ============================================================
@@ -4414,6 +4678,7 @@ function sendText() {
     
     msgInput.value = "";
     replyToMsg = null;
+    document.getElementById("replyBanner").classList.add("hidden");
     pendingImage = null;
     pendingVideo = null;
     pendingCircle = null;
@@ -4658,8 +4923,50 @@ document.getElementById("attachFile").onclick = () => {
     input.click();
 };
 
+// Встроенный набор стикеров — 17 картинок, заранее положенных в /images/
+const BUILT_IN_STICKERS = Array.from({ length: 17 }, (_, i) => `/images/smail${i + 1}.jpg`);
+
+const stickerPickerPanel = document.getElementById("stickerPickerPanel");
+const stickerPickerGrid = document.getElementById("stickerPickerGrid");
+const stickerPickerCloseBtn = document.getElementById("stickerPickerCloseBtn");
+const stickerUploadOwnBtn = document.getElementById("stickerUploadOwnBtn");
+
+function renderStickerPicker() {
+    stickerPickerGrid.innerHTML = "";
+    BUILT_IN_STICKERS.forEach(url => {
+        const img = document.createElement("img");
+        img.src = url;
+        img.loading = "lazy";
+        img.onclick = () => {
+            pendingSticker = url;
+            sendText();
+            stickerPickerPanel.classList.remove("open");
+        };
+        stickerPickerGrid.appendChild(img);
+    });
+    (myStickers || []).forEach(url => {
+        const img = document.createElement("img");
+        img.src = url;
+        img.loading = "lazy";
+        img.onclick = () => {
+            pendingSticker = url;
+            sendText();
+            stickerPickerPanel.classList.remove("open");
+        };
+        stickerPickerGrid.appendChild(img);
+    });
+}
+
 document.getElementById("attachSticker").onclick = () => {
     attachPanel.classList.remove("open");
+    renderStickerPicker();
+    stickerPickerPanel.classList.add("open");
+};
+
+stickerPickerCloseBtn.onclick = () => stickerPickerPanel.classList.remove("open");
+
+stickerUploadOwnBtn.onclick = () => {
+    stickerPickerPanel.classList.remove("open");
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
@@ -4860,6 +5167,7 @@ async function startCall(targetNick, video = false) {
             return;
         }
         localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        watchMicLevel(localStream);
         updateCallDiag("⏳ Устанавливаем соединение...");
         pc.oniceconnectionstatechange = () => {
             if (!pc) return;
@@ -4959,14 +5267,16 @@ async function handleOffer(msg) {
 function updateCallDiag(text) {
     if (callDiagLine) callDiagLine.textContent = text;
 }
+function updateMicDiag(text) {
+    if (callDiagLineMic) callDiagLineMic.textContent = text;
+}
 
-// Показывает РЕАЛЬНЫЙ уровень входящего звука через Web Audio API.
-// Это отвечает на главный вопрос: звук вообще идёт от собеседника
-// (проблема на его стороне — молчащий/выключенный микрофон), или
-// поток нормальный, но не доходит до динамиков (проблема вывода на
-// вашем устройстве — громкость, беззвучный режим, не то устройство
-// вывода и т.д.). Раньше это было неотличимо друг от друга.
-function attachAudioLevelMeter(stream) {
+// Универсальный измеритель уровня звука в потоке. label позволяет отличить
+// "ваш микрофон" (исходящий поток, до отправки собеседнику) от "звук
+// собеседника" (входящий поток, после получения) — это единственный
+// способ понять, ГДЕ именно теряется звук: на записи, на передаче/приёме,
+// или на воспроизведении.
+function attachAudioLevelMeter(stream, onLevel) {
     try {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (!AudioCtx) return;
@@ -4976,33 +5286,52 @@ function attachAudioLevelMeter(stream) {
         analyser.fftSize = 256;
         source.connect(analyser);
         const data = new Uint8Array(analyser.frequencyBinCount);
-        let silentTicks = 0;
-        let warned = false;
         const interval = setInterval(() => {
             if (!currentCallUser && !groupCallActive) { clearInterval(interval); audioCtx.close().catch(()=>{}); return; }
             analyser.getByteFrequencyData(data);
             const avg = data.reduce((a, b) => a + b, 0) / data.length;
-            if (avg < 2) {
-                silentTicks++;
-                if (silentTicks >= 6 && !warned) {
-                    warned = true;
-                    updateCallDiag("⚠️ От собеседника идёт ПОЛНАЯ ТИШИНА (проблема на его стороне — микрофон)");
-                }
-            } else {
-                silentTicks = 0;
-                warned = false;
-                updateCallDiag(`🔊 Звук идёт от собеседника (уровень: ${Math.round(avg)}) — если не слышно, проблема в выводе на ВАШЕМ устройстве`);
-            }
+            onLevel(avg);
         }, 500);
     } catch (e) {
         console.log("⚠️ Не удалось запустить анализатор звука:", e.message);
     }
 }
 
+function watchMicLevel(stream) {
+    let silentTicks = 0;
+    attachAudioLevelMeter(stream, (avg) => {
+        if (avg < 2) {
+            silentTicks++;
+            updateMicDiag(silentTicks >= 4 ? "⚠️ ВАШ микрофон не пишет звук (тишина ещё ДО отправки)" : "🎙️ Проверяю микрофон...");
+        } else {
+            silentTicks = 0;
+            updateMicDiag(`🎙️ Ваш микрофон пишет звук (уровень: ${Math.round(avg)})`);
+        }
+    });
+}
+
+function watchRemoteLevel(stream) {
+    let silentTicks = 0;
+    let warned = false;
+    attachAudioLevelMeter(stream, (avg) => {
+        if (avg < 2) {
+            silentTicks++;
+            if (silentTicks >= 6 && !warned) {
+                warned = true;
+                updateCallDiag("⚠️ От собеседника идёт ПОЛНАЯ ТИШИНА (проблема на его стороне — микрофон)");
+            }
+        } else {
+            silentTicks = 0;
+            warned = false;
+            updateCallDiag(`🔊 Звук идёт от собеседника (уровень: ${Math.round(avg)}) — если не слышно, проблема в выводе на ВАШЕМ устройстве`);
+        }
+    });
+}
+
 function attemptPlayRemoteAudio(audio) {
     audio.volume = 1.0;
     audio.muted = false;
-    if (audio.srcObject) attachAudioLevelMeter(audio.srcObject);
+    if (audio.srcObject) watchRemoteLevel(audio.srcObject);
     audio.play().then(() => {
         updateCallDiag("🔊 Звук запущен, анализирую поток...");
     }).catch(() => {
@@ -5058,6 +5387,7 @@ async function acceptCall() {
             return;
         }
         localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        watchMicLevel(localStream);
         updateCallDiag("⏳ Устанавливаем соединение...");
         pc.oniceconnectionstatechange = () => {
             if (!pc) return;
@@ -6099,7 +6429,11 @@ function openDirectoryChat(type, id) {
 }
 
 if (dirCloseBtn) dirCloseBtn.onclick = closeDirectory;
-if (dirSearchInput) dirSearchInput.addEventListener("input", () => renderDirectory(dirSearchInput.value));
+let dirSearchDebounce = null;
+if (dirSearchInput) dirSearchInput.addEventListener("input", () => {
+    if (dirSearchDebounce) clearTimeout(dirSearchDebounce);
+    dirSearchDebounce = setTimeout(() => renderDirectory(dirSearchInput.value), 150);
+});
 if (dirMoreBtn) dirMoreBtn.onclick = () => {
     // Полный список действий (создание канала, тема, статистика и т.д.) —
     // ничего не удалено, просто перенесено на один уровень глубже
@@ -6375,6 +6709,7 @@ console.log("👤 Пользователь:", currentNick || "не автори�
 function renderPrivateMessages(messages) {
     chatDiv.innerHTML = "";
     let lastDate = "";
+    const insertUnreadDivider = makeUnreadDividerInserter(`private_${currentPrivateWith}`, messages);
     messages.forEach(m => {
         const msgDate = formatDate(m.time);
         if (msgDate !== lastDate) {
@@ -6384,6 +6719,7 @@ function renderPrivateMessages(messages) {
             chatDiv.appendChild(div);
             lastDate = msgDate;
         }
+        insertUnreadDivider(m);
         addPrivateMessage(m);
     });
     clearUnread(`private_${currentPrivateWith}`);
@@ -6485,7 +6821,7 @@ function addPrivateMessage(m) {
         const musicDiv = document.createElement("div");
         musicDiv.className = "music-attach";
         musicDiv.innerHTML = `🎵 ${m.music.name} ▶️`;
-        musicDiv.onclick = () => { const audio = new Audio(m.music.url); audio.play(); };
+        musicDiv.onclick = () => { const audio = new Audio(m.music.url); playAudioExclusive(audio); };
         div.appendChild(musicDiv);
     }
     if (m.voice) {
@@ -6525,7 +6861,7 @@ function addPrivateMessage(m) {
         voiceDiv.appendChild(speedBtn);
         voiceDiv.onclick = () => {
             if (isPlaying) { audio.pause(); isPlaying = false; }
-            else { audio.play(); isPlaying = true; }
+            else { playAudioExclusive(audio); isPlaying = true; }
         };
         audio.ontimeupdate = () => {
             const progress = (audio.currentTime / audio.duration) * 100;
@@ -6535,6 +6871,7 @@ function addPrivateMessage(m) {
             timeLabel.textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
         };
         audio.onended = () => { isPlaying = false; progressBar.style.width = "0%"; timeLabel.textContent = "0:00"; };
+        audio.addEventListener("pause", () => { isPlaying = false; });
         div.appendChild(voiceDiv);
     }
     if (m.location) {
@@ -6615,6 +6952,7 @@ function renderGroupMessages(messages) {
         ...messages.map(m => ({ type: "msg", time: m.time, data: m })),
         ...polls.map(p => ({ type: "poll", time: p.createdAt, data: p }))
     ].sort((a, b) => a.time - b.time);
+    const insertUnreadDivider = makeUnreadDividerInserter(`group_${currentGroupId}`, messages);
     timeline.forEach(item => {
         const msgDate = formatDate(item.time);
         if (msgDate !== lastDate) {
@@ -6624,7 +6962,7 @@ function renderGroupMessages(messages) {
             chatDiv.appendChild(div);
             lastDate = msgDate;
         }
-        if (item.type === "msg") addGroupMessage(item.data);
+        if (item.type === "msg") { insertUnreadDivider(item.data); addGroupMessage(item.data); }
         else addPollMessage(item.data, currentGroupId);
     });
     clearUnread(`group_${currentGroupId}`);
@@ -6759,7 +7097,7 @@ function addGroupMessage(m) {
         const musicDiv = document.createElement("div");
         musicDiv.className = "music-attach";
         musicDiv.innerHTML = `🎵 ${m.music.name} ▶️`;
-        musicDiv.onclick = () => { const audio = new Audio(m.music.url); audio.play(); };
+        musicDiv.onclick = () => { const audio = new Audio(m.music.url); playAudioExclusive(audio); };
         div.appendChild(musicDiv);
     }
     if (m.voice) {
@@ -6799,7 +7137,7 @@ function addGroupMessage(m) {
         voiceDiv.appendChild(speedBtn);
         voiceDiv.onclick = () => {
             if (isPlaying) { audio.pause(); isPlaying = false; }
-            else { audio.play(); isPlaying = true; }
+            else { playAudioExclusive(audio); isPlaying = true; }
         };
         audio.ontimeupdate = () => {
             const progress = (audio.currentTime / audio.duration) * 100;
@@ -6809,6 +7147,7 @@ function addGroupMessage(m) {
             timeLabel.textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
         };
         audio.onended = () => { isPlaying = false; progressBar.style.width = "0%"; timeLabel.textContent = "0:00"; };
+        audio.addEventListener("pause", () => { isPlaying = false; });
         div.appendChild(voiceDiv);
     }
     if (m.location) {
@@ -7002,7 +7341,7 @@ function addChannelMessage(m) {
         const musicDiv = document.createElement("div");
         musicDiv.className = "music-attach";
         musicDiv.innerHTML = `🎵 ${m.music.name} ▶️`;
-        musicDiv.onclick = () => { const audio = new Audio(m.music.url); audio.play(); };
+        musicDiv.onclick = () => { const audio = new Audio(m.music.url); playAudioExclusive(audio); };
         div.appendChild(musicDiv);
     }
     if (m.voice) {
@@ -7042,7 +7381,7 @@ function addChannelMessage(m) {
         voiceDiv.appendChild(speedBtn);
         voiceDiv.onclick = () => {
             if (isPlaying) { audio.pause(); isPlaying = false; }
-            else { audio.play(); isPlaying = true; }
+            else { playAudioExclusive(audio); isPlaying = true; }
         };
         audio.ontimeupdate = () => {
             const progress = (audio.currentTime / audio.duration) * 100;
@@ -7052,6 +7391,7 @@ function addChannelMessage(m) {
             timeLabel.textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
         };
         audio.onended = () => { isPlaying = false; progressBar.style.width = "0%"; timeLabel.textContent = "0:00"; };
+        audio.addEventListener("pause", () => { isPlaying = false; });
         div.appendChild(voiceDiv);
     }
     if (m.location) {
