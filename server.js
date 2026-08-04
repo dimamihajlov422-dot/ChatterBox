@@ -334,30 +334,38 @@ loadData();
 // ============================================================
 
 function saveUsers() { try { fs.writeFileSync(USERS_FILE, JSON.stringify(usersDB, null, 2)); } catch(e){} }
+
+// ВАЖНО: эти 4 функции вызываются на КАЖДОЕ отправленное сообщение (текст,
+// голосовое, файл — что угодно). fs.writeFileSync блокирует ВЕСЬ процесс
+// Node.js целиком, пока пишется файл — то есть все остальные пользователи
+// сервера буквально замирают на это время, а сообщение доставляется adresату
+// только ПОСЛЕ записи. Переводим на fs.writeFile (асинхронно, не блокирует
+// event loop) — сохранение на диск идёт в фоне, не задерживая доставку.
 function savePublic() {
     try {
-        fs.writeFileSync(DB_FILE, JSON.stringify(encryptMessagesForSave(history.slice(-500)), null, 2));
+        const data = JSON.stringify(encryptMessagesForSave(history.slice(-500)), null, 2);
+        fs.writeFile(DB_FILE, data, () => {});
     } catch(e){}
 }
 function savePrivate() {
     try {
         const out = {};
         for (const key in privateHistory) out[key] = encryptMessagesForSave(privateHistory[key]);
-        fs.writeFileSync(PRIVATE_FILE, JSON.stringify(out, null, 2));
+        fs.writeFile(PRIVATE_FILE, JSON.stringify(out, null, 2), () => {});
     } catch(e){}
 }
 function saveGroups() {
     try {
         const out = {};
         for (const id in groups) out[id] = { ...groups[id], messages: encryptMessagesForSave(groups[id].messages) };
-        fs.writeFileSync(GROUPS_FILE, JSON.stringify(out, null, 2));
+        fs.writeFile(GROUPS_FILE, JSON.stringify(out, null, 2), () => {});
     } catch(e){}
 }
 function saveChannels() {
     try {
         const out = {};
         for (const id in channels) out[id] = { ...channels[id], messages: encryptMessagesForSave(channels[id].messages) };
-        fs.writeFileSync(CHANNELS_FILE, JSON.stringify(out, null, 2));
+        fs.writeFile(CHANNELS_FILE, JSON.stringify(out, null, 2), () => {});
     } catch(e){}
 }
 function saveSessions() { try { fs.writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(sessions), null, 2)); } catch(e){} }
@@ -478,10 +486,18 @@ function kickExistingSession(nick) {
             usersOnline.delete(c);
             rate.delete(c);
             try {
+                // Пытаемся ещё и текстом — но полагаться на него нельзя (гонка
+                // между message/close на клиенте), поэтому основной сигнал —
+                // код закрытия 4001, он передаётся атомарно вместе с close
+                // и не может "потеряться" или прийти не в том порядке.
                 c.send(JSON.stringify({ type: "error", text: "Вы вошли с другого устройства/вкладки" }));
-                c.close();
             } catch (e) {}
-            try { c.terminate(); } catch (e) {}
+            try { c.close(4001, "kicked_by_new_session"); } catch (e) {}
+            // terminate() обрывает сокет мгновенно и жёстко — если вызвать его
+            // сразу же, "честный" close() выше может не успеть доставить код
+            // клиенту. Даём небольшую фору, terminate — только подстраховка
+            // на случай, если соединение вообще не отвечает.
+            setTimeout(() => { try { c.terminate(); } catch (e) {} }, 300);
         }
     }
 }
@@ -1004,10 +1020,10 @@ function sendChannelMessage(channelId, from, msgData) {
     if (channels[channelId].messages.length > 500) {
         channels[channelId].messages = channels[channelId].messages.slice(-500);
     }
-    saveChannels();
     for (const sub of channels[channelId].subscribers) {
         sendToUser(sub, { type: "channel_msg", channelId, data: m });
     }
+    saveChannels();
 }
 
 // ===== КОММЕНТАРИИ К ПОСТАМ КАНАЛА =====
@@ -1163,7 +1179,6 @@ function sendGroupMessage(groupId, from, msgData) {
     if (groups[groupId].messages.length > 500) {
         groups[groupId].messages = groups[groupId].messages.slice(-500);
     }
-    saveGroups();
     for (const member of groups[groupId].members) {
         const delivered = sendToUser(member, { type: "group_msg", groupId, data: m });
         updateLastChat(member, "group", groupId, m.text || "📎 Вложение");
@@ -1171,6 +1186,7 @@ function sendGroupMessage(groupId, from, msgData) {
             sendPushToUser(member, { title: `${groups[groupId].name}: ${from}`, body: m.text || "📎 Вложение", tag: `group_${groupId}` });
         }
     }
+    saveGroups();
 }
 
 // ============================================================
@@ -1387,12 +1403,22 @@ function handleUpload(ws, msg, folder, type) {
         ws.send(JSON.stringify({ type: "error", text: "Недопустимое имя файла" }));
         return;
     }
+    // Асинхронная запись — не блокирует сервер для остальных пользователей,
+    // пока пишется файл (актуально для голосовых/музыки/видео покрупнее)
+    let buf;
     try {
-        fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
-        ws.send(JSON.stringify({ type: type, url: `/${folder}/${filename}`, filename: msg.filename || filename }));
-    } catch(e) {
-        ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения файла" }));
+        buf = Buffer.from(msg.data, "base64");
+    } catch (e) {
+        ws.send(JSON.stringify({ type: "error", text: "Повреждённые данные файла" }));
+        return;
     }
+    fs.writeFile(filepath, buf, (err) => {
+        if (err) {
+            ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения файла" }));
+            return;
+        }
+        ws.send(JSON.stringify({ type: type, url: `/${folder}/${filename}`, filename: msg.filename || filename }));
+    });
 }
 
 // ============================================================
@@ -1621,6 +1647,7 @@ wss.on("connection", (ws) => {
                     groups: Object.values(groups).filter(g => g.members.includes(nick)),
                     channels: getChannelsForUser(nick),
                     lastChats: getLastChats(nick),
+                    allUsers: nick === "Дима" ? Object.keys(usersDB).filter(n => n !== nick) : [],
                     isDima: nick === "Дима",
                     reputation: userReputation.get(nick) || 0,
                     token: token,
@@ -1730,6 +1757,7 @@ wss.on("connection", (ws) => {
                 groups: Object.values(groups).filter(g => g.members.includes(nick)),
                 channels: getChannelsForUser(nick),
                 lastChats: getLastChats(nick),
+                allUsers: nick === "Дима" ? Object.keys(usersDB).filter(n => n !== nick) : [],
                 isDima: nick === "Дима",
                 reputation: userReputation.get(nick) || 0
             }));
@@ -2295,9 +2323,9 @@ wss.on("connection", (ws) => {
             };
             history.push(m);
             if (history.length > 500) history = history.slice(-500);
-            savePublic();
             updateLastChat(currentUser, "public", "public", m.text || "📎 Вложение");
             broadcast({ type: "msg", data: m });
+            savePublic();
             return;
         }
 
@@ -2344,7 +2372,6 @@ wss.on("connection", (ws) => {
             };
             privateHistory[key].push(m);
             if (privateHistory[key].length > 500) privateHistory[key] = privateHistory[key].slice(-500);
-            savePrivate();
             updateLastChat(currentUser, "private", msg.target, m.text || "📎 Вложение");
             updateLastChat(msg.target, "private", currentUser, m.text || "📎 Вложение");
             sendToUser(currentUser, { type: "private_msg", data: m, with: msg.target });
@@ -2352,6 +2379,7 @@ wss.on("connection", (ws) => {
                 const delivered = sendToUser(msg.target, { type: "private_msg", data: m, with: currentUser });
                 if (!delivered) sendPushToUser(msg.target, { title: currentUser, body: m.text || "📎 Вложение", tag: `private_${currentUser}` });
             }
+            savePrivate();
             return;
         }
 
@@ -2489,14 +2517,12 @@ wss.on("connection", (ws) => {
                 ws.send(JSON.stringify({ type: "error", text: "Голосовое слишком большое (макс 5MB)" }));
                 return;
             }
-            const filename = Date.now() + "_" + currentUser + ".webm";
+            const filename = Date.now() + "_" + sanitizeFilename(currentUser) + ".webm";
             const filepath = path.join("voice", filename);
-            try {
-                fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
+            fs.writeFile(filepath, Buffer.from(msg.data, "base64"), (err) => {
+                if (err) { ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения голосового" })); return; }
                 ws.send(JSON.stringify({ type: "voice_uploaded", url: `/voice/${filename}` }));
-            } catch(e) {
-                ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения голосового" }));
-            }
+            });
             return;
         }
 
@@ -2505,14 +2531,12 @@ wss.on("connection", (ws) => {
                 ws.send(JSON.stringify({ type: "error", text: "Стикер слишком большой (макс 1MB)" }));
                 return;
             }
-            const filename = Date.now() + "_" + currentUser + ".png";
+            const filename = Date.now() + "_" + sanitizeFilename(currentUser) + ".png";
             const filepath = path.join("stickers", filename);
-            try {
-                fs.writeFileSync(filepath, Buffer.from(msg.data, "base64"));
+            fs.writeFile(filepath, Buffer.from(msg.data, "base64"), (err) => {
+                if (err) { ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения стикера" })); return; }
                 ws.send(JSON.stringify({ type: "sticker_uploaded", url: `/stickers/${filename}` }));
-            } catch(e) {
-                ws.send(JSON.stringify({ type: "error", text: "Ошибка сохранения стикера" }));
-            }
+            });
             return;
         }
 
@@ -2577,6 +2601,30 @@ wss.on("connection", (ws) => {
         // ============================================================
         // ГЛОБАЛЬНЫЙ ПОИСК ПО ТЕКСТУ СООБЩЕНИЙ (во всех своих чатах разом)
         // ============================================================
+        // ============================================================
+        // ПОИСК ПОЛЬЗОВАТЕЛЯ ПО НИКУ
+        // ============================================================
+        // Обычные пользователи НЕ видят список всех подряд — только точное
+        // совпадение ника (нельзя "подобрать" чужие ники подсказками).
+        // Дима — единственный, кто видит полный список и поиск по вхождению.
+        if (msg.type === "search_user") {
+            const q = (msg.query || "").trim();
+            if (!q) { ws.send(JSON.stringify({ type: "search_user_result", results: [] })); return; }
+            let matches;
+            if (currentUser === "Дима") {
+                const ql = q.toLowerCase();
+                matches = Object.keys(usersDB).filter(n => n !== currentUser && n.toLowerCase().includes(ql));
+            } else {
+                matches = Object.keys(usersDB).filter(n => n !== currentUser && n.toLowerCase() === q.toLowerCase());
+            }
+            const results = matches.slice(0, 20).map(n => ({
+                nick: n,
+                online: Array.from(usersOnline.values()).includes(n)
+            }));
+            ws.send(JSON.stringify({ type: "search_user_result", results }));
+            return;
+        }
+
         if (msg.type === "global_search") {
             const q = (msg.query || "").toLowerCase().trim();
             if (!q || q.length < 2) {
