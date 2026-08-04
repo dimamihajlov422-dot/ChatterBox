@@ -3283,12 +3283,17 @@ function connect() {
     ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host);
     ws.onopen = () => { console.log("✅ WebSocket подключен"); updateConnectionStatus("🟢 Онлайн"); tryAutoLogin(); };
     ws.onerror = () => { authError.textContent = "Ошибка подключения к серверу"; updateConnectionStatus("🔴 Ошибка"); };
-    ws.onclose = () => {
-        if (wasKickedByAnotherSession) {
+    ws.onclose = (closeEvent) => {
+        if (wasKickedByAnotherSession || (closeEvent && closeEvent.code === 4001)) {
             // Нас осознанно выкинули (вход с другого устройства/вкладки) —
             // НЕ переподключаемся автоматически: иначе получится бесконечный
             // цикл "переподключились → снова выкинуты → переподключились...",
-            // из-за которого аккаунт как будто постоянно "слетает"
+            // из-за которого аккаунт как будто постоянно "слетает".
+            // Код 4001 читаем напрямую из самого события close — это надёжнее
+            // отдельного текстового сообщения, у которого нет гарантии, что
+            // оно успеет обработаться раньше, чем сработает close.
+            wasKickedByAnotherSession = true;
+            localStorage.removeItem("chat_token");
             updateConnectionStatus("🔴 Сессия завершена");
             logged = false;
             authScreen.classList.remove("hidden");
