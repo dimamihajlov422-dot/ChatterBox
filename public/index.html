@@ -1428,6 +1428,87 @@ body.dark .call-status { background: var(--card-bg-dark); border-color: var(--bo
 }
 body.dark .call-status button { color: var(--text); }
 
+/* ============================================================
+   ПОЛНОЭКРАННЫЙ ЭКРАН ЗВОНКА
+   ============================================================ */
+.call-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(160deg, #1a2a3a 0%, #0d1620 100%);
+    z-index: 9200;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 60px 24px 40px;
+    color: #fff;
+    overflow: hidden;
+}
+.call-screen.open { display: flex; }
+
+.call-screen-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+    position: relative;
+    z-index: 2;
+}
+.call-screen-avatar {
+    width: 96px; height: 96px;
+    border-radius: 32px;
+    background: rgba(255,255,255,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px; font-weight: 700; color: #fff;
+    margin-bottom: 10px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+.call-screen-name { font-size: 24px; font-weight: 700; color: #fff; }
+.call-screen-status { font-size: 15px; opacity: 0.75; color: #fff; }
+.call-screen-diag { font-size: 11px; opacity: 0.55; color: #fff; text-align: center; max-width: 300px; margin-top: 6px; }
+
+.call-screen-minimize {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    border: none;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 3;
+}
+.call-screen-minimize:active { transform: scale(0.9); }
+
+.call-screen-controls {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+}
+.call-control-btn {
+    width: 62px; height: 62px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, transform 0.15s;
+}
+.call-control-btn:active { transform: scale(0.92); }
+.call-control-btn.muted { background: #fff; color: #1a2a3a; }
+.call-control-btn.camera-off { background: #fff; color: #1a2a3a; }
+.call-control-btn.end { background: #e53935; width: 68px; height: 68px; font-size: 26px; }
+
+#callScreenRemoteVideo, #callScreenLocalVideo { display: none; } /* видео позиционируется отдельными плавающими блоками, как раньше */
+
 .group-members-panel {
     position: fixed;
     bottom: 90px;
@@ -2390,6 +2471,26 @@ body.dark .directory-screen {
     <button id="endCallBtn">Завершить</button>
 </div>
 
+<!-- ===== ПОЛНОЭКРАННЫЙ ЭКРАН ЗВОНКА ===== -->
+<div class="call-screen" id="callScreen">
+    <div class="call-screen-top">
+        <div class="call-screen-avatar" id="callScreenAvatar">?</div>
+        <div class="call-screen-name" id="callScreenName">—</div>
+        <div class="call-screen-status" id="callScreenStatus">Вызов...</div>
+        <div class="call-screen-diag" id="callScreenDiag"></div>
+    </div>
+    <button class="call-screen-minimize" id="callScreenMinimize" title="Свернуть">⌄</button>
+    <div class="call-screen-controls">
+        <button class="call-control-btn" id="callMuteBtn" title="Микрофон">
+            <span id="callMuteIcon">🎤</span>
+        </button>
+        <button class="call-control-btn hidden" id="callCameraBtn" title="Камера">
+            <span id="callCameraIcon">📹</span>
+        </button>
+        <button class="call-control-btn end" id="callScreenEndBtn" title="Завершить">📵</button>
+    </div>
+</div>
+
 <div class="modal" id="modal"><span class="close">&times;</span><img id="modalImg" src=""></div>
 
 <script>
@@ -2493,6 +2594,17 @@ const callStatusDiv = document.getElementById("callStatus");
 const callStatusText = document.getElementById("callStatusText");
 const callDiagLine = document.getElementById("callDiagLine");
 const callDiagLineMic = document.getElementById("callDiagLineMic");
+const callScreen = document.getElementById("callScreen");
+const callScreenAvatar = document.getElementById("callScreenAvatar");
+const callScreenName = document.getElementById("callScreenName");
+const callScreenStatus = document.getElementById("callScreenStatus");
+const callScreenDiag = document.getElementById("callScreenDiag");
+const callScreenMinimize = document.getElementById("callScreenMinimize");
+const callMuteBtn = document.getElementById("callMuteBtn");
+const callMuteIcon = document.getElementById("callMuteIcon");
+const callCameraBtn = document.getElementById("callCameraBtn");
+const callCameraIcon = document.getElementById("callCameraIcon");
+const callScreenEndBtn = document.getElementById("callScreenEndBtn");
 const endCallBtn = document.getElementById("endCallBtn");
 const modal = document.getElementById("modal");
 const modalImg = document.getElementById("modalImg");
@@ -2645,21 +2757,61 @@ let groupLocalStream = null;
 
 // STUN помогает установить прямое соединение, но не справляется со многими типами NAT
 // (мобильный интернет, некоторые Wi-Fi роутеры и т.д.) — тогда без TURN-сервера
-// звонок просто не соединится. Ниже — бесплатный публичный TURN (Open Relay Project),
-// он ограничен по трафику и не гарантирует SLA. Для действительно стабильных звонков
-// как в Telegram рекомендуется свой TURN (coturn) или платный сервис (Twilio, Xirsys,
-// Metered.ca) — тогда просто замените этот массив на свои учётные данные.
-const servers = {
-    iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
-        { urls: "stun:stun2.l.google.com:19302" },
-        { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
-        { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
-        { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
-    ],
-    iceCandidatePoolSize: 4
-};
+// звонок просто не соединится.
+//
+// ВАЖНО: старые статические учётки openrelayproject/openrelayproject у Open
+// Relay Project (metered.ca) больше НЕ гарантированно работают между разными
+// сетями — сервис перешёл на выдачу временных креденшлов по API-ключу.
+// Чтобы получить рабочий TURN бесплатно:
+//   1. Зарегистрируйтесь на https://www.metered.ca (бесплатный тариф — не
+//      нужна банковская карта).
+//   2. В личном кабинете создайте TURN-проект — получите "Metered Domain"
+//      (например, chatterbox.metered.live) и API Key.
+//   3. Впишите их ниже в METERED_APP_NAME и METERED_API_KEY.
+// Без этого используются старые статические учётки как резервный вариант —
+// они могут работать не всегда, особенно между разными провайдерами/городами.
+const METERED_APP_NAME = ""; // например "chatterbox" (без ".metered.live")
+const METERED_API_KEY = "";  // ваш API-ключ из личного кабинета Metered
+
+const FALLBACK_ICE_SERVERS = [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun2.l.google.com:19302" },
+    { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+    { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+    { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
+];
+
+let cachedIceServers = null;
+let iceServersFetchedAt = 0;
+
+// Получает актуальный список ICE-серверов (STUN+TURN). Кэширует на 30 минут,
+// чтобы не дёргать API перед каждым звонком. Если Metered не настроен или
+// недоступен — тихо откатывается на резервный список.
+async function getIceServers() {
+    if (cachedIceServers && (Date.now() - iceServersFetchedAt) < 30 * 60 * 1000) {
+        return cachedIceServers;
+    }
+    if (METERED_APP_NAME && METERED_API_KEY) {
+        try {
+            const resp = await fetch(`https://${METERED_APP_NAME}.metered.live/api/v1/turn/credentials?apiKey=${METERED_API_KEY}`);
+            if (resp.ok) {
+                const iceServers = await resp.json();
+                if (Array.isArray(iceServers) && iceServers.length) {
+                    cachedIceServers = iceServers;
+                    iceServersFetchedAt = Date.now();
+                    console.log("✅ Получены свежие TURN-креденшлы от Metered");
+                    return cachedIceServers;
+                }
+            }
+        } catch (e) {
+            console.log("⚠️ Не удалось получить TURN-креды от Metered, использую резервные:", e.message);
+        }
+    }
+    cachedIceServers = FALLBACK_ICE_SERVERS;
+    iceServersFetchedAt = Date.now();
+    return cachedIceServers;
+}
 
 // ============================================================
 // УПРАВЛЕНИЕ РАЗРЕШЕНИЯМИ
@@ -3124,12 +3276,26 @@ function openModal(src) {
 // ПОДКЛЮЧЕНИЕ К СЕРВЕРУ
 // ============================================================
 
+let wasKickedByAnotherSession = false;
+
 function connect() {
     updateConnectionStatus("🟡 Подключение...");
     ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host);
     ws.onopen = () => { console.log("✅ WebSocket подключен"); updateConnectionStatus("🟢 Онлайн"); tryAutoLogin(); };
     ws.onerror = () => { authError.textContent = "Ошибка подключения к серверу"; updateConnectionStatus("🔴 Ошибка"); };
     ws.onclose = () => {
+        if (wasKickedByAnotherSession) {
+            // Нас осознанно выкинули (вход с другого устройства/вкладки) —
+            // НЕ переподключаемся автоматически: иначе получится бесконечный
+            // цикл "переподключились → снова выкинуты → переподключились...",
+            // из-за которого аккаунт как будто постоянно "слетает"
+            updateConnectionStatus("🔴 Сессия завершена");
+            logged = false;
+            authScreen.classList.remove("hidden");
+            mainApp.classList.add("hidden");
+            authError.textContent = "Вы вошли с другого устройства или вкладки";
+            return;
+        }
         updateConnectionStatus("🟡 Переподключение...");
         if (reconnectTimer) clearTimeout(reconnectTimer);
         reconnectTimer = setTimeout(connect, 2000);
@@ -3137,6 +3303,10 @@ function connect() {
     ws.onmessage = (e) => {
         let d; try { d = JSON.parse(e.data); } catch { return; }
         if (d.type === "error") {
+            if (d.text && d.text.includes("вошли с другого устройства")) {
+                wasKickedByAnotherSession = true;
+                localStorage.removeItem("chat_token"); // токен больше не актуален — не пытаться им повторно логиниться
+            }
             if (!authScreen.classList.contains("hidden")) authError.textContent = d.text;
             else alert("❌ " + d.text);
             return;
@@ -3155,6 +3325,7 @@ function connect() {
             return;
         }
         if (d.type === "login_success") {
+            wasKickedByAnotherSession = false;
             logged = true; currentNick = d.nick;
             isDimaUser = d.isDima || false;
             currentNickSpan.innerHTML = currentNick + (isDimaUser ? '<span class="star">⭐</span>' : '');
@@ -3165,6 +3336,7 @@ function connect() {
             if (d.groups) myGroups = d.groups;
             if (d.channels) myChannels = d.channels;
             if (d.lastChats) myLastChats = d.lastChats;
+            if (d.allUsers) allUsers = [...new Set([...d.allUsers, ...allUsers])];
             if (d.profile) updateProfileUI(d.profile, false);
             if (d.stickers) myStickers = d.stickers;
             switchToPublic();
@@ -3306,6 +3478,9 @@ function connect() {
         }
         if (d.type === "global_search_results") {
             renderMessageSearchResults(d.results);
+        }
+        if (d.type === "search_user_result") {
+            renderUserSearchResult(d.results);
         }
         if (d.type === "blocked_users") {
             blockedUsersList = d.list || [];
@@ -5231,7 +5406,8 @@ async function startCall(targetNick, video = false) {
     iceQueue = [];
     remoteDescriptionSet = false;
     try {
-        pc = new RTCPeerConnection(servers);
+        const iceServers = await getIceServers();
+        pc = new RTCPeerConnection({ iceServers, iceCandidatePoolSize: 4 });
         try {
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: video });
         } catch(mediaErr) {
@@ -5339,6 +5515,7 @@ async function handleOffer(msg) {
 // пользователя, и play() гарантированно сработает.
 function updateCallDiag(text) {
     if (callDiagLine) callDiagLine.textContent = text;
+    if (callScreenDiag) callScreenDiag.textContent = text;
 }
 function updateMicDiag(text) {
     if (callDiagLineMic) callDiagLineMic.textContent = text;
@@ -5354,6 +5531,7 @@ function attachAudioLevelMeter(stream, onLevel) {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (!AudioCtx) return;
         const audioCtx = new AudioCtx();
+        if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
         const source = audioCtx.createMediaStreamSource(stream);
         const analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256;
@@ -5361,6 +5539,7 @@ function attachAudioLevelMeter(stream, onLevel) {
         const data = new Uint8Array(analyser.frequencyBinCount);
         const interval = setInterval(() => {
             if (!currentCallUser && !groupCallActive) { clearInterval(interval); audioCtx.close().catch(()=>{}); return; }
+            if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
             analyser.getByteFrequencyData(data);
             const avg = data.reduce((a, b) => a + b, 0) / data.length;
             onLevel(avg);
@@ -5451,7 +5630,8 @@ async function acceptCall() {
     isVideoCall = pendingOffer.video || false;
     showCallStatus(currentCallUser, false);
     try {
-        pc = new RTCPeerConnection(servers);
+        const iceServers = await getIceServers();
+        pc = new RTCPeerConnection({ iceServers, iceCandidatePoolSize: 4 });
         try {
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
         } catch(mediaErr) {
@@ -5602,14 +5782,79 @@ function endCall() {
     if (groupCallActive) endGroupCall();
 }
 
+let callDurationInterval = null;
+let callDurationStart = null;
+
+function startCallDurationTimer() {
+    if (callDurationInterval) return; // уже идёт
+    callDurationStart = Date.now();
+    callDurationInterval = setInterval(() => {
+        const secs = Math.floor((Date.now() - callDurationStart) / 1000);
+        const mm = Math.floor(secs / 60).toString().padStart(2, "0");
+        const ss = (secs % 60).toString().padStart(2, "0");
+        callScreenStatus.textContent = `${mm}:${ss}`;
+    }, 1000);
+}
+function stopCallDurationTimer() {
+    if (callDurationInterval) { clearInterval(callDurationInterval); callDurationInterval = null; }
+    callDurationStart = null;
+}
+
+function resetCallControlButtons() {
+    callMuteBtn.classList.remove("muted");
+    callMuteIcon.textContent = "🎤";
+    callCameraBtn.classList.remove("camera-off");
+    callCameraIcon.textContent = "📹";
+    callCameraBtn.classList.add("hidden");
+}
+
 function showCallStatus(withNick, ringing) {
     callStatusText.innerHTML = ringing ? `📞 Звоним ${withNick}...` : `🟢 В звонке с ${withNick}`;
     callStatusDiv.style.display = "flex";
+
+    callScreenAvatar.textContent = (withNick || "?").charAt(0).toUpperCase();
+    callScreenName.textContent = withNick || "";
+    if (ringing) {
+        callScreenStatus.textContent = "Вызов...";
+        stopCallDurationTimer();
+    } else {
+        startCallDurationTimer();
+    }
+    if (isVideoCall || groupCallVideo) callCameraBtn.classList.remove("hidden");
+    callScreen.classList.add("open");
 }
 
 function hideCallStatus() {
     callStatusDiv.style.display = "none";
+    callScreen.classList.remove("open");
+    stopCallDurationTimer();
+    resetCallControlButtons();
 }
+
+function toggleCallMute() {
+    const stream = localStream || groupLocalStream;
+    if (!stream) return;
+    const track = stream.getAudioTracks()[0];
+    if (!track) return;
+    track.enabled = !track.enabled;
+    callMuteBtn.classList.toggle("muted", !track.enabled);
+    callMuteIcon.textContent = track.enabled ? "🎤" : "🔇";
+}
+
+function toggleCallCamera() {
+    const stream = localStream || groupLocalStream;
+    if (!stream) return;
+    const track = stream.getVideoTracks()[0];
+    if (!track) return;
+    track.enabled = !track.enabled;
+    callCameraBtn.classList.toggle("camera-off", !track.enabled);
+    callCameraIcon.textContent = track.enabled ? "📹" : "🚫";
+}
+
+callMuteBtn.onclick = toggleCallMute;
+callCameraBtn.onclick = toggleCallCamera;
+callScreenEndBtn.onclick = () => endCall();
+callScreenMinimize.onclick = () => callScreen.classList.remove("open");
 
 function hideIncomingCall() {
     incomingCallDiv.style.display = "none";
@@ -5671,7 +5916,8 @@ async function startGroupCall(video) {
 }
 
 async function callGroupMember(nick, video) {
-    const peer = new RTCPeerConnection(servers);
+    const iceServers = await getIceServers();
+    const peer = new RTCPeerConnection({ iceServers, iceCandidatePoolSize: 4 });
     groupPeers[nick] = peer;
     groupLocalStream.getTracks().forEach(track => peer.addTrack(track, groupLocalStream));
     peer.ontrack = (event) => {
@@ -6402,7 +6648,7 @@ function directoryItemHTML(icon, name, sub, onclick, badgeCount, timeLabel) {
              ${badgeCount ? `<span class="dir-badge">${badgeCount > 99 ? "99+" : badgeCount}</span>` : ""}
            </div>`
         : "";
-    return `<div class="dir-item" onclick="${onclick}">
+    return `<div class="dir-item" data-name="${escapeHtml(name)}" onclick="${onclick}">
         <div class="dir-avatar">${icon}</div>
         <div class="dir-info">
             <div class="dir-name">${escapeHtml(name)}</div>
@@ -6460,7 +6706,11 @@ function renderDirectory(filter) {
         });
     }
 
-    const contactsList = (allUsers || []).filter(u => u !== currentNick && (!q || u.toLowerCase().includes(q)));
+    // Обычные пользователи не видят список всех подряд — только тех, с кем
+    // уже есть переписка, и тех, кто сейчас онлайн. У Димы — полный список.
+    const historicalContacts = (myLastChats || []).filter(c => c.chatType === "private").map(c => c.chatId);
+    const contactsSource = isDima() ? (allUsers || []) : [...new Set([...(allUsers || []), ...historicalContacts])];
+    const contactsList = contactsSource.filter(u => u !== currentNick && (!q || u.toLowerCase().includes(q)));
     if (contactsList.length) {
         html += `<div class="dir-section">${tr("dirSectionContacts")}</div>`;
         // Сначала те, с кем уже есть переписка (свежее — выше), потом остальные контакты
@@ -6485,7 +6735,32 @@ function renderDirectory(filter) {
         });
     }
 
+    // Поиск конкретного человека по нику (для всех, кроме Димы — только точное
+    // совпадение, сервер сам это ограничивает) — не браузинг, а точечный поиск
+    const searchSection = document.createElement("div");
+    searchSection.id = "dirUserSearchSection";
+    if (!isDima() && q && q.length >= 2) {
+        if (userSearchDebounce) clearTimeout(userSearchDebounce);
+        userSearchDebounce = setTimeout(() => {
+            if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "search_user", query: q }));
+        }, 250);
+    }
+
     directoryBody.innerHTML = html || `<div class="gs-empty">${tr("dirEmpty")}</div>`;
+    directoryBody.appendChild(searchSection);
+}
+
+function renderUserSearchResult(results) {
+    const section = document.getElementById("dirUserSearchSection");
+    if (!section) return;
+    const known = new Set(Array.from(directoryBody.querySelectorAll(".dir-item")).map(el => el.dataset.name));
+    const fresh = (results || []).filter(r => r.nick !== currentNick && !known.has(r.nick));
+    if (fresh.length === 0) { section.innerHTML = ""; return; }
+    let html = `<div class="dir-section">🔍 Найдено по нику</div>`;
+    fresh.forEach(r => {
+        html += directoryItemHTML(r.nick.charAt(0).toUpperCase(), r.nick, r.online ? tr("statusOnline") : tr("statusOffline"), `openDirectoryChat('contact','${dirEsc(r.nick)}')`);
+    });
+    section.innerHTML = html;
 }
 
 function openDirectoryChat(type, id) {
@@ -6503,6 +6778,7 @@ function openDirectoryChat(type, id) {
 
 if (dirCloseBtn) dirCloseBtn.onclick = closeDirectory;
 let dirSearchDebounce = null;
+let userSearchDebounce = null;
 if (dirSearchInput) dirSearchInput.addEventListener("input", () => {
     if (dirSearchDebounce) clearTimeout(dirSearchDebounce);
     dirSearchDebounce = setTimeout(() => renderDirectory(dirSearchInput.value), 150);
@@ -6709,6 +6985,7 @@ function syncBackGuardOnManualClose() {
 window.addEventListener("popstate", () => {
     backGuardActive = false;
 
+    if (callScreen.classList.contains("open")) { callScreen.classList.remove("open"); return; }
     if (modal.classList.contains("open")) { modal.classList.remove("open"); return; }
     if (messageMenu.style.display === "flex") { messageMenu.style.display = "none"; return; }
     if (attachPanel.classList.contains("open")) { attachPanel.classList.remove("open"); return; }
